@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked > lib/database.types.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -40,6 +42,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "prettier": "^3.8.3",
+    "supabase": "^2.98.0",
     "typescript": "~5.9.2"
   },
   "private": true
