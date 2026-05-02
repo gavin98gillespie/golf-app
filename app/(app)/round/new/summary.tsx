@@ -7,6 +7,8 @@ import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleScoreGrid } from '@/components/HoleScoreGrid';
 import { useFinalizeRound, useRoundHoles } from '@/lib/queries/rounds';
+import { usePersonalBestAtCourse } from '@/lib/queries/stats';
+import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
 
 type RoundWithCourse = Tables<'rounds'> & {
@@ -41,6 +43,17 @@ export default function Summary() {
     const par = scored.reduce((a, h) => a + h.par, 0);
     return { score, par, diff: score - par };
   }, [holesQ.data]);
+
+  const { session } = useSession();
+  const courseId = roundQ.data?.course_id;
+  const bestQ = usePersonalBestAtCourse(session?.user.id, courseId);
+
+  // Personal-best query filters is_draft=false so the in-progress round (which
+  // is still a draft until Save is tapped) is never in bestQ.data. So:
+  // - bestQ.data == null → first ever completed round at this course
+  // - totals.score < bestQ.data.total_score → new best
+  const isNewBest =
+    bestQ.isFetched && (bestQ.data == null || totals.score < bestQ.data.total_score);
 
   async function onSave() {
     if (!roundId) return;
@@ -78,6 +91,18 @@ export default function Summary() {
           {totals.par}
         </Text>
       </View>
+
+      {isNewBest ? (
+        <View className="bg-accent-soft border border-accent rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
+          <Text className="text-base">🏆</Text>
+          <Text className="text-accent font-semibold text-sm">
+            {bestQ.data == null ? 'First round at this course!' : 'New course best'}
+          </Text>
+          {bestQ.data != null ? (
+            <Text className="text-text-secondary text-xs">(was {bestQ.data.total_score})</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4">
         <Text className="text-text-secondary text-xs uppercase tracking-wider mb-3">Holes</Text>
