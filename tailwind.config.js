@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './app/**/*.{js,jsx,ts,tsx}',
-    './components/**/*.{js,jsx,ts,tsx}',
-  ],
+  content: ['./app/**/*.{js,jsx,ts,tsx}', './components/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
@@ -15,7 +12,7 @@ module.exports = {
         'text-primary': '#f0efe8',
         'text-secondary': '#7a8a82',
         'text-muted': '#4a5a52',
-        'accent': '#4ade80',
+        accent: '#4ade80',
         'accent-soft': 'rgba(74, 222, 128, 0.06)',
       },
       fontFamily: {

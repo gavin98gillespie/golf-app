@@ -88,6 +88,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 1: Initialize Expo project
 
 **Files:**
+
 - Create: `package.json`, `app.json`, `App.tsx`, `tsconfig.json` (all generated)
 - Create: `.gitignore` (generated)
 
@@ -130,6 +131,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 2: Enable TypeScript strict mode
 
 **Files:**
+
 - Modify: `tsconfig.json`
 
 - [ ] **Step 2.1: Update tsconfig.json**
@@ -148,12 +150,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
         "@/*": ["./*"]
       }
     },
-    "include": [
-      "**/*.ts",
-      "**/*.tsx",
-      ".expo/types/**/*.ts",
-      "expo-env.d.ts"
-    ]
+    "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
   }
   ```
 
@@ -175,6 +172,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 3: Install Expo Router
 
 **Files:**
+
 - Modify: `package.json` (auto), `app.json`, `App.tsx` (will be deleted in Task 7)
 - Create: `app/_layout.tsx`, `app/index.tsx`
 
@@ -255,7 +253,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 
   Expected: Metro starts. Press `i` to open iOS simulator (or scan QR on iPhone). Should see "Hello, Golf" centered on a white screen. Press `q` to quit.
 
-  *If iOS simulator isn't installed:* skip the `i` step; just confirm Metro starts cleanly. We'll test on the iPhone in Task 9.
+  _If iOS simulator isn't installed:_ skip the `i` step; just confirm Metro starts cleanly. We'll test on the iPhone in Task 9.
 
 - [ ] **Step 3.8: Commit**
 
@@ -269,6 +267,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 4: Install + configure NativeWind 4
 
 **Files:**
+
 - Modify: `package.json`, `babel.config.js`, `metro.config.js`, `tsconfig.json`
 - Create: `global.css`, `nativewind-env.d.ts`, `tailwind.config.js`
 
@@ -293,10 +292,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
   ```js
   /** @type {import('tailwindcss').Config} */
   module.exports = {
-    content: [
-      './app/**/*.{js,jsx,ts,tsx}',
-      './components/**/*.{js,jsx,ts,tsx}',
-    ],
+    content: ['./app/**/*.{js,jsx,ts,tsx}', './components/**/*.{js,jsx,ts,tsx}'],
     presets: [require('nativewind/preset')],
     theme: {
       extend: {
@@ -309,7 +305,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
           'text-primary': '#f0efe8',
           'text-secondary': '#7a8a82',
           'text-muted': '#4a5a52',
-          'accent': '#4ade80',
+          accent: '#4ade80',
           'accent-soft': 'rgba(74, 222, 128, 0.06)',
         },
         fontFamily: {
@@ -343,10 +339,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
   module.exports = function (api) {
     api.cache(true);
     return {
-      presets: [
-        ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
-        'nativewind/babel',
-      ],
+      presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
     };
   };
   ```
@@ -440,6 +433,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 5: Install Inter font
 
 **Files:**
+
 - Modify: `app/_layout.tsx`
 - Create: `theme/typography.ts`
 
@@ -454,9 +448,15 @@ These are the items only the user can do. Some have lead time (Apple Developer v
   Create file `theme/typography.ts`:
 
   ```ts
-  export const FONT_WEIGHTS = ['Inter_300Light', 'Inter_400Regular', 'Inter_500Medium', 'Inter_600SemiBold', 'Inter_700Bold'] as const;
+  export const FONT_WEIGHTS = [
+    'Inter_300Light',
+    'Inter_400Regular',
+    'Inter_500Medium',
+    'Inter_600SemiBold',
+    'Inter_700Bold',
+  ] as const;
 
-  export type FontWeight = typeof FONT_WEIGHTS[number];
+  export type FontWeight = (typeof FONT_WEIGHTS)[number];
   ```
 
 - [ ] **Step 5.3: Wire font loading in root layout**
@@ -519,9 +519,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
   export default function Index() {
     return (
       <View className="flex-1 items-center justify-center bg-bg-base">
-        <Text className="text-text-primary text-5xl font-light tracking-tight">
-          Hello, Golf
-        </Text>
+        <Text className="text-text-primary text-5xl font-light tracking-tight">Hello, Golf</Text>
         <Text className="text-text-secondary text-sm mt-2 tracking-wider uppercase">
           Phase 0 · Setup
         </Text>
@@ -548,6 +546,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 6: Create design-token modules
 
 **Files:**
+
 - Create: `theme/colors.ts`
 - Create: `theme/index.ts`
 
@@ -598,9 +597,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
   export default function Index() {
     return (
       <View className="flex-1 items-center justify-center bg-bg-base">
-        <Text className="text-text-primary text-5xl font-light tracking-tight">
-          Hello, Golf
-        </Text>
+        <Text className="text-text-primary text-5xl font-light tracking-tight">Hello, Golf</Text>
         <Text className="text-text-secondary text-sm mt-2 tracking-wider uppercase">
           Phase 0 · Setup
         </Text>
@@ -635,6 +632,7 @@ These are the items only the user can do. Some have lead time (Apple Developer v
 ## Task 7: App icon + splash screen (placeholder)
 
 **Files:**
+
 - Create: `assets/icon.png` (1024x1024 placeholder)
 - Create: `assets/splash.png` (1284x2778 placeholder)
 - Modify: `app.json`
@@ -659,9 +657,9 @@ These are placeholders. Real designed icons come at the end of Phase 4 before Te
   "
   ```
 
-  *If `Pillow` is not installed:* run `python3 -m pip install Pillow` first.
+  _If `Pillow` is not installed:_ run `python3 -m pip install Pillow` first.
 
-  *If Python isn't available:* Skip to Step 7.4 — Expo will use its default icon and we'll add a designed one in Phase 4.
+  _If Python isn't available:_ Skip to Step 7.4 — Expo will use its default icon and we'll add a designed one in Phase 4.
 
 - [ ] **Step 7.2: Generate placeholder splash**
 
@@ -712,15 +710,12 @@ These are placeholders. Real designed icons come at the end of Phase 4 before Te
           "NSContactsUsageDescription": "Golf App uses your contacts to help you find friends to follow."
         }
       },
-      "plugins": [
-        "expo-router",
-        "expo-font"
-      ]
+      "plugins": ["expo-router", "expo-font"]
     }
   }
   ```
 
-  *Note on `bundleIdentifier`:* `com.golfapp.app` is a placeholder. The user must change this to a unique reverse-domain identifier they own (e.g., `com.<yourlastname>.golfapp`) before Phase 6 (App Store submission). Apple requires it to be globally unique.
+  _Note on `bundleIdentifier`:_ `com.golfapp.app` is a placeholder. The user must change this to a unique reverse-domain identifier they own (e.g., `com.<yourlastname>.golfapp`) before Phase 6 (App Store submission). Apple requires it to be globally unique.
 
 - [ ] **Step 7.5: Verify Expo loads the new config**
 
@@ -738,6 +733,7 @@ These are placeholders. Real designed icons come at the end of Phase 4 before Te
 ## Task 8: ESLint + Prettier
 
 **Files:**
+
 - Create: `.prettierrc`, `.eslintrc.js`
 - Modify: `package.json` (add scripts)
 
@@ -851,6 +847,7 @@ This is the moment of truth — the user holds their phone and sees Phase 0's de
 ## Task 10: Configure EAS Build
 
 **Files:**
+
 - Create: `eas.json`
 - Modify: `package.json`
 
@@ -925,13 +922,14 @@ This is the moment of truth — the user holds their phone and sees Phase 0's de
   git commit -m "chore: configure EAS Build profiles"
   ```
 
-  *Note:* We are NOT running an actual EAS build in Phase 0. EAS builds take 15–25 minutes and consume free-tier credits. We'll do the first real build in Phase 1 once we need a custom dev client (for Sign in with Apple). Phase 0 only requires Expo Go to validate visuals.
+  _Note:_ We are NOT running an actual EAS build in Phase 0. EAS builds take 15–25 minutes and consume free-tier credits. We'll do the first real build in Phase 1 once we need a custom dev client (for Sign in with Apple). Phase 0 only requires Expo Go to validate visuals.
 
 ---
 
 ## Task 11: Add README and .gitignore polish
 
 **Files:**
+
 - Create: `README.md`
 - Modify: `.gitignore`
 
@@ -968,6 +966,7 @@ This is the moment of truth — the user holds their phone and sees Phase 0's de
   Social golf-scoring iOS app. Track scorecards, follow friends, see a feed of recent rounds.
 
   ## Stack
+
   - React Native + Expo (TypeScript, strict mode)
   - Expo Router (file-based navigation)
   - NativeWind 4 (Tailwind-style styling)
@@ -986,17 +985,20 @@ This is the moment of truth — the user holds their phone and sees Phase 0's de
   Scan the QR code with your iPhone's camera to open the app in Expo Go.
 
   ## Scripts
+
   - \`npm run typecheck\` — TypeScript check
   - \`npm run lint\` — ESLint
   - \`npm run format\` — Prettier
   - \`npm test\` — Jest (configured in Phase 1)
 
   ## Design system
+
   - **Palette:** see \`theme/colors.ts\`
   - **Typography:** Inter (Light/Regular/Medium/SemiBold/Bold)
-  - **Tokens consumed via:** Tailwind classes (\`bg-bg-base\`, \`text-text-primary\`, etc.) or direct \`colors.*\` import
+  - **Tokens consumed via:** Tailwind classes (\`bg-bg-base\`, \`text-text-primary\`, etc.) or direct \`colors.\*\` import
 
   ## Documentation
+
   - Spec: \`~/.claude/plans/i-have-an-app-rippling-puzzle.md\`
   - Implementation plans: \`docs/superpowers/plans/\`
   ```
