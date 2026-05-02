@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -16,13 +16,22 @@ export default function Profile() {
 
   return (
     <ScreenContainer>
-      <View className="mt-8 mb-6">
-        <Text className="text-text-primary text-3xl font-light tracking-tight">
-          {profileQ.data?.display_name ?? '...'}
-        </Text>
-        <Text className="text-text-secondary text-sm mt-1">
-          @{profileQ.data?.username ?? '...'}
-        </Text>
+      <View className="mt-8 mb-6 flex-row items-start justify-between">
+        <View>
+          <Text className="text-text-primary text-3xl font-light tracking-tight">
+            {profileQ.data?.display_name ?? '...'}
+          </Text>
+          <Text className="text-text-secondary text-sm mt-1">
+            @{profileQ.data?.username ?? '...'}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          className="px-3 py-1 rounded-full border border-border-subtle active:opacity-60"
+          accessibilityLabel="Open settings"
+        >
+          <Text className="text-text-secondary text-xs uppercase tracking-wider">Settings</Text>
+        </Pressable>
       </View>
 
       <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">
