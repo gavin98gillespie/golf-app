@@ -1,18 +1,21 @@
-import { Pressable, Text } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { FeedRoundCard } from '@/components/FeedRoundCard';
 import { useSession } from '@/lib/hooks/useSession';
 import { useDraftRound } from '@/lib/queries/rounds';
+import { useFeed } from '@/lib/queries/feed';
 import { supabase, type Tables } from '@/lib/supabase';
 
 export default function Feed() {
   const { session } = useSession();
-  const draftQ = useDraftRound(session?.user.id);
+  const userId = session?.user.id;
 
-  // Look up the course name + hole_count for the draft (if any) so the banner
-  // is useful and we know how many holes to scan when resuming.
+  const draftQ = useDraftRound(userId);
+  const feedQ = useFeed(userId);
+
   const courseQ = useQuery({
     queryKey: ['course', draftQ.data?.course_id],
     queryFn: async () => {
@@ -28,7 +31,6 @@ export default function Feed() {
     enabled: !!draftQ.data?.course_id,
   });
 
-  // Compute next hole to resume at (smallest hole_number not yet scored).
   const totalHoles = courseQ.data?.hole_count ?? 18;
   const resumeQ = useQuery({
     queryKey: ['resume_hole', draftQ.data?.id, totalHoles],
@@ -47,34 +49,59 @@ export default function Feed() {
   });
 
   const draft = draftQ.data;
+  const feed = feedQ.data ?? [];
 
   return (
     <ScreenContainer>
-      <Text className="text-text-primary text-3xl font-light mt-8">Home</Text>
+      <FlatList
+        data={feed}
+        keyExtractor={(r) => r.id}
+        renderItem={({ item }) => <FeedRoundCard round={item} />}
+        ListHeaderComponent={
+          <View>
+            <Text className="text-text-primary text-3xl font-light mt-8">Home</Text>
 
-      {draft && courseQ.data ? (
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/round/new/score',
-              params: { roundId: draft.id, hole: String(resumeQ.data ?? 1) },
-            })
-          }
-          className="bg-bg-surface border border-accent rounded-2xl p-4 mt-4 active:opacity-80"
-        >
-          <Text className="text-accent text-xs uppercase tracking-wider font-semibold">
-            In progress
-          </Text>
-          <Text className="text-text-primary text-lg font-semibold mt-1">
-            Resume at {courseQ.data.name}
-          </Text>
-          <Text className="text-text-secondary text-sm mt-1">
-            Continue scoring at hole {resumeQ.data ?? 1}
-          </Text>
-        </Pressable>
-      ) : null}
+            {draft && courseQ.data ? (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/round/new/score',
+                    params: { roundId: draft.id, hole: String(resumeQ.data ?? 1) },
+                  })
+                }
+                className="bg-bg-surface border border-accent rounded-2xl p-4 mt-4 mb-2 active:opacity-80"
+              >
+                <Text className="text-accent text-xs uppercase tracking-wider font-semibold">
+                  In progress
+                </Text>
+                <Text className="text-text-primary text-lg font-semibold mt-1">
+                  Resume at {courseQ.data.name}
+                </Text>
+                <Text className="text-text-secondary text-sm mt-1">
+                  Continue scoring at hole {resumeQ.data ?? 1}
+                </Text>
+              </Pressable>
+            ) : null}
 
-      <Text className="text-text-secondary mt-6">Feed comes in Phase 3.</Text>
+            <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-6 mb-3">
+              Recent from people you follow
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          feedQ.isLoading ? (
+            <ActivityIndicator className="my-6" />
+          ) : (
+            <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mt-2">
+              <Text className="text-text-primary text-sm">Your feed is quiet.</Text>
+              <Text className="text-text-secondary text-xs mt-1">
+                Follow players from Discover. When you and someone follow each other, their rounds
+                show up here.
+              </Text>
+            </View>
+          )
+        }
+      />
     </ScreenContainer>
   );
 }
