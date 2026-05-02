@@ -108,8 +108,28 @@ export default function OtherProfile() {
 
       <View className="flex-row mt-6 py-4 border-y border-border-subtle">
         <Stat label="Rounds" value={roundsCountQ.data ?? 0} />
-        <Stat label="Followers" value={followersQ.data ?? 0} />
-        <Stat label="Following" value={followingQ.data ?? 0} />
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/relations/[username]/followers',
+              params: { username: profile.username },
+            })
+          }
+          className="flex-1 active:opacity-70"
+        >
+          <Stat label="Followers" value={followersQ.data ?? 0} />
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/relations/[username]/following',
+              params: { username: profile.username },
+            })
+          }
+          className="flex-1 active:opacity-70"
+        >
+          <Stat label="Following" value={followingQ.data ?? 0} />
+        </Pressable>
       </View>
 
       <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-6 mb-2">

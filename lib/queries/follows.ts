@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { supabase } from '@/lib/supabase';
+import { supabase, type Tables } from '@/lib/supabase';
 
 // -- Reads ------------------------------------------------------------------
 
@@ -111,5 +111,52 @@ export function useUnfollow() {
       qc.invalidateQueries({ queryKey: ['following_count', vars.followerId] });
       qc.invalidateQueries({ queryKey: ['feed', vars.followerId] });
     },
+  });
+}
+
+export type RelationUser = Pick<
+  Tables<'profiles'>,
+  'id' | 'username' | 'display_name' | 'avatar_url' | 'bio' | 'home_course_id'
+>;
+
+export function useFollowersList(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['followers_list', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('follows')
+        .select(
+          'profiles!follows_follower_id_fkey ( id, username, display_name, avatar_url, bio, home_course_id )',
+        )
+        .eq('following_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? [])
+        .map((row) => (row as { profiles: RelationUser | null }).profiles)
+        .filter((p): p is RelationUser => p !== null);
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useFollowingList(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['following_list', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('follows')
+        .select(
+          'profiles!follows_following_id_fkey ( id, username, display_name, avatar_url, bio, home_course_id )',
+        )
+        .eq('follower_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? [])
+        .map((row) => (row as { profiles: RelationUser | null }).profiles)
+        .filter((p): p is RelationUser => p !== null);
+    },
+    enabled: !!userId,
   });
 }

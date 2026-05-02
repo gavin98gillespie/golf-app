@@ -8,14 +8,19 @@ import { useSession } from '@/lib/hooks/useSession';
 import { useMyProfile } from '@/lib/queries/profile';
 import { useUserRounds } from '@/lib/queries/rounds';
 import { useUserSummaryStats } from '@/lib/queries/stats';
+import { useFollowerCount, useFollowingCount } from '@/lib/queries/follows';
 
 export default function Profile() {
   const { session } = useSession();
-  const profileQ = useMyProfile(session?.user.id);
-  const roundsQ = useUserRounds(session?.user.id);
-  const statsQ = useUserSummaryStats(session?.user.id);
+  const viewerId = session?.user.id;
+  const profileQ = useMyProfile(viewerId);
+  const roundsQ = useUserRounds(viewerId);
+  const statsQ = useUserSummaryStats(viewerId);
+  const followersQ = useFollowerCount(viewerId);
+  const followingQ = useFollowingCount(viewerId);
 
   const rounds = (roundsQ.data ?? []) as Parameters<typeof RoundListItem>[0]['round'][];
+  const username = profileQ.data?.username;
 
   return (
     <ScreenContainer>
@@ -34,6 +39,35 @@ export default function Profile() {
           accessibilityLabel="Open settings"
         >
           <Text className="text-text-secondary text-xs uppercase tracking-wider">Settings</Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-row py-4 border-y border-border-subtle mb-6">
+        <Pressable
+          onPress={() =>
+            username
+              ? router.push({ pathname: '/relations/[username]/followers', params: { username } })
+              : undefined
+          }
+          className="flex-1 active:opacity-70"
+        >
+          <Text className="text-text-primary text-xl font-light">{followersQ.data ?? 0}</Text>
+          <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-1">
+            Followers
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            username
+              ? router.push({ pathname: '/relations/[username]/following', params: { username } })
+              : undefined
+          }
+          className="flex-1 active:opacity-70"
+        >
+          <Text className="text-text-primary text-xl font-light">{followingQ.data ?? 0}</Text>
+          <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-1">
+            Following
+          </Text>
         </Pressable>
       </View>
 

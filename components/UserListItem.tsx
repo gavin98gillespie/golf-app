@@ -3,13 +3,20 @@ import { router } from 'expo-router';
 
 import { FollowButton } from './FollowButton';
 import type { PublicProfile } from '@/lib/queries/users';
+import { useIsFollowing } from '@/lib/queries/follows';
 
 type Props = {
   user: PublicProfile;
   viewerId: string;
+  /** When true, show a "Follows you" hint when the viewer hasn't followed back yet */
+  followBackHint?: boolean;
 };
 
-export function UserListItem({ user, viewerId }: Props) {
+export function UserListItem({ user, viewerId, followBackHint = false }: Props) {
+  const isFollowingQ = useIsFollowing(viewerId, user.id);
+  const isFollowing = isFollowingQ.data ?? false;
+  const showFollowBack = followBackHint && !isFollowing && viewerId !== user.id;
+
   return (
     <Pressable
       onPress={() =>
@@ -25,6 +32,11 @@ export function UserListItem({ user, viewerId }: Props) {
       <View className="flex-1 ml-3">
         <Text className="text-text-primary text-base font-semibold">{user.display_name}</Text>
         <Text className="text-text-secondary text-xs">@{user.username}</Text>
+        {showFollowBack ? (
+          <Text className="text-accent text-[10px] uppercase tracking-wider mt-0.5">
+            Follows you
+          </Text>
+        ) : null}
       </View>
       <FollowButton viewerId={viewerId} targetId={user.id} size="sm" />
     </Pressable>
