@@ -1,14 +1,17 @@
-import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, Text, View, FlatList } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, Text, View, FlatList } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { FollowButton } from '@/components/FollowButton';
+import { ReportSheet } from '@/components/ReportSheet';
 import { useSession } from '@/lib/hooks/useSession';
 import { useProfileByUsername } from '@/lib/queries/users';
 import { useFollowerCount, useFollowingCount, useIsMutual } from '@/lib/queries/follows';
+import { useBlock, useUnblock, useIsBlocked } from '@/lib/queries/blocks';
+import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
 
 type RoundWithCourse = Tables<'rounds'> & {
@@ -32,6 +35,51 @@ export default function OtherProfile() {
   const followersQ = useFollowerCount(profile?.id);
   const followingQ = useFollowingCount(profile?.id);
   const mutualQ = useIsMutual(viewerId, profile?.id);
+
+  const isBlockedQ = useIsBlocked(viewerId, profile?.id);
+  const block = useBlock();
+  const unblock = useUnblock();
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(
+    null,
+  );
+
+  const openReportSheet = (input: { targetType: ReportTargetType; targetId: string }) => {
+    setReportTarget({ type: input.targetType, id: input.targetId });
+  };
+
+  const onTapMore = () => {
+    if (!viewerId || !profile) return;
+    const blocked = isBlockedQ.data ?? false;
+    Alert.alert('Options', `@${profile.username}`, [
+      blocked
+        ? {
+            text: 'Unblock',
+            onPress: () => unblock.mutate({ blockerId: viewerId, blockedId: profile.id }),
+          }
+        : {
+            text: 'Block',
+            style: 'destructive',
+            onPress: () =>
+              Alert.alert(
+                'Block this user?',
+                "They won't be able to see your profile or rounds. You won't see theirs.",
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Block',
+                    style: 'destructive',
+                    onPress: () => block.mutate({ blockerId: viewerId, blockedId: profile.id }),
+                  },
+                ],
+              ),
+          },
+      {
+        text: 'Report',
+        onPress: () => openReportSheet({ targetType: 'profile', targetId: profile.id }),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   const roundsCountQ = useQuery({
     queryKey: ['profile_rounds_count', profile?.id],
@@ -100,6 +148,11 @@ export default function OtherProfile() {
           <Text className="text-text-secondary text-sm">@{profile.username}</Text>
         </View>
         {viewerId ? <FollowButton viewerId={viewerId} targetId={profile.id} /> : null}
+        {viewerId ? (
+          <Pressable onPress={onTapMore} className="ml-2 p-2 active:opacity-70">
+            <Text className="text-text-secondary text-base">•••</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {profile.bio ? (
@@ -152,6 +205,16 @@ export default function OtherProfile() {
           renderItem={({ item }) => <RoundRow round={item} />}
         />
       )}
+
+      {viewerId && reportTarget ? (
+        <ReportSheet
+          visible
+          reporterId={viewerId}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onClose={() => setReportTarget(null)}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }

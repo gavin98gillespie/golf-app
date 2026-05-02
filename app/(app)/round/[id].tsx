@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -9,9 +9,11 @@ import { HoleScoreGrid } from '@/components/HoleScoreGrid';
 import { LikeButton } from '@/components/LikeButton';
 import { CommentList } from '@/components/CommentList';
 import { CommentInput } from '@/components/CommentInput';
+import { ReportSheet } from '@/components/ReportSheet';
 import { useRoundHoles } from '@/lib/queries/rounds';
 import { useComments } from '@/lib/queries/comments';
 import { useSession } from '@/lib/hooks/useSession';
+import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
 
 type RoundWithCourse = Tables<'rounds'> & {
@@ -46,6 +48,21 @@ export default function RoundDetail() {
   const comments = commentsQ.data ?? [];
   const viewerId = session?.user.id;
 
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(
+    null,
+  );
+
+  const onTapMore = () => {
+    if (!viewerId || !round) return;
+    Alert.alert('Options', undefined, [
+      {
+        text: 'Report this round',
+        onPress: () => setReportTarget({ type: 'round', id: round.id }),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const totals = useMemo(() => {
     const scored = holesQ.data ?? [];
     const score = scored.reduce((a, h) => a + h.score, 0);
@@ -66,9 +83,16 @@ export default function RoundDetail() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={() => router.back()} className="mt-4 mb-2">
-        <Text className="text-text-secondary text-sm">← Back</Text>
-      </Pressable>
+      <View className="flex-row justify-between items-center mt-4 mb-2">
+        <Pressable onPress={() => router.back()} className="active:opacity-70">
+          <Text className="text-text-secondary text-sm">← Back</Text>
+        </Pressable>
+        {viewerId ? (
+          <Pressable onPress={onTapMore} className="p-2 active:opacity-70">
+            <Text className="text-text-secondary text-base">•••</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       {!isOwner && round.user_id ? <RoundOwnerHeader ownerId={round.user_id} /> : null}
 
@@ -115,6 +139,16 @@ export default function RoundDetail() {
 
           <CommentInput viewerId={viewerId} roundId={round.id} />
         </View>
+      ) : null}
+
+      {viewerId && reportTarget ? (
+        <ReportSheet
+          visible
+          reporterId={viewerId}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onClose={() => setReportTarget(null)}
+        />
       ) : null}
     </ScreenContainer>
   );
