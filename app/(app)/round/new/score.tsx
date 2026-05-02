@@ -62,15 +62,17 @@ export default function HoleEntry() {
   const [par, setPar] = useState(initialPar);
   const [score, setScore] = useState(initialScore);
 
-  // Re-sync local state when navigating to a different hole or when the
-  // round/course-hole data first lands.
+  // Re-sync local state ONLY when navigating to a different hole. We deliberately
+  // don't re-sync on roundHolesQ.data changes — that would race with the user's
+  // next tap and revert in-progress edits.
   useEffect(() => {
     const eh = roundHolesQ.data?.find((h) => h.hole_number === hole);
     const ch = courseHolesQ.data?.find((h) => h.hole_number === hole);
     const newPar = ch?.par ?? eh?.par ?? 4;
     setPar(newPar);
     setScore(eh?.score ?? newPar);
-  }, [hole, roundHolesQ.data, courseHolesQ.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hole]);
 
   // Debounced autosave: writes round_holes whenever score or par changes.
   useEffect(() => {

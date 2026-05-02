@@ -69,10 +69,22 @@ export function useUpsertHoleScore() {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as Tables<'round_holes'>;
     },
-    onSuccess: (_d, vars) => {
-      void qc.invalidateQueries({ queryKey: ['round_holes', vars.round_id] });
+    onSuccess: (saved, vars) => {
+      // Merge into cache without triggering refetch (which would race with
+      // the user's next tap and revert their input).
+      qc.setQueryData<Tables<'round_holes'>[]>(
+        ['round_holes', vars.round_id],
+        (prev) => {
+          const list = prev ?? [];
+          const idx = list.findIndex((h) => h.hole_number === saved.hole_number);
+          if (idx === -1) return [...list, saved].sort((a, b) => a.hole_number - b.hole_number);
+          const next = list.slice();
+          next[idx] = saved;
+          return next;
+        },
+      );
     },
   });
 }
