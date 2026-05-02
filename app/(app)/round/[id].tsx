@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -15,6 +23,7 @@ import { useComments } from '@/lib/queries/comments';
 import { useSession } from '@/lib/hooks/useSession';
 import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
+import { parseLocalDate } from '@/lib/date';
 
 type RoundWithCourse = Tables<'rounds'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count' | 'city' | 'state'> | null;
@@ -79,67 +88,83 @@ export default function RoundDetail() {
   }
 
   const totalHoles = round.courses?.hole_count ?? 18;
-  const dateStr = format(new Date(round.played_at), 'MMMM d, yyyy');
+  const dateStr = format(parseLocalDate(round.played_at), 'MMMM d, yyyy');
 
   return (
     <ScreenContainer>
-      <View className="flex-row justify-between items-center mt-4 mb-2">
-        <Pressable onPress={() => router.back()} className="active:opacity-70">
-          <Text className="text-text-secondary text-sm">← Back</Text>
-        </Pressable>
-        {viewerId ? (
-          <Pressable onPress={onTapMore} className="p-2 active:opacity-70">
-            <Text className="text-text-secondary text-base">•••</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {!isOwner && round.user_id ? <RoundOwnerHeader ownerId={round.user_id} /> : null}
-
-      <Text className="text-text-secondary text-xs uppercase tracking-wider mt-2">{dateStr}</Text>
-      <Pressable
-        onPress={() => (round.course_id ? router.push(`/course/${round.course_id}`) : undefined)}
-        className="active:opacity-70"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <Text className="text-text-primary text-3xl font-light mt-1 mb-1">
-          {round.courses?.name ?? 'Round'}
-        </Text>
-        <Text className="text-accent text-xs uppercase tracking-wider mb-4">View course →</Text>
-      </Pressable>
-
-      <View className="bg-bg-surface border border-border-subtle rounded-2xl p-5 mb-4">
-        <Text
-          style={{ fontSize: 64 }}
-          className="text-accent font-light tracking-tight leading-none"
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 24 }}
+          className="flex-1"
         >
-          {totals.score}
-        </Text>
-        <Text className="text-text-secondary text-sm mt-2">
-          {totals.diff >= 0 ? `+${totals.diff}` : totals.diff} · {totalHoles} holes · Par{' '}
-          {totals.par}
-        </Text>
-      </View>
-
-      <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4">
-        <Text className="text-text-secondary text-xs uppercase tracking-wider mb-3">Holes</Text>
-        <HoleScoreGrid holes={holesQ.data ?? []} totalHoles={totalHoles} />
-      </View>
-
-      {viewerId && round ? (
-        <View className="mt-6">
-          <View className="flex-row items-center">
-            <LikeButton viewerId={viewerId} roundId={round.id} />
-            <Text className="text-text-secondary text-sm ml-4">💬 {comments.length}</Text>
+          <View className="flex-row justify-between items-center mt-4 mb-2">
+            <Pressable onPress={() => router.back()} className="active:opacity-70">
+              <Text className="text-text-secondary text-sm">← Back</Text>
+            </Pressable>
+            {viewerId ? (
+              <Pressable onPress={onTapMore} className="p-2 active:opacity-70">
+                <Text className="text-text-secondary text-base">•••</Text>
+              </Pressable>
+            ) : null}
           </View>
 
-          <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-4 mb-1">
-            Comments
-          </Text>
-          <CommentList comments={comments} />
+          {!isOwner && round.user_id ? <RoundOwnerHeader ownerId={round.user_id} /> : null}
 
-          <CommentInput viewerId={viewerId} roundId={round.id} />
-        </View>
-      ) : null}
+          <Text className="text-text-secondary text-xs uppercase tracking-wider mt-2">
+            {dateStr}
+          </Text>
+          <Pressable
+            onPress={() =>
+              round.course_id ? router.push(`/course/${round.course_id}`) : undefined
+            }
+            className="active:opacity-70"
+          >
+            <Text className="text-text-primary text-3xl font-light mt-1 mb-1">
+              {round.courses?.name ?? 'Round'}
+            </Text>
+            <Text className="text-accent text-xs uppercase tracking-wider mb-4">View course →</Text>
+          </Pressable>
+
+          <View className="bg-bg-surface border border-border-subtle rounded-2xl p-5 mb-4">
+            <Text
+              style={{ fontSize: 64 }}
+              className="text-accent font-light tracking-tight leading-none"
+            >
+              {totals.score}
+            </Text>
+            <Text className="text-text-secondary text-sm mt-2">
+              {totals.diff >= 0 ? `+${totals.diff}` : totals.diff} · {totalHoles} holes · Par{' '}
+              {totals.par}
+            </Text>
+          </View>
+
+          <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4">
+            <Text className="text-text-secondary text-xs uppercase tracking-wider mb-3">Holes</Text>
+            <HoleScoreGrid holes={holesQ.data ?? []} totalHoles={totalHoles} />
+          </View>
+
+          {viewerId && round ? (
+            <View className="mt-6">
+              <View className="flex-row items-center">
+                <LikeButton viewerId={viewerId} roundId={round.id} />
+                <Text className="text-text-secondary text-sm ml-4">💬 {comments.length}</Text>
+              </View>
+
+              <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-4 mb-1">
+                Comments
+              </Text>
+              <CommentList comments={comments} />
+
+              <CommentInput viewerId={viewerId} roundId={round.id} />
+            </View>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {viewerId && reportTarget ? (
         <ReportSheet

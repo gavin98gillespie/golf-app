@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { format } from 'date-fns';
 
 import type { BestForPar } from '@/lib/queries/stats';
+import { parseLocalDate } from '@/lib/date';
 
 type Props = {
   bestPerPar: Record<number, BestForPar>;
@@ -43,7 +44,7 @@ export function BestPerParRow({ bestPerPar }: Props) {
             </View>
           );
         }
-        const dateStr = format(new Date(best.played_at), 'MMM d, yyyy');
+        const dateStr = format(parseLocalDate(best.played_at), 'MMM d, yyyy');
         return (
           <Pressable
             key={par}

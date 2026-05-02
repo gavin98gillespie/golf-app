@@ -1,6 +1,8 @@
 import { Pressable, Text, View } from 'react-native';
 import { format } from 'date-fns';
 
+import { parseLocalDate } from '@/lib/date';
+
 type Props = {
   round: {
     id: string;
@@ -16,7 +18,7 @@ type Props = {
 export function RoundListItem({ round, onPress }: Props) {
   const diff = round.total_score - round.total_par;
   const diffStr = diff >= 0 ? `+${diff}` : String(diff);
-  const date = format(new Date(round.played_at), 'MMM d, yyyy');
+  const date = format(parseLocalDate(round.played_at), 'MMM d, yyyy');
   return (
     <Pressable
       onPress={onPress}

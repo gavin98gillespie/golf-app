@@ -13,6 +13,7 @@ import { useFollowerCount, useFollowingCount, useIsMutual } from '@/lib/queries/
 import { useBlock, useUnblock, useIsBlocked } from '@/lib/queries/blocks';
 import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
+import { parseLocalDate } from '@/lib/date';
 
 type RoundWithCourse = Tables<'rounds'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count'> | null;
@@ -239,7 +240,7 @@ function RoundRow({ round }: { round: RoundWithCourse }) {
       <View className="flex-1">
         <Text className="text-text-primary text-base">{round.courses?.name ?? '—'}</Text>
         <Text className="text-text-secondary text-xs mt-0.5">
-          {format(new Date(round.played_at), 'MMM d, yyyy')}
+          {format(parseLocalDate(round.played_at), 'MMM d, yyyy')}
         </Text>
       </View>
       <Text className="text-text-primary text-lg font-light">{round.total_score}</Text>

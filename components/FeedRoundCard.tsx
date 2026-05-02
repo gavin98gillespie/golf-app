@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { format } from 'date-fns';
 
 import type { FeedRound } from '@/lib/queries/feed';
+import { parseLocalDate } from '@/lib/date';
 
 type Props = { round: FeedRound };
 
@@ -28,7 +29,7 @@ export function FeedRoundCard({ round }: Props) {
             {owner?.display_name ?? 'Unknown'}
           </Text>
           <Text className="text-text-secondary text-xs">
-            @{owner?.username ?? '—'} · {format(new Date(round.played_at), 'MMM d')}
+            @{owner?.username ?? '—'} · {format(parseLocalDate(round.played_at), 'MMM d')}
           </Text>
         </View>
       </View>

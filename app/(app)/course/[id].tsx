@@ -8,6 +8,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { useSession } from '@/lib/hooks/useSession';
 import { useUserRoundsAtCourse } from '@/lib/queries/stats';
 import { supabase, type Tables } from '@/lib/supabase';
+import { parseLocalDate } from '@/lib/date';
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,7 +92,7 @@ export default function CourseDetail() {
         keyExtractor={(r) => r.id}
         renderItem={({ item }) => {
           const diff = item.total_score - item.total_par;
-          const dateStr = format(new Date(item.played_at), 'MMM d, yyyy');
+          const dateStr = format(parseLocalDate(item.played_at), 'MMM d, yyyy');
           return (
             <Pressable
               onPress={() => router.push(`/round/${item.id}`)}

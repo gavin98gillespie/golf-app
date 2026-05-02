@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -38,6 +39,7 @@ export default function RoundSetup() {
       tee_box: 'default',
       total_score: 0,
       total_par: 0,
+      played_at: format(new Date(), 'yyyy-MM-dd'),
     });
     router.replace({
       pathname: '/round/new/score',
