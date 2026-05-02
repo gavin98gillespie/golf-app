@@ -28,7 +28,13 @@ export default function CoursePicker() {
 
   return (
     <ScreenContainer>
-      <Text className="text-text-primary text-3xl font-light mt-6 mb-4">Pick a course</Text>
+      <Pressable
+        onPress={() => router.replace('/(app)/(tabs)')}
+        className="mt-4 mb-2"
+      >
+        <Text className="text-text-secondary text-sm">← Cancel</Text>
+      </Pressable>
+      <Text className="text-text-primary text-3xl font-light mt-2 mb-4">Pick a course</Text>
       <TextInput
         value={query}
         onChangeText={setQuery}
