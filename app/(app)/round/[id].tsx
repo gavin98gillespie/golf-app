@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleScoreGrid } from '@/components/HoleScoreGrid';
 import { useRoundHoles } from '@/lib/queries/rounds';
+import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
 
 type RoundWithCourse = Tables<'rounds'> & {
@@ -15,6 +16,7 @@ type RoundWithCourse = Tables<'rounds'> & {
 
 export default function RoundDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useSession();
 
   const roundQ = useQuery({
     queryKey: ['round', id],
@@ -33,6 +35,9 @@ export default function RoundDetail() {
 
   const holesQ = useRoundHoles(id);
 
+  const round = roundQ.data;
+  const isOwner = !!session?.user.id && round?.user_id === session.user.id;
+
   const totals = useMemo(() => {
     const scored = holesQ.data ?? [];
     const score = scored.reduce((a, h) => a + h.score, 0);
@@ -40,7 +45,7 @@ export default function RoundDetail() {
     return { score, par, diff: score - par };
   }, [holesQ.data]);
 
-  if (!roundQ.data) {
+  if (!round) {
     return (
       <ScreenContainer>
         <Text className="text-text-secondary mt-12">Loading...</Text>
@@ -48,8 +53,8 @@ export default function RoundDetail() {
     );
   }
 
-  const totalHoles = roundQ.data.courses?.hole_count ?? 18;
-  const dateStr = format(new Date(roundQ.data.played_at), 'MMMM d, yyyy');
+  const totalHoles = round.courses?.hole_count ?? 18;
+  const dateStr = format(new Date(round.played_at), 'MMMM d, yyyy');
 
   return (
     <ScreenContainer>
@@ -57,15 +62,15 @@ export default function RoundDetail() {
         <Text className="text-text-secondary text-sm">← Back</Text>
       </Pressable>
 
+      {!isOwner && round.user_id ? <RoundOwnerHeader ownerId={round.user_id} /> : null}
+
       <Text className="text-text-secondary text-xs uppercase tracking-wider mt-2">{dateStr}</Text>
       <Pressable
-        onPress={() =>
-          roundQ.data?.course_id ? router.push(`/course/${roundQ.data.course_id}`) : undefined
-        }
+        onPress={() => (round.course_id ? router.push(`/course/${round.course_id}`) : undefined)}
         className="active:opacity-70"
       >
         <Text className="text-text-primary text-3xl font-light mt-1 mb-1">
-          {roundQ.data.courses?.name ?? 'Round'}
+          {round.courses?.name ?? 'Round'}
         </Text>
         <Text className="text-accent text-xs uppercase tracking-wider mb-4">View course →</Text>
       </Pressable>
@@ -88,5 +93,39 @@ export default function RoundDetail() {
         <HoleScoreGrid holes={holesQ.data ?? []} totalHoles={totalHoles} />
       </View>
     </ScreenContainer>
+  );
+}
+
+function RoundOwnerHeader({ ownerId }: { ownerId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['profile', ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, display_name')
+        .eq('id', ownerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  if (isLoading || !data) return null;
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({ pathname: '/profile/[username]', params: { username: data.username } })
+      }
+      className="flex-row items-center py-3 active:opacity-70"
+    >
+      <View className="w-10 h-10 rounded-full bg-bg-surface border border-border-subtle items-center justify-center">
+        <Text className="text-text-secondary text-base font-semibold">
+          {data.display_name.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <View className="ml-3">
+        <Text className="text-text-primary text-base font-semibold">{data.display_name}</Text>
+        <Text className="text-text-secondary text-xs">@{data.username}</Text>
+      </View>
+    </Pressable>
   );
 }
