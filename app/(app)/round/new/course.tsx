@@ -5,7 +5,8 @@ import * as Location from 'expo-location';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { CourseListItem } from '@/components/CourseListItem';
-import { useCourseSearch, useNearbyCourses } from '@/lib/queries/courses';
+import { useRecentCourses, useCourseSearch, useNearbyCourses } from '@/lib/queries/courses';
+import { useSession } from '@/lib/hooks/useSession';
 
 export default function CoursePicker() {
   const [query, setQuery] = useState('');
@@ -20,6 +21,8 @@ export default function CoursePicker() {
     })();
   }, []);
 
+  const { session } = useSession();
+  const recent = useRecentCourses(session?.user.id, 5);
   const search = useCourseSearch(query);
   const nearby = useNearbyCourses(coords?.lat ?? null, coords?.lng ?? null);
 
@@ -28,10 +31,7 @@ export default function CoursePicker() {
 
   return (
     <ScreenContainer>
-      <Pressable
-        onPress={() => router.replace('/(app)/(tabs)')}
-        className="mt-4 mb-2"
-      >
+      <Pressable onPress={() => router.replace('/(app)/(tabs)')} className="mt-4 mb-2">
         <Text className="text-text-secondary text-sm">← Cancel</Text>
       </Pressable>
       <Text className="text-text-primary text-3xl font-light mt-2 mb-4">Pick a course</Text>
@@ -43,6 +43,23 @@ export default function CoursePicker() {
         className="bg-bg-elevated border border-border-subtle rounded-xl px-4 py-3 text-text-primary"
         autoCapitalize="none"
       />
+      {query.length < 2 && (recent.data?.length ?? 0) > 0 ? (
+        <>
+          <Text className="text-text-secondary text-xs uppercase tracking-wider mt-6 mb-2">
+            Recent
+          </Text>
+          {recent.data!.map((course) => (
+            <CourseListItem
+              key={course.id}
+              course={course}
+              onPress={() =>
+                router.push({ pathname: '/round/new/setup', params: { courseId: course.id } })
+              }
+            />
+          ))}
+        </>
+      ) : null}
+
       <Text className="text-text-secondary text-xs uppercase tracking-wider mt-6 mb-2">
         {sectionLabel}
       </Text>
@@ -58,7 +75,7 @@ export default function CoursePicker() {
           />
         )}
         ListEmptyComponent={
-          <Text className="text-text-secondary text-sm mt-6">
+          <Text className="text-text-secondary text-sm mt-2">
             {query.length >= 2
               ? 'No courses match. Add it as a new course below.'
               : coords

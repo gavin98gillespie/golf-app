@@ -42,6 +42,35 @@ export function useNearbyCourses(lat: number | null, lng: number | null) {
   });
 }
 
+export function useRecentCourses(userId: string | undefined, limit = 5) {
+  return useQuery({
+    queryKey: ['courses', 'recent', userId, limit],
+    queryFn: async () => {
+      if (!userId) return [];
+      // Get the user's most recent N rounds with their course joined.
+      const { data, error } = await supabase
+        .from('rounds')
+        .select('course_id, played_at, courses(*)')
+        .eq('user_id', userId)
+        .eq('is_draft', false)
+        .order('played_at', { ascending: false })
+        .limit(limit * 3); // fetch extra so we have headroom after dedupe
+      if (error) throw error;
+      // De-duplicate by course_id, keeping the first (most recent) occurrence.
+      const seen = new Set<string>();
+      const result: Tables<'courses'>[] = [];
+      for (const row of data ?? []) {
+        if (!row.course_id || seen.has(row.course_id)) continue;
+        seen.add(row.course_id);
+        if (row.courses) result.push(row.courses as Tables<'courses'>);
+        if (result.length >= limit) break;
+      }
+      return result;
+    },
+    enabled: !!userId,
+  });
+}
+
 export function useCreateCourse() {
   const qc = useQueryClient();
   return useMutation({
