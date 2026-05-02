@@ -56,7 +56,9 @@ export default function Feed() {
       <FlatList
         data={feed}
         keyExtractor={(r) => r.id}
-        renderItem={({ item }) => <FeedRoundCard round={item} />}
+        renderItem={({ item }) =>
+          userId ? <FeedRoundCard round={item} viewerId={userId} /> : null
+        }
         ListHeaderComponent={
           <View>
             <Text className="text-text-primary text-3xl font-light mt-8">Home</Text>

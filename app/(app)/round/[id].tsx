@@ -11,6 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleScoreGrid } from '@/components/HoleScoreGrid';
@@ -32,6 +33,7 @@ type RoundWithCourse = Tables<'rounds'> & {
 export default function RoundDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
+  const insets = useSafeAreaInsets();
 
   const roundQ = useQuery({
     queryKey: ['round', id],
@@ -95,11 +97,12 @@ export default function RoundDetail() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 24 }}
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={{ paddingBottom: 40 }}
           className="flex-1"
         >
           <View className="flex-row justify-between items-center mt-4 mb-2">

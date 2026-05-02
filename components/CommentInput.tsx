@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
 
 import { usePostComment } from '@/lib/queries/comments';
 
@@ -13,7 +13,15 @@ export function CommentInput({ viewerId, roundId }: Props) {
 
   const onSend = () => {
     if (!canSend) return;
-    post.mutate({ userId: viewerId, roundId, body: trimmed }, { onSuccess: () => setBody('') });
+    post.mutate(
+      { userId: viewerId, roundId, body: trimmed },
+      {
+        onSuccess: () => {
+          setBody('');
+          Keyboard.dismiss();
+        },
+      },
+    );
   };
 
   return (
