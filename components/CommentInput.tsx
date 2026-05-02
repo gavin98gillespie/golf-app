@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { Alert, Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
 
+import { containsProfanity } from '@/lib/profanity';
 import { usePostComment } from '@/lib/queries/comments';
 
 type Props = { viewerId: string; roundId: string };
@@ -13,6 +14,10 @@ export function CommentInput({ viewerId, roundId }: Props) {
 
   const onSend = () => {
     if (!canSend) return;
+    if (containsProfanity(trimmed)) {
+      Alert.alert('Comment rejected', 'That contains language not allowed here.');
+      return;
+    }
     post.mutate(
       { userId: viewerId, roundId, body: trimmed },
       {

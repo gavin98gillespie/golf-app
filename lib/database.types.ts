@@ -457,6 +457,7 @@ export type Database = {
     }
     Functions: {
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }
+      contains_blocked_word: { Args: { input: string }; Returns: boolean }
       is_blocked: { Args: { a: string; b: string }; Returns: boolean }
       is_username_available: {
         Args: { check_username: string }

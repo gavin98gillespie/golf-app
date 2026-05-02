@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useSession } from '@/lib/hooks/useSession';
+import { explainProfanity } from '@/lib/profanity';
 import { useCheckUsername, useCreateProfile } from '@/lib/queries/profile';
 
 const Schema = z.object({
@@ -35,6 +36,12 @@ export default function ProfileSetup() {
     const parsed = Schema.safeParse({ username, displayName });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      return;
+    }
+    const profanityError =
+      explainProfanity(parsed.data.username) ?? explainProfanity(parsed.data.displayName);
+    if (profanityError) {
+      setError(profanityError);
       return;
     }
     try {
