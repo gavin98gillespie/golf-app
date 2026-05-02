@@ -39,11 +39,8 @@ export default function Profile() {
 
       <View className="mb-6">
         <StatsSummaryCard
-          rounds={statsQ.data?.rounds ?? 0}
-          avgScore={statsQ.data?.avgScore ?? null}
-          bestScore={statsQ.data?.bestScore ?? null}
-          bestDiff={statsQ.data?.bestDiff ?? null}
-          trendDelta={statsQ.data?.trendDelta ?? null}
+          byHoleCount={statsQ.data?.byHoleCount ?? {}}
+          totalRounds={statsQ.data?.totalRounds ?? 0}
         />
       </View>
 

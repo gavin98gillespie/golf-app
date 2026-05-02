@@ -9,7 +9,7 @@ import { useScoreTrend, useBestPerPar } from '@/lib/queries/stats';
 
 export default function Stats() {
   const { session } = useSession();
-  const trendQ = useScoreTrend(session?.user.id, 20);
+  const trendQ = useScoreTrend(session?.user.id, { limit: 20, holeCount: 18 });
   const bestQ = useBestPerPar(session?.user.id);
   const { width } = useWindowDimensions();
   const chartWidth = width - 48; // matches ScreenContainer's px-6 padding (24px each side)
@@ -23,7 +23,7 @@ export default function Stats() {
 
       <ScrollView className="flex-1">
         <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">
-          Score trend
+          Score trend · 18-hole rounds
         </Text>
         <ScoreTrendChart points={trendQ.data ?? []} width={chartWidth} height={180} />
 
