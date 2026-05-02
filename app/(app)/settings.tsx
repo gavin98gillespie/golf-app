@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { signOut } from '@/lib/auth';
 import { useSession } from '@/lib/hooks/useSession';
 import { useMyProfile } from '@/lib/queries/profile';
+import { supabase } from '@/lib/supabase';
 
 export default function Settings() {
   const { session } = useSession();
@@ -18,8 +19,26 @@ export default function Settings() {
 
   function onDeleteAccount() {
     Alert.alert(
-      'Delete account',
-      'Account deletion ships in Phase 4 (App Store compliance phase). For now, contact support to delete your account.',
+      'Delete account?',
+      'This permanently removes your profile, rounds, comments, and follows. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete forever',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.functions.invoke('delete-account', {
+              method: 'POST',
+            });
+            if (error) {
+              Alert.alert('Could not delete', error.message);
+              return;
+            }
+            await supabase.auth.signOut();
+            router.replace('/(auth)/welcome');
+          },
+        },
+      ],
     );
   }
 
@@ -41,16 +60,11 @@ export default function Settings() {
         <Text className="text-text-secondary text-xs mt-2">{session?.user.email}</Text>
       </View>
 
-      <Pressable
-        onPress={onDeleteAccount}
-        className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4 active:opacity-60"
-      >
-        <Text className="text-text-primary text-sm font-semibold">Delete account</Text>
-        <Text className="text-text-secondary text-xs mt-1">Coming in Phase 4.</Text>
-      </Pressable>
-
       <View className="mt-auto pb-6">
         <Button label="Sign out" variant="secondary" onPress={onSignOut} />
+        <Pressable onPress={onDeleteAccount} className="mt-6 active:opacity-70">
+          <Text className="text-red-500 text-sm font-semibold text-center">Delete account</Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
