@@ -17,6 +17,6 @@ module.exports = [
     },
   },
   {
-    ignores: ['node_modules', '.expo', 'dist'],
+    ignores: ['node_modules', '.expo', 'dist', 'lib/database.types.ts'],
   },
 ];
