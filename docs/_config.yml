@@ -1,0 +1,4 @@
+title: Golf App
+description: Golf App documentation and legal pages
+theme: jekyll-theme-cayman
+permalink: /:path/:basename
