@@ -6,7 +6,11 @@ import { format } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleScoreGrid } from '@/components/HoleScoreGrid';
+import { LikeButton } from '@/components/LikeButton';
+import { CommentList } from '@/components/CommentList';
+import { CommentInput } from '@/components/CommentInput';
 import { useRoundHoles } from '@/lib/queries/rounds';
+import { useComments } from '@/lib/queries/comments';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
 
@@ -37,6 +41,10 @@ export default function RoundDetail() {
 
   const round = roundQ.data;
   const isOwner = !!session?.user.id && round?.user_id === session.user.id;
+
+  const commentsQ = useComments(round?.id);
+  const comments = commentsQ.data ?? [];
+  const viewerId = session?.user.id;
 
   const totals = useMemo(() => {
     const scored = holesQ.data ?? [];
@@ -92,6 +100,22 @@ export default function RoundDetail() {
         <Text className="text-text-secondary text-xs uppercase tracking-wider mb-3">Holes</Text>
         <HoleScoreGrid holes={holesQ.data ?? []} totalHoles={totalHoles} />
       </View>
+
+      {viewerId && round ? (
+        <View className="mt-6">
+          <View className="flex-row items-center">
+            <LikeButton viewerId={viewerId} roundId={round.id} />
+            <Text className="text-text-secondary text-sm ml-4">💬 {comments.length}</Text>
+          </View>
+
+          <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-4 mb-1">
+            Comments
+          </Text>
+          <CommentList comments={comments} />
+
+          <CommentInput viewerId={viewerId} roundId={round.id} />
+        </View>
+      ) : null}
     </ScreenContainer>
   );
 }
