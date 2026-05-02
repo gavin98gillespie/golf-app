@@ -58,9 +58,17 @@ export default function RoundDetail() {
       </Pressable>
 
       <Text className="text-text-secondary text-xs uppercase tracking-wider mt-2">{dateStr}</Text>
-      <Text className="text-text-primary text-3xl font-light mt-1 mb-4">
-        {roundQ.data.courses?.name ?? 'Round'}
-      </Text>
+      <Pressable
+        onPress={() =>
+          roundQ.data?.course_id ? router.push(`/course/${roundQ.data.course_id}`) : undefined
+        }
+        className="active:opacity-70"
+      >
+        <Text className="text-text-primary text-3xl font-light mt-1 mb-1">
+          {roundQ.data.courses?.name ?? 'Round'}
+        </Text>
+        <Text className="text-accent text-xs uppercase tracking-wider mb-4">View course →</Text>
+      </Pressable>
 
       <View className="bg-bg-surface border border-border-subtle rounded-2xl p-5 mb-4">
         <Text
