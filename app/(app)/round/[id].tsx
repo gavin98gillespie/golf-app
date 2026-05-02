@@ -162,11 +162,18 @@ export default function RoundDetail() {
                 Comments
               </Text>
               <CommentList comments={comments} />
-
-              <CommentInput viewerId={viewerId} roundId={round.id} />
             </View>
           ) : null}
         </ScrollView>
+
+        {viewerId && round ? (
+          <View
+            className="border-t border-border-subtle bg-bg-base"
+            style={{ paddingTop: 8, paddingBottom: Math.max(insets.bottom, 8) }}
+          >
+            <CommentInput viewerId={viewerId} roundId={round.id} />
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
 
       {viewerId && reportTarget ? (

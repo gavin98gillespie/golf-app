@@ -25,7 +25,7 @@ export function CommentInput({ viewerId, roundId }: Props) {
   };
 
   return (
-    <View className="flex-row items-center mt-3">
+    <View className="flex-row items-center">
       <TextInput
         value={body}
         onChangeText={setBody}
