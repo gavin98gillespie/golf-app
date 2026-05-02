@@ -14,6 +14,9 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import { QueryClientProvider } from '@tanstack/react-query';
+
+import { queryClient } from '@/lib/queryClient';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,9 +40,9 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }} />
-    </>
+    </QueryClientProvider>
   );
 }
