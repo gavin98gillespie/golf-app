@@ -87,14 +87,6 @@ export default function Settings() {
 
       <View className="mt-auto pb-6">
         <Button label="Sign out" variant="secondary" onPress={onSignOut} />
-        <Pressable
-          onPress={() => {
-            throw new Error('Sentry test crash');
-          }}
-          className="mt-4 active:opacity-70"
-        >
-          <Text className="text-text-secondary text-xs">[dev] Trigger test error</Text>
-        </Pressable>
         <Pressable onPress={onDeleteAccount} className="mt-6 active:opacity-70">
           <Text className="text-red-500 text-sm font-semibold text-center">Delete account</Text>
         </Pressable>
