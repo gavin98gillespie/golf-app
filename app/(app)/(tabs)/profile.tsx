@@ -3,14 +3,17 @@ import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { RoundListItem } from '@/components/RoundListItem';
+import { StatsSummaryCard } from '@/components/StatsSummaryCard';
 import { useSession } from '@/lib/hooks/useSession';
 import { useMyProfile } from '@/lib/queries/profile';
 import { useUserRounds } from '@/lib/queries/rounds';
+import { useUserSummaryStats } from '@/lib/queries/stats';
 
 export default function Profile() {
   const { session } = useSession();
   const profileQ = useMyProfile(session?.user.id);
   const roundsQ = useUserRounds(session?.user.id);
+  const statsQ = useUserSummaryStats(session?.user.id);
 
   const rounds = (roundsQ.data ?? []) as Parameters<typeof RoundListItem>[0]['round'][];
 
@@ -32,6 +35,16 @@ export default function Profile() {
         >
           <Text className="text-text-secondary text-xs uppercase tracking-wider">Settings</Text>
         </Pressable>
+      </View>
+
+      <View className="mb-6">
+        <StatsSummaryCard
+          rounds={statsQ.data?.rounds ?? 0}
+          avgScore={statsQ.data?.avgScore ?? null}
+          bestScore={statsQ.data?.bestScore ?? null}
+          bestDiff={statsQ.data?.bestDiff ?? null}
+          trendDelta={statsQ.data?.trendDelta ?? null}
+        />
       </View>
 
       <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">
