@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { Alert, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { z } from 'zod';
 
@@ -27,10 +27,21 @@ export default function SignUp() {
       return;
     }
     setLoading(true);
-    const { error: authError } = await signUp(parsed.data.email, parsed.data.password);
+    const { error: authError, needsEmailConfirmation } = await signUp(
+      parsed.data.email,
+      parsed.data.password,
+    );
     setLoading(false);
     if (authError) {
       setError(authError.message);
+      return;
+    }
+    if (needsEmailConfirmation) {
+      Alert.alert(
+        'Check your email',
+        'We sent you a confirmation link. Tap it to finish creating your account, then come back and sign in.',
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-in') }],
+      );
       return;
     }
     router.replace('/(auth)/profile-setup');
