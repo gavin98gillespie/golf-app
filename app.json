@@ -33,6 +33,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font"]
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d058e67b-4546-4673-8bf6-beac42804243"
+      }
+    },
+    "owner": "gavin98gillespie"
   }
 }
