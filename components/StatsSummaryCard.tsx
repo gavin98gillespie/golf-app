@@ -53,6 +53,9 @@ function SliceRow({ holeCount, slice }: { holeCount: number; slice: SummarySlice
         <View className="flex-1">
           <Text className="text-text-secondary text-[10px] uppercase tracking-wider">Trend</Text>
           <Text className={`text-base font-semibold mt-1 ${trendColor}`}>{trend.label}</Text>
+          {slice.trendDelta == null ? (
+            <Text className="text-text-secondary text-[10px]">Need 8 rounds</Text>
+          ) : null}
         </View>
       </View>
     </View>
