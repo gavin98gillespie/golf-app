@@ -6,15 +6,21 @@
     "scheme": "golfapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#08100c"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.golfapp.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Golf App uses your location to find golf courses near you.",
+        "NSContactsUsageDescription": "Golf App uses your contacts to help you find friends to follow."
+      }
     },
     "android": {
       "adaptiveIcon": {
