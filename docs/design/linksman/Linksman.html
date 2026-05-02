@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Linksman — Identity & Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #efece5; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  * { box-sizing: border-box; }
+  /* hide scrollbars inside artboards */
+  .ab-screen { overflow: hidden; }
+  .ab-screen::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="topo.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="screens-feed.jsx"></script>
+<script type="text/babel" src="screens-summary.jsx"></script>
+<script type="text/babel" src="screens-profile.jsx"></script>
+<script type="text/babel" src="screens-course.jsx"></script>
+<script type="text/babel" src="brand-card.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "electric",
+  "surface": "ink",
+  "topoStyle": "contour",
+  "density": "regular",
+  "celebration": "medium"
+}/*EDITMODE-END*/;
+
+const PALETTES = {
+  brass:  { ink: '#0E1410', bone: '#F4F0E6', fairway: '#2D4A36', brass: '#B8924A', clay: '#B94A3B', graphite: '#1A2520', fg: '#F4F0E6' },
+  electric: { ink: '#0E1410', bone: '#F4F0E6', fairway: '#2D4A36', brass: '#9BB89A', clay: '#B94A3B', graphite: '#1A2520', fg: '#F4F0E6' },
+  pure:   { ink: '#070808', bone: '#FAFAFA', fairway: '#1F3A2A', brass: '#A8965E', clay: '#B94A3B', graphite: '#181A19', fg: '#FAFAFA' },
+};
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const P = PALETTES[t.accent] || PALETTES.brass;
+  // Apply surface override
+  const palette = React.useMemo(() => {
+    if (t.surface === 'true-black') return { ...P, ink: '#000000', graphite: '#0F1311' };
+    if (t.surface === 'pine')       return { ...P, ink: '#0B1410', graphite: '#152019' };
+    return P;
+  }, [P, t.surface]);
+
+  const frame = (children, label, w = 390, h = 844, dark = true) => (
+    <DCArtboard id={label} label={label} width={w + 80} height={h + 90}>
+      <div style={{
+        width: w + 80, height: h + 90,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#efece5',
+      }}>
+        <IOSDevice width={w} height={h} dark={dark} title="">
+          <div className="ab-screen" style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+            {children}
+          </div>
+        </IOSDevice>
+      </div>
+    </DCArtboard>
+  );
+
+  return (
+    <React.Fragment>
+      <DesignCanvas>
+
+        <DCSection id="brand" title="Identity" subtitle="Linksman — wordmark, palette, type, brief">
+          <DCArtboard id="brand-card" label="Brand · 01 · Identity" width={960} height={1740}>
+            <div style={{ width: 960, height: 1740, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 40, background: '#efece5' }}>
+              <BrandCard palette={palette} accentName={t.accent} />
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="feed" title="Home Feed" subtitle="Friends' rounds — score is the hero, course as topo">
+          {frame(<FeedScreen palette={palette} dark={true} />, 'Feed · ink', 390, 844, true)}
+          {frame(<FeedScreen palette={palette} dark={false} />, 'Feed · cream', 390, 844, false)}
+        </DCSection>
+
+        <DCSection id="summary" title="Round Summary" subtitle="The cinematic post-18 moment">
+          {frame(<SummaryScreen palette={palette} />, 'Summary · cinematic', 390, 844, true)}
+          {frame(<CelebrationScreen palette={palette} />, 'Eagle · celebration', 390, 844, true)}
+        </DCSection>
+
+        <DCSection id="profile" title="Profile" subtitle="Editorial cream — handicap as hero numeral">
+          {frame(<ProfileScreen palette={palette} />, 'Profile · editorial', 390, 844, false)}
+          {frame(<WeeklyScreen palette={palette} />, 'Weekly summary', 390, 844, true)}
+        </DCSection>
+
+        <DCSection id="course" title="Course Detail & Live Round" subtitle="Hole-by-hole grid · live hole entry">
+          {frame(<CourseDetailScreen palette={palette} />, 'Course · detail', 390, 844, false)}
+          {frame(<HoleEntryScreen palette={palette} />, 'Live · hole entry', 390, 844, true)}
+        </DCSection>
+
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Identity" />
+        <TweakSelect label="Accent" value={t.accent}
+          options={[
+            { value: 'brass', label: 'Brass (default)' },
+            { value: 'electric', label: 'Sage (low-key)' },
+            { value: 'pure', label: 'Brass on pure black' },
+          ]}
+          onChange={(v) => setTweak('accent', v)} />
+        <TweakRadio label="Live surface" value={t.surface}
+          options={[
+            { value: 'ink', label: 'Pine ink' },
+            { value: 'true-black', label: 'True black' },
+            { value: 'pine', label: 'Deep pine' },
+          ]}
+          onChange={(v) => setTweak('surface', v)} />
+        <TweakSection label="Notes" />
+        <div style={{
+          fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+          fontSize: 10, lineHeight: 1.5, opacity: 0.7, padding: '4px 2px',
+        }}>
+          Drag artboards to reorder. Click any artboard label to focus.
+          Artboards are static — taps do not navigate between them.
+        </div>
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
