@@ -67,19 +67,19 @@ export default function Settings() {
         Legal
       </Text>
       <Pressable
-        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/terms')}
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/terms.html')}
         className="py-3 active:opacity-70"
       >
         <Text className="text-text-primary text-sm">Terms of Service</Text>
       </Pressable>
       <Pressable
-        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/privacy')}
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/privacy.html')}
         className="py-3 active:opacity-70"
       >
         <Text className="text-text-primary text-sm">Privacy Policy</Text>
       </Pressable>
       <Pressable
-        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/eula')}
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/eula.html')}
         className="py-3 active:opacity-70"
       >
         <Text className="text-text-primary text-sm">EULA</Text>
