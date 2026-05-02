@@ -1,5 +1,6 @@
 import { Alert, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 
 import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -11,6 +12,8 @@ import { supabase } from '@/lib/supabase';
 export default function Settings() {
   const { session } = useSession();
   const profileQ = useMyProfile(session?.user.id);
+
+  const openLegal = (url: string) => WebBrowser.openBrowserAsync(url);
 
   async function onSignOut() {
     await signOut();
@@ -59,6 +62,28 @@ export default function Settings() {
         </Text>
         <Text className="text-text-secondary text-xs mt-2">{session?.user.email}</Text>
       </View>
+
+      <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-8 mb-2">
+        Legal
+      </Text>
+      <Pressable
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/terms')}
+        className="py-3 active:opacity-70"
+      >
+        <Text className="text-text-primary text-sm">Terms of Service</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/privacy')}
+        className="py-3 active:opacity-70"
+      >
+        <Text className="text-text-primary text-sm">Privacy Policy</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => openLegal('https://gavin98gillespie.github.io/golf-app/legal/eula')}
+        className="py-3 active:opacity-70"
+      >
+        <Text className="text-text-primary text-sm">EULA</Text>
+      </Pressable>
 
       <View className="mt-auto pb-6">
         <Button label="Sign out" variant="secondary" onPress={onSignOut} />

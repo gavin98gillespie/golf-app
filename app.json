@@ -41,7 +41,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Golf App uses your location to find golf courses near you."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},
