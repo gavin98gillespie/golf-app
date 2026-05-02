@@ -161,7 +161,7 @@ export default function RoundDetail() {
               <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-4 mb-1">
                 Comments
               </Text>
-              <CommentList comments={comments} />
+              <CommentList comments={comments} viewerId={viewerId} roundId={round.id} />
             </View>
           ) : null}
         </ScrollView>

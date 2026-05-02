@@ -49,3 +49,16 @@ export function usePostComment() {
     },
   });
 }
+
+export function useDeleteComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { commentId: string; roundId: string }) => {
+      const { error } = await supabase.from('comments').delete().eq('id', input.commentId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['comments', vars.roundId] });
+    },
+  });
+}
