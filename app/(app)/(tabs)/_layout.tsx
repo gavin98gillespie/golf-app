@@ -8,7 +8,7 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => {
         const route = props.state.routes[props.state.index];
-        const name = route?.name as 'index' | 'discover' | 'profile' | undefined;
+        const name = route?.name as 'index' | 'discover' | 'profile' | 'settings' | undefined;
         return <TabBar active={name ?? 'index'} />;
       }}
     >
@@ -16,6 +16,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="discover" />
       <Tabs.Screen name="start" options={{ href: null }} />
       <Tabs.Screen name="profile" />
+      <Tabs.Screen name="settings" />
     </Tabs>
   );
 }

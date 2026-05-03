@@ -64,19 +64,6 @@ export default function Profile() {
               }}
             >
               <Wordmark size={20} color={palette.ink} />
-              <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
-                <Text
-                  style={{
-                    fontFamily: fontFamily.mono,
-                    fontSize: 11,
-                    letterSpacing: 11 * 0.16,
-                    color: palette.ink,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  SETTINGS
-                </Text>
-              </Pressable>
             </View>
 
             {/* Hero block */}
