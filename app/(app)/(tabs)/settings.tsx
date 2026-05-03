@@ -6,13 +6,14 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
 import { signOut } from '@/lib/auth';
 import { useSession } from '@/lib/hooks/useSession';
-import { useMyProfile } from '@/lib/queries/profile';
+import { useMyProfile, useHomeCourse } from '@/lib/queries/profile';
 import { supabase } from '@/lib/supabase';
 import { fontFamily, palette } from '@/theme/linksman';
 
 export default function Settings() {
   const { session } = useSession();
   const profileQ = useMyProfile(session?.user.id);
+  const homeCourseQ = useHomeCourse(profileQ.data?.home_course_id);
 
   const openLegal = (url: string) => WebBrowser.openBrowserAsync(url);
 
@@ -189,7 +190,7 @@ export default function Settings() {
                   marginTop: 2,
                 }}
               >
-                {(profileQ.data as { home_course?: { name: string } | null }).home_course?.name ??
+                {homeCourseQ.data?.name ??
                   '—'}
               </Text>
             </View>
