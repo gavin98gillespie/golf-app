@@ -17,6 +17,13 @@ module.exports = [
     },
   },
   {
-    ignores: ['node_modules', '.expo', 'dist', 'lib/database.types.ts', 'supabase/functions/**'],
+    ignores: [
+      'node_modules',
+      '.expo',
+      'dist',
+      'lib/database.types.ts',
+      'supabase/functions/**',
+      'docs/**',
+    ],
   },
 ];
