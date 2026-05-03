@@ -67,27 +67,46 @@ export default function Profile() {
               }}
             >
               <Wordmark size={20} color={palette.ink} />
-              <Pressable
-                onPress={() => router.push('/(app)/invites')}
-                hitSlop={8}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-              >
-                <Text
-                  style={{
-                    fontFamily: fontFamily.mono,
-                    fontSize: 11,
-                    letterSpacing: 11 * 0.16,
-                    color: palette.ink,
-                    opacity: 0.7,
-                    textTransform: 'uppercase',
-                  }}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable
+                  onPress={() => router.push('/(app)/settings')}
+                  hitSlop={8}
                 >
-                  INVITES
-                </Text>
-                {inviteCount > 0 ? (
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.fairway }} />
-                ) : null}
-              </Pressable>
+                  <Text
+                    style={{
+                      fontFamily: fontFamily.mono,
+                      fontSize: 11,
+                      letterSpacing: 11 * 0.16,
+                      color: palette.ink,
+                      opacity: 0.7,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    SETTINGS
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/(app)/invites')}
+                  hitSlop={8}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: fontFamily.mono,
+                      fontSize: 11,
+                      letterSpacing: 11 * 0.16,
+                      color: palette.ink,
+                      opacity: 0.7,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    INVITES
+                  </Text>
+                  {inviteCount > 0 ? (
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.fairway }} />
+                  ) : null}
+                </Pressable>
+              </View>
             </View>
 
             {/* Hero block */}

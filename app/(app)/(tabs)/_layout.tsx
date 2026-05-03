@@ -14,7 +14,6 @@ export default function TabsLayout() {
           | 'search'
           | 'profile'
           | 'start'
-          | 'settings'
           | 'discover'
           | undefined;
         return <TabBar active={name ?? 'index'} />;
@@ -26,7 +25,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="start" options={{ href: null }} />
       <Tabs.Screen name="discover" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

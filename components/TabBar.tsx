@@ -20,7 +20,7 @@ const ITEMS: TabItem[] = [
   { name: 'search', label: 'Search' },
 ];
 
-type Props = { active: TabName | 'start' | 'discover' | 'settings' };
+type Props = { active: TabName | 'start' | 'discover' };
 
 export function TabBar({ active }: Props) {
   return (
