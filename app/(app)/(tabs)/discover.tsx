@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TextInput, View } from 'react-native';
 
@@ -169,7 +170,11 @@ export default function Discover() {
                 </Text>
               ) : (
                 (coursesQ.data ?? []).map((c) => (
-                  <CourseListItem key={c.id} course={c} onPress={() => undefined} />
+                  <CourseListItem
+                    key={c.id}
+                    course={c}
+                    onPress={() => router.push({ pathname: '/course/[id]', params: { id: c.id } })}
+                  />
                 ))
               )}
             </View>

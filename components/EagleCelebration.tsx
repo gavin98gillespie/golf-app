@@ -9,8 +9,15 @@ type Props = {
   drive?: number | null;
   par: number;
   lifetimeCount: number;
+  kind: 'eagle' | 'ace' | 'albatross';
   onClose: () => void;
   onSave: () => void;
+};
+
+const HEADLINES: Record<'eagle' | 'ace' | 'albatross', string> = {
+  eagle: 'Eagle.',
+  ace: 'Hole in one.',
+  albatross: 'Albatross.',
 };
 
 export function EagleCelebration({
@@ -19,14 +26,17 @@ export function EagleCelebration({
   drive,
   par,
   lifetimeCount,
+  kind,
   onClose,
   onSave,
 }: Props) {
-  const headline = 'Eagle.';
-  const subline =
-    lifetimeCount === 1
-      ? 'Your first eagle.'
-      : `One putt for the ${ordinal(lifetimeCount)} eagle of your life.`;
+  const headline = HEADLINES[kind];
+  const subline = (() => {
+    if (kind === 'ace') return 'A 1 on a par 3.';
+    if (kind === 'albatross') return 'Three under. Rare air.';
+    if (lifetimeCount === 1) return 'Your first eagle.';
+    return `${ordinal(lifetimeCount)} eagle of your life.`;
+  })();
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>

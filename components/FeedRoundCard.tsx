@@ -59,6 +59,63 @@ export function FeedRoundCard({ round, viewerId }: Props) {
         borderColor: hairline,
       }}
     >
+      {/* Owner header strip */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          borderBottomWidth: 0.5,
+          borderBottomColor: hairline,
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: palette.ink,
+            borderWidth: 0.5,
+            borderColor: fg + '20',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontFamily: fontFamily.display, fontSize: 16, color: fg }}>
+            {(owner?.display_name ?? '?').charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: fontFamily.display, fontSize: 17, color: fg }}>
+            {owner?.display_name ?? 'Unknown'}
+          </Text>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 11,
+              color: fg,
+              opacity: 0.55,
+            }}
+          >
+            @{owner?.username ?? '—'}
+          </Text>
+        </View>
+        <Text
+          style={{
+            fontFamily: fontFamily.mono,
+            fontSize: 10,
+            letterSpacing: 10 * 0.16,
+            color: fg,
+            opacity: 0.5,
+            textTransform: 'uppercase',
+          }}
+        >
+          {format(parseLocalDate(round.played_at), 'MMM d').toUpperCase()}
+        </Text>
+      </View>
+
       {/* Topo header */}
       <View style={{ position: 'relative', height: topoHeight }}>
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.85 }}>
@@ -82,36 +139,20 @@ export function FeedRoundCard({ round, viewerId }: Props) {
           <Crosshair size={8} color={fg} opacity={0.6} />
         </View>
 
-        {/* Top metadata */}
-        <View
-          style={{
-            position: 'absolute',
-            top: 14,
-            left: 24,
-            right: 24,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Text
+        {/* Top metadata (eagle badge only — date moved to owner strip) */}
+        {isEagleOrBetter ? (
+          <View
             style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.2,
-              color: fg,
-              opacity: 0.7,
-              textTransform: 'uppercase',
+              position: 'absolute',
+              top: 14,
+              right: 24,
             }}
           >
-            {format(parseLocalDate(round.played_at), 'MMM d').toUpperCase()}
-          </Text>
-          {isEagleOrBetter ? (
             <MonoBadge color={palette.brass} bg="transparent" border={false}>
               ◆ EAGLE
             </MonoBadge>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
 
         {/* Course label bottom */}
         <View
@@ -167,18 +208,6 @@ export function FeedRoundCard({ round, viewerId }: Props) {
         }}
       >
         <View style={{ gap: 6 }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.2,
-              color: fg,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
-          >
-            {owner?.display_name ?? 'Unknown'}
-          </Text>
           <ScoreNumeral
             value={round.total_score}
             delta={diff}
@@ -203,20 +232,6 @@ export function FeedRoundCard({ round, viewerId }: Props) {
             }}
           >
             par {round.total_par}
-          </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.18,
-              color: fg,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
-          >
-            @{owner?.username ?? '—'}
           </Text>
         </View>
       </View>

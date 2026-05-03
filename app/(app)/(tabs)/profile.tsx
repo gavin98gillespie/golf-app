@@ -138,7 +138,7 @@ export default function Profile() {
                       ? `+${handicap.toFixed(1)}`
                       : handicap.toFixed(1)
                 }
-                size={120}
+                size={88}
                 color={palette.ink}
               />
               <Text

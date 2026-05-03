@@ -4,7 +4,7 @@ import Svg, { Circle, Line } from 'react-native-svg';
 
 import { palette, fontFamily } from '@/theme/linksman';
 
-type TabName = 'index' | 'discover' | 'profile' | 'more';
+type TabName = 'index' | 'discover' | 'profile';
 
 type TabItem = {
   name: TabName;
@@ -15,7 +15,6 @@ const ITEMS: TabItem[] = [
   { name: 'index', label: 'Feed' },
   { name: 'discover', label: 'Discover' },
   { name: 'profile', label: 'Me' },
-  { name: 'more', label: 'More' },
 ];
 
 type Props = { active: TabName };
@@ -55,7 +54,6 @@ function TabCell({ item, active }: { item: TabItem; active: boolean }) {
     if (item.name === 'index') router.replace('/(app)/(tabs)');
     else if (item.name === 'discover') router.replace('/(app)/(tabs)/discover');
     else if (item.name === 'profile') router.replace('/(app)/(tabs)/profile');
-    else router.push('/(app)/settings');
   };
   return (
     <Pressable

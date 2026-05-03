@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +32,10 @@ export default function HoleEntry() {
     holeNumber: number;
     par: number;
     lifetimeCount: number;
+    isAce: boolean;
+    isAlbatross: boolean;
   } | null>(null);
+  const celebratedHoles = useRef<Set<number>>(new Set());
 
   const roundQ = useQuery({
     queryKey: ['round', roundId],
@@ -78,7 +81,6 @@ export default function HoleEntry() {
   const [fairwayCategory, setFairwayCategory] = useState<FairwayCategory>(
     existingHole?.fairway_hit === true ? 'fairway' : null,
   );
-  const [putts, setPutts] = useState<number>(existingHole?.putts ?? 2);
   const [gir, setGir] = useState<boolean | null>(existingHole?.gir ?? null);
 
   // Re-sync local state ONLY when navigating to a different hole. We deliberately
@@ -91,7 +93,6 @@ export default function HoleEntry() {
     setPar(newPar);
     setScore(eh?.score ?? newPar);
     setFairwayCategory(eh?.fairway_hit === true ? 'fairway' : null);
-    setPutts(eh?.putts ?? 2);
     setGir(eh?.gir ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hole]);
@@ -105,34 +106,42 @@ export default function HoleEntry() {
         hole_number: hole,
         score,
         par,
-        putts,
+        putts: null,
         fairway_hit: fairwayCategory === 'fairway' ? true : fairwayCategory == null ? null : false,
         gir,
       });
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [score, par, hole, roundId, fairwayCategory, putts, gir]);
+  }, [score, par, hole, roundId, fairwayCategory, gir]);
 
   const handleEagle = useCallback(
-    async (holeNumber: number, holePar: number) => {
+    async (
+      holeNumber: number,
+      holePar: number,
+      flags: { isAce: boolean; isAlbatross: boolean },
+    ) => {
       if (!session?.user.id) return;
-      // Two-step: pull this user's round IDs, then count round_holes where score - par <= -2.
-      const roundsRes = await supabase.from('rounds').select('id').eq('user_id', session.user.id);
-      if (roundsRes.error) return;
-      const roundIds = (roundsRes.data ?? []).map((r) => r.id);
-      if (roundIds.length === 0) {
-        setEagleData({ holeNumber, par: holePar, lifetimeCount: 1 });
+      // Wait for the autosave to flush so the current eagle is included in the lifetime count.
+      await new Promise((r) => setTimeout(r, 350));
+      const { data: rounds } = await supabase
+        .from('rounds')
+        .select('id')
+        .eq('user_id', session.user.id);
+      if (!rounds || rounds.length === 0) {
+        setEagleData({ holeNumber, par: holePar, lifetimeCount: 1, ...flags });
         setEagleVisible(true);
         return;
       }
-      const holesRes = await supabase
+      const { data: holes } = await supabase
         .from('round_holes')
         .select('score, par')
-        .in('round_id', roundIds);
-      if (holesRes.error) return;
-      const lifetime = (holesRes.data ?? []).filter((r) => r.score - r.par <= -2).length;
-      setEagleData({ holeNumber, par: holePar, lifetimeCount: Math.max(lifetime, 1) });
+        .in(
+          'round_id',
+          rounds.map((r) => r.id),
+        );
+      const lifetime = (holes ?? []).filter((h) => h.score - h.par <= -2).length;
+      setEagleData({ holeNumber, par: holePar, lifetimeCount: Math.max(lifetime, 1), ...flags });
       setEagleVisible(true);
     },
     [session?.user.id],
@@ -160,12 +169,25 @@ export default function HoleEntry() {
   const padded = String(hole).padStart(2, '0');
   const totalPadded = String(totalHoles).padStart(2, '0');
 
-  const advance = () => {
+  const advanceToNext = () => {
     if (isLast) {
       router.replace({ pathname: '/round/new/summary', params: { roundId } });
     } else {
       router.setParams({ hole: String(nextHole) });
     }
+  };
+
+  const advance = () => {
+    const delta = score - par;
+    const isAce = par === 3 && score === 1;
+    const isAlbatross = par - score >= 3;
+    const isEagle = delta <= -2;
+    if (isEagle && !celebratedHoles.current.has(hole)) {
+      celebratedHoles.current.add(hole);
+      void handleEagle(hole, par, { isAce, isAlbatross });
+      return; // celebration's onSave will call advanceToNext
+    }
+    advanceToNext();
   };
 
   const exitRound = () => {
@@ -338,15 +360,7 @@ export default function HoleEntry() {
             }}
           >
             <Pressable
-              onPress={() =>
-                setScore((s) => {
-                  const next = Math.max(1, s - 1);
-                  if (next - par <= -2 && s - par > -2) {
-                    void handleEagle(hole, par);
-                  }
-                  return next;
-                })
-              }
+              onPress={() => setScore((s) => Math.max(1, s - 1))}
               style={{
                 width: 56,
                 height: 56,
@@ -363,15 +377,7 @@ export default function HoleEntry() {
             </Pressable>
             <ScoreNumeral value={score} size={120} color={palette.bone} />
             <Pressable
-              onPress={() =>
-                setScore((s) => {
-                  const next = Math.min(20, s + 1);
-                  if (next - par <= -2 && s - par > -2) {
-                    void handleEagle(hole, par);
-                  }
-                  return next;
-                })
-              }
+              onPress={() => setScore((s) => Math.min(20, s + 1))}
               style={{
                 width: 56,
                 height: 56,
@@ -426,83 +432,56 @@ export default function HoleEntry() {
         </Pressable>
 
         {/* Detail chips */}
-        <View style={{ marginTop: 24, flexDirection: 'row', gap: 8 }}>
-          {(['fairway', 'rough', 'sand', 'water'] as const).map((cat) => {
-            const active = fairwayCategory === cat;
-            return (
-              <Pressable
-                key={cat}
-                onPress={() => setFairwayCategory((prev) => (prev === cat ? null : cat))}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderWidth: active ? 1 : 0.5,
-                  borderColor: active ? palette.bone : palette.bone + '40',
-                  backgroundColor: active ? palette.bone + '10' : 'transparent',
-                  alignItems: 'center',
-                  borderRadius: 2,
-                }}
-              >
-                <Text
+        <View style={{ marginTop: 24 }}>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 9,
+              letterSpacing: 9 * 0.18,
+              color: palette.bone,
+              opacity: 0.55,
+              textTransform: 'uppercase',
+              marginBottom: 6,
+            }}
+          >
+            DRIVE LANDED IN · OPTIONAL
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(['fairway', 'rough', 'sand', 'water'] as const).map((cat) => {
+              const active = fairwayCategory === cat;
+              return (
+                <Pressable
+                  key={cat}
+                  onPress={() => setFairwayCategory((prev) => (prev === cat ? null : cat))}
                   style={{
-                    fontFamily: fontFamily.mono,
-                    fontSize: 11,
-                    letterSpacing: 11 * 0.16,
-                    color: palette.bone,
-                    textTransform: 'uppercase',
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderWidth: active ? 1 : 0.5,
+                    borderColor: active ? palette.bone : palette.bone + '40',
+                    backgroundColor: active ? palette.bone + '10' : 'transparent',
+                    alignItems: 'center',
+                    borderRadius: 2,
                   }}
                 >
-                  {cat}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={{
+                      fontFamily: fontFamily.mono,
+                      fontSize: 11,
+                      letterSpacing: 11 * 0.16,
+                      color: palette.bone,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {cat}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
-        {/* Putts + GIR */}
-        <View
-          style={{
-            marginTop: 16,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 9,
-                letterSpacing: 9 * 0.18,
-                color: palette.bone,
-                opacity: 0.55,
-                textTransform: 'uppercase',
-              }}
-            >
-              PUTTS
-            </Text>
-            <Pressable onPress={() => setPutts((p) => Math.max(0, p - 1))}>
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 18, color: palette.bone }}>
-                −
-              </Text>
-            </Pressable>
-            <Text
-              style={{
-                fontFamily: fontFamily.display,
-                fontSize: 24,
-                color: palette.bone,
-                minWidth: 24,
-                textAlign: 'center',
-              }}
-            >
-              {putts}
-            </Text>
-            <Pressable onPress={() => setPutts((p) => Math.min(10, p + 1))}>
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 18, color: palette.bone }}>
-                +
-              </Text>
-            </Pressable>
-          </View>
+        {/* GIR (full width, right aligned) */}
+        <View style={{ marginTop: 16, flexDirection: 'row', justifyContent: 'flex-end' }}>
           <Pressable onPress={() => setGir((g) => (g == null ? true : g ? false : null))}>
             <Text
               style={{
@@ -525,10 +504,11 @@ export default function HoleEntry() {
           holeNumber={eagleData.holeNumber}
           par={eagleData.par}
           lifetimeCount={eagleData.lifetimeCount}
+          kind={eagleData.isAce ? 'ace' : eagleData.isAlbatross ? 'albatross' : 'eagle'}
           onClose={() => setEagleVisible(false)}
           onSave={() => {
             setEagleVisible(false);
-            advance();
+            advanceToNext();
           }}
         />
       ) : null}

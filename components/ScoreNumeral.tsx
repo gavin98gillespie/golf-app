@@ -13,21 +13,32 @@ export function ScoreNumeral({ value, delta, size = 96, color = '#F4F0E6', delta
   const sign = delta == null ? '' : delta > 0 ? '+' : delta < 0 ? '−' : 'E';
   const dval = delta == null ? '' : delta === 0 ? '' : Math.abs(delta);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: size * 0.12 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: size * 0.12,
+        flexShrink: 1,
+      }}
+    >
       <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
         style={{
           fontFamily: fontFamily.display,
           fontSize: size,
           letterSpacing: -size * 0.04,
           color,
-          lineHeight: size * 0.9,
+          lineHeight: size * 0.95,
           fontVariant: ['tabular-nums', 'lining-nums'],
+          flexShrink: 1,
         }}
       >
         {value}
       </Text>
       {delta != null ? (
         <Text
+          numberOfLines={1}
           style={{
             fontFamily: fontFamily.mono,
             fontSize: size * 0.22,

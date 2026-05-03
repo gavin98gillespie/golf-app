@@ -292,7 +292,7 @@ export default function RoundDetail() {
             <ScoreNumeral
               value={round.total_score}
               delta={totalDelta}
-              size={88}
+              size={72}
               color={palette.bone}
               deltaColor={deltaColor}
             />
