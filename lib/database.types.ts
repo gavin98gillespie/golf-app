@@ -401,6 +401,7 @@ export type Database = {
         Row: {
           course_id: string
           created_at: string
+          hole_count: number | null
           id: string
           is_draft: boolean
           notes: string | null
@@ -415,6 +416,7 @@ export type Database = {
         Insert: {
           course_id: string
           created_at?: string
+          hole_count?: number | null
           id?: string
           is_draft?: boolean
           notes?: string | null
@@ -429,6 +431,7 @@ export type Database = {
         Update: {
           course_id?: string
           created_at?: string
+          hole_count?: number | null
           id?: string
           is_draft?: boolean
           notes?: string | null
