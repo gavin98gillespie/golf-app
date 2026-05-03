@@ -554,10 +554,24 @@ export type Database = {
     Functions: {
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }
       contains_blocked_word: { Args: { input: string }; Returns: boolean }
+      force_end_round: { Args: { p_round_id: string }; Returns: undefined }
+      generate_join_code: { Args: never; Returns: string }
       is_blocked: { Args: { a: string; b: string }; Returns: boolean }
+      is_in_round: {
+        Args: { p_round_id: string; p_viewer: string }
+        Returns: boolean
+      }
+      is_mutual_of_any_round_player: {
+        Args: { p_round_id: string; p_viewer: string }
+        Returns: boolean
+      }
       is_username_available: {
         Args: { check_username: string }
         Returns: boolean
+      }
+      redeem_join_code: {
+        Args: { p_code: string; p_tee_box: string }
+        Returns: string
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
