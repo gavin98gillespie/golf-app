@@ -77,3 +77,20 @@ export function useUpdateHomeCourse() {
     },
   });
 }
+
+export function useCompleteOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, userId) => {
+      void qc.invalidateQueries({ queryKey: ['profile', userId] });
+      void qc.invalidateQueries({ queryKey: ['myProfile'] });
+    },
+  });
+}
