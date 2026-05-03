@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -14,9 +15,10 @@ import { parseLocalDate } from '@/lib/date';
 
 export default function Stats() {
   const { session } = useSession();
-  const trendQ = useScoreTrend(session?.user.id, { limit: 20, holeCount: 18 });
+  const [holeCount, setHoleCount] = useState<9 | 18>(18);
+  const trendQ = useScoreTrend(session?.user.id, { limit: 20, holeCount });
   const bestQ = useBestPerPar(session?.user.id);
-  const detailedQ = useDetailedStats(session?.user.id, 18);
+  const detailedQ = useDetailedStats(session?.user.id, holeCount);
   const { width } = useWindowDimensions();
   const chartWidth = width - 48;
 
@@ -67,6 +69,45 @@ export default function Stats() {
         Your stats
       </Text>
 
+      {/* 9 / 18 hole toggle */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignSelf: 'flex-start',
+          borderWidth: 0.5,
+          borderColor: palette.bone + '33',
+          marginBottom: 24,
+        }}
+      >
+        {([18, 9] as const).map((hc) => {
+          const active = holeCount === hc;
+          return (
+            <Pressable
+              key={hc}
+              onPress={() => setHoleCount(hc)}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                backgroundColor: active ? palette.bone : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 11,
+                  letterSpacing: 11 * 0.16,
+                  color: active ? palette.ink : palette.bone,
+                  opacity: active ? 1 : 0.6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {hc} HOLE
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Text
           style={{
@@ -79,7 +120,7 @@ export default function Stats() {
             marginBottom: 12,
           }}
         >
-          Score trend · 18-hole rounds
+          Score trend · {holeCount}-hole rounds
         </Text>
         <ScoreTrendChart points={trendQ.data ?? []} width={chartWidth} height={180} />
 
@@ -118,7 +159,7 @@ export default function Stats() {
             marginBottom: 4,
           }}
         >
-          DETAILED STATS · 18-HOLE
+          DETAILED STATS · {holeCount}-HOLE
         </Text>
         {detailed.fairwayTracked >= MIN_TRACKED && detailed.fairwayPct != null ? (
           <StatRow
