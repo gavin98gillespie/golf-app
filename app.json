@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "golf-app",
+    "name": "Linksman",
     "slug": "golf-app",
     "version": "1.0.0",
-    "scheme": "golfapp",
+    "scheme": "linksman",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#08100c"
+      "backgroundColor": "#0E1410"
     },
     "ios": {
       "supportsTablet": false,
