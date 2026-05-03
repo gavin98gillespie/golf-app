@@ -20,7 +20,12 @@ import { supabase, type Tables } from '@/lib/supabase';
 import { parseLocalDate } from '@/lib/date';
 import { palette, fontFamily } from '@/theme/linksman';
 
-type Round = Tables<'rounds'>;
+type Round = {
+  round_id: string | null;
+  total_score: number | null;
+  total_par: number | null;
+  played_at: string | null;
+};
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,7 +48,7 @@ export default function CourseDetail() {
   const stats = useMemo(() => {
     const rounds = roundsQ.data ?? [];
     if (rounds.length === 0) return null;
-    const scores = rounds.map((r) => r.total_score);
+    const scores = rounds.map((r) => r.total_score ?? 0);
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
     return {
       played: rounds.length,
@@ -61,7 +66,7 @@ export default function CourseDetail() {
   }
 
   const course = courseQ.data;
-  const rounds: Round[] = roundsQ.data ?? [];
+  const rounds: Round[] = (roundsQ.data ?? []) as Round[];
   const subtitle = [course.city, course.state].filter(Boolean).join(', ');
   const topoHeight = 220;
 
@@ -69,7 +74,7 @@ export default function CourseDetail() {
     <ScreenContainer surface="bone">
       <FlatList<Round>
         data={rounds}
-        keyExtractor={(r) => r.id}
+        keyExtractor={(r) => r.round_id ?? ''}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -184,11 +189,13 @@ export default function CourseDetail() {
           </View>
         }
         renderItem={({ item }) => {
-          const diff = item.total_score - item.total_par;
+          const ts = item.total_score ?? 0;
+          const tp = item.total_par ?? 0;
+          const diff = ts - tp;
           const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
           return (
             <Pressable
-              onPress={() => router.push(`/round/${item.id}`)}
+              onPress={() => router.push(`/round/${item.round_id ?? ''}`)}
               style={{
                 flexDirection: 'row',
                 paddingVertical: 14,
@@ -208,11 +215,11 @@ export default function CourseDetail() {
                     textTransform: 'uppercase',
                   }}
                 >
-                  {format(parseLocalDate(item.played_at), 'MMM d, yyyy').toUpperCase()}
+                  {format(parseLocalDate(item.played_at ?? ''), 'MMM d, yyyy').toUpperCase()}
                 </Text>
               </View>
               <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.ink }}>
-                {item.total_score}
+                {ts}
               </Text>
               <Text
                 style={{

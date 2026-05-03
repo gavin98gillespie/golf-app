@@ -103,6 +103,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "comments_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+          {
             foreignKeyName: "comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -263,6 +270,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "likes_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+          {
             foreignKeyName: "likes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -412,6 +426,13 @@ export type Database = {
             referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "round_holes_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
         ]
       }
       round_players: {
@@ -462,6 +483,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rounds"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
           },
           {
             foreignKeyName: "round_players_user_id_fkey"
@@ -549,7 +577,70 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_round_summaries: {
+        Row: {
+          course_id: string | null
+          created_at: string | null
+          finished_at: string | null
+          hole_count: number | null
+          holes_played: number | null
+          host_id: string | null
+          is_draft: boolean | null
+          is_group: boolean | null
+          joined_at: string | null
+          live_visible: boolean | null
+          played_at: string | null
+          player_notes: string | null
+          player_status: string | null
+          player_tee_box: string | null
+          round_id: string | null
+          round_id_dup: string | null
+          round_notes: string | null
+          round_tee_box: string | null
+          total_par: number | null
+          total_score: number | null
+          updated_at: string | null
+          user_id: string | null
+          visibility: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_players_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+          {
+            foreignKeyName: "round_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_user_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }

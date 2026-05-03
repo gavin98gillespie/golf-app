@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { supabase, type Tables } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 type SummarySlice = {
   rounds: number;
@@ -47,10 +47,12 @@ export function useUserSummaryStats(userId: string | undefined) {
     queryFn: async () => {
       if (!userId) return null;
       const { data, error } = await supabase
-        .from('rounds')
-        .select('total_score, total_par, played_at, hole_count, courses(hole_count)')
+        .from('user_round_summaries')
+        .select('total_score, total_par, played_at, hole_count, courses(hole_count), is_group, holes_played')
         .eq('user_id', userId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
+        .gt('holes_played', 0)
         .order('played_at', { ascending: false });
       if (error) throw error;
       const rounds = data ?? [];
@@ -63,8 +65,10 @@ export function useUserSummaryStats(userId: string | undefined) {
           18;
         if (!groups.has(hc)) groups.set(hc, { scores: [], diffs: [] });
         const g = groups.get(hc)!;
-        g.scores.push(r.total_score);
-        g.diffs.push(r.total_score - r.total_par);
+        const ts = r.total_score ?? 0;
+        const tp = r.total_par ?? 0;
+        g.scores.push(ts);
+        g.diffs.push(ts - tp);
       }
       const byHoleCount: Record<number, SummarySlice> = {};
       for (const [hc, g] of groups) {
@@ -88,11 +92,13 @@ export function usePersonalBestAtCourse(userId: string | undefined, courseId: st
     queryFn: async () => {
       if (!userId || !courseId) return null;
       const { data, error } = await supabase
-        .from('rounds')
-        .select('id, total_score, total_par, played_at')
+        .from('user_round_summaries')
+        .select('round_id, total_score, total_par, played_at')
         .eq('user_id', userId)
         .eq('course_id', courseId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
+        .gt('holes_played', 0)
         .order('total_score', { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -118,16 +124,18 @@ export function useScoreTrend(
     queryFn: async () => {
       if (!userId) return [];
       const q = supabase
-        .from('rounds')
-        .select('id, total_score, total_par, played_at, hole_count, courses(hole_count)')
+        .from('user_round_summaries')
+        .select('round_id, total_score, total_par, played_at, hole_count, courses(hole_count)')
         .eq('user_id', userId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
+        .gt('holes_played', 0)
         .order('played_at', { ascending: false })
         .limit(limit * 2); // fetch extra so we have headroom after filtering
       const { data, error } = await q;
       if (error) throw error;
       let rows = (data ?? []) as {
-        id: string;
+        round_id: string;
         total_score: number;
         total_par: number;
         played_at: string;
@@ -137,8 +145,13 @@ export function useScoreTrend(
       if (holeCount != null) {
         rows = rows.filter((r) => (r.hole_count ?? r.courses?.hole_count ?? 18) === holeCount);
       }
-      // Cap to limit and reverse so oldest first.
-      return rows.slice(0, limit).reverse();
+      // Cap to limit, reverse so oldest first, and remap round_id → id for callers.
+      return rows.slice(0, limit).reverse().map((r) => ({
+        id: r.round_id,
+        total_score: r.total_score,
+        total_par: r.total_par,
+        played_at: r.played_at,
+      }));
     },
     enabled: !!userId,
   });
@@ -171,16 +184,18 @@ export function useBestPerPar(userId: string | undefined) {
       const result: Record<number, BestForPar> = { 3: null, 4: null, 5: null, 6: null };
       if (!userId) return result;
 
-      // Get user's rounds with course names
+      // Get user's rounds (per-viewer slice) with course names
       const roundsRes = await supabase
-        .from('rounds')
-        .select('id, played_at, courses(name)')
+        .from('user_round_summaries')
+        .select('round_id, played_at, courses(name)')
         .eq('user_id', userId)
-        .eq('is_draft', false);
+        .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished']);
       if (roundsRes.error) throw roundsRes.error;
       const roundMeta = new Map<string, { played_at: string; course_name: string }>();
       for (const r of roundsRes.data ?? []) {
-        roundMeta.set(r.id, {
+        if (!r.round_id || !r.played_at) continue;
+        roundMeta.set(r.round_id, {
           played_at: r.played_at,
           course_name: (r.courses as { name: string } | null)?.name ?? 'Round',
         });
@@ -190,7 +205,8 @@ export function useBestPerPar(userId: string | undefined) {
       const holesRes = await supabase
         .from('round_holes')
         .select('par, score, round_id')
-        .in('round_id', Array.from(roundMeta.keys()));
+        .in('round_id', Array.from(roundMeta.keys()))
+        .eq('player_id', userId);
       if (holesRes.error) throw holesRes.error;
 
       for (const h of holesRes.data ?? []) {
@@ -223,14 +239,15 @@ export function useUserRoundsAtCourse(userId: string | undefined, courseId: stri
     queryFn: async () => {
       if (!userId || !courseId) return [];
       const { data, error } = await supabase
-        .from('rounds')
+        .from('user_round_summaries')
         .select('*')
         .eq('user_id', userId)
         .eq('course_id', courseId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
         .order('played_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Tables<'rounds'>[];
+      return data ?? [];
     },
     enabled: !!userId && !!courseId,
   });

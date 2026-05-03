@@ -99,8 +99,9 @@ export function useGroupRound(roundId: string | undefined) {
 
   useEffect(() => {
     if (!roundId) return;
+    const channelKey = `round:${roundId}:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`round:${roundId}`)
+      .channel(channelKey)
       .on(
         'postgres_changes',
         {
@@ -224,6 +225,9 @@ export function useWithdrawFromRound() {
     },
     onSuccess: (_d, vars) => {
       void qc.invalidateQueries({ queryKey: ['groupRound', vars.roundId] });
+      void qc.invalidateQueries({ queryKey: ['rounds'] });
+      void qc.invalidateQueries({ queryKey: ['stats'] });
+      void qc.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 }
@@ -241,6 +245,9 @@ export function useFinishMySlice() {
     },
     onSuccess: (_d, vars) => {
       void qc.invalidateQueries({ queryKey: ['groupRound', vars.roundId] });
+      void qc.invalidateQueries({ queryKey: ['rounds'] });
+      void qc.invalidateQueries({ queryKey: ['stats'] });
+      void qc.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 }
@@ -254,6 +261,9 @@ export function useForceEndRound() {
     },
     onSuccess: (_d, vars) => {
       void qc.invalidateQueries({ queryKey: ['groupRound', vars.roundId] });
+      void qc.invalidateQueries({ queryKey: ['rounds'] });
+      void qc.invalidateQueries({ queryKey: ['stats'] });
+      void qc.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 }

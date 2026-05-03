@@ -17,10 +17,11 @@ import { palette, fontFamily } from '@/theme/linksman';
 import { parseLocalDate } from '@/lib/date';
 
 type ProfileRound = {
-  id: string;
-  total_score: number;
-  total_par: number;
-  played_at: string;
+  round_id: string | null;
+  total_score: number | null;
+  total_par: number | null;
+  played_at: string | null;
+  is_group?: boolean | null;
   courses?: { name?: string | null } | null;
 };
 
@@ -48,7 +49,7 @@ export default function Profile() {
     <ScreenContainer surface="bone">
       <FlatList
         data={rounds}
-        keyExtractor={(r) => r.id}
+        keyExtractor={(r) => r.round_id ?? ''}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshing={roundsQ.isFetching}
@@ -302,11 +303,15 @@ export default function Profile() {
 }
 
 function ProfileRoundRow({ round }: { round: ProfileRound }) {
-  const diff = round.total_score - round.total_par;
+  const ts = round.total_score ?? 0;
+  const tp = round.total_par ?? 0;
+  const diff = ts - tp;
   const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/round/[id]', params: { id: round.id } })}
+      onPress={() =>
+        router.push({ pathname: '/round/[id]', params: { id: round.round_id ?? '' } })
+      }
       style={{
         flexDirection: 'row',
         paddingVertical: 14,
@@ -316,9 +321,24 @@ function ProfileRoundRow({ round }: { round: ProfileRound }) {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: fontFamily.display, fontSize: 16, color: palette.ink }}>
-          {round.courses?.name ?? '—'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {round.is_group ? (
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 9,
+                letterSpacing: 9 * 0.18,
+                color: palette.brass,
+                textTransform: 'uppercase',
+              }}
+            >
+              GROUP
+            </Text>
+          ) : null}
+          <Text style={{ fontFamily: fontFamily.display, fontSize: 16, color: palette.ink }}>
+            {round.courses?.name ?? '—'}
+          </Text>
+        </View>
         <Text
           style={{
             fontFamily: fontFamily.mono,
@@ -330,11 +350,11 @@ function ProfileRoundRow({ round }: { round: ProfileRound }) {
             textTransform: 'uppercase',
           }}
         >
-          {format(parseLocalDate(round.played_at), 'MMM d, yyyy').toUpperCase()}
+          {format(parseLocalDate(round.played_at ?? ''), 'MMM d, yyyy').toUpperCase()}
         </Text>
       </View>
       <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.ink }}>
-        {round.total_score}
+        {ts}
       </Text>
       <Text
         style={{
@@ -357,6 +377,6 @@ function computeHandicap(rounds: ProfileRound[]): number | null {
   if (!rounds || rounds.length === 0) return null;
   const recent = rounds.slice(0, 10);
   if (recent.length === 0) return null;
-  const sum = recent.reduce((s, r) => s + (r.total_score - r.total_par), 0);
+  const sum = recent.reduce((s, r) => s + ((r.total_score ?? 0) - (r.total_par ?? 0)), 0);
   return sum / recent.length;
 }

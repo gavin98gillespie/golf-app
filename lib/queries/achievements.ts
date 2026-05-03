@@ -26,22 +26,27 @@ export function useAchievements(userId: string | undefined) {
       if (!userId) return EMPTY;
 
       const roundsRes = await supabase
-        .from('rounds')
-        .select('id, course_id, total_score, played_at, courses(name)')
+        .from('user_round_summaries')
+        .select('round_id, course_id, total_score, played_at, courses(name)')
         .eq('user_id', userId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
         .order('played_at', { ascending: true });
       if (roundsRes.error) throw roundsRes.error;
-      const rounds = roundsRes.data ?? [];
+      const rounds = (roundsRes.data ?? []).filter(
+        (r): r is typeof r & { round_id: string; played_at: string; course_id: string } =>
+          !!r.round_id && !!r.played_at && !!r.course_id,
+      );
       if (rounds.length === 0) return EMPTY;
 
-      const ids = rounds.map((r) => r.id);
+      const ids = rounds.map((r) => r.round_id);
       const holesRes = await supabase
         .from('round_holes')
         .select('par, score, round_id')
-        .in('round_id', ids);
+        .in('round_id', ids)
+        .eq('player_id', userId);
       if (holesRes.error) throw holesRes.error;
-      const roundDate = new Map(rounds.map((r) => [r.id, r.played_at]));
+      const roundDate = new Map(rounds.map((r) => [r.round_id, r.played_at]));
 
       let eagles = 0;
       let aces = 0;
@@ -74,13 +79,15 @@ export function useAchievements(userId: string | undefined) {
         { course_id: string; course_name: string; total_score: number; round_id: string }
       >();
       for (const r of rounds) {
+        const ts = r.total_score ?? 0;
+        if (ts === 0) continue; // skip rounds with no holes scored yet
         const cur = bestByCourse.get(r.course_id);
-        if (!cur || r.total_score < cur.total_score) {
+        if (!cur || ts < cur.total_score) {
           bestByCourse.set(r.course_id, {
             course_id: r.course_id,
             course_name: (r.courses as { name: string } | null)?.name ?? 'Course',
-            total_score: r.total_score,
-            round_id: r.id,
+            total_score: ts,
+            round_id: r.round_id,
           });
         }
       }

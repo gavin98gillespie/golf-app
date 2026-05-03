@@ -29,10 +29,11 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
       if (!userId) return EMPTY_DETAILED_STATS;
 
       const roundsRes = await supabase
-        .from('rounds')
-        .select('id, hole_count, courses(hole_count)')
+        .from('user_round_summaries')
+        .select('round_id, hole_count, courses(hole_count)')
         .eq('user_id', userId)
-        .eq('is_draft', false);
+        .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished']);
       if (roundsRes.error) throw roundsRes.error;
       const rows = roundsRes.data ?? [];
       const filtered = holeCount
@@ -43,13 +44,14 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
                 18) === holeCount,
           )
         : rows;
-      const ids = filtered.map((r) => r.id);
+      const ids = filtered.map((r) => r.round_id).filter((x): x is string => !!x);
       if (ids.length === 0) return EMPTY_DETAILED_STATS;
 
       const holesRes = await supabase
         .from('round_holes')
         .select('par, score, fairway_hit, gir')
-        .in('round_id', ids);
+        .in('round_id', ids)
+        .eq('player_id', userId);
       if (holesRes.error) throw holesRes.error;
       const holes = holesRes.data ?? [];
 

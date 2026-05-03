@@ -36,11 +36,14 @@ export function useUserRounds(userId: string | undefined, includeDrafts = false)
     queryFn: async () => {
       if (!userId) return [];
       let q = supabase
-        .from('rounds')
+        .from('user_round_summaries')
         .select('*, courses(name, city, state)')
         .eq('user_id', userId)
         .order('played_at', { ascending: false });
       if (!includeDrafts) q = q.eq('is_draft', false);
+      // For group rounds, only show rounds where viewer's status is 'joined' or 'finished'
+      // (don't show rounds the viewer was invited to but didn't accept)
+      q = q.in('player_status', ['joined', 'finished']);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];

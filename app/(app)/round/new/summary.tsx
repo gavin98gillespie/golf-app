@@ -57,7 +57,7 @@ export default function Summary() {
   // - bestQ.data == null → first ever completed round at this course
   // - totals.score < bestQ.data.total_score → new best
   const isNewBest =
-    bestQ.isFetched && (bestQ.data == null || totals.score < bestQ.data.total_score);
+    bestQ.isFetched && (bestQ.data == null || totals.score < (bestQ.data.total_score ?? Infinity));
 
   async function onSave() {
     if (!roundId) return;
