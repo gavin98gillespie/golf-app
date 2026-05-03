@@ -12,6 +12,7 @@ import { useMyProfile } from '@/lib/queries/profile';
 import { useUserRounds } from '@/lib/queries/rounds';
 import { useUserSummaryStats } from '@/lib/queries/stats';
 import { useFollowerCount, useFollowingCount } from '@/lib/queries/follows';
+import { usePendingInvitesCount } from '@/lib/queries/invites';
 import { palette, fontFamily } from '@/theme/linksman';
 import { parseLocalDate } from '@/lib/date';
 
@@ -31,6 +32,7 @@ export default function Profile() {
   const statsQ = useUserSummaryStats(viewerId);
   const followersQ = useFollowerCount(viewerId);
   const followingQ = useFollowingCount(viewerId);
+  const inviteCount = usePendingInvitesCount(viewerId);
 
   const profile = profileQ.data;
   const rounds = (roundsQ.data ?? []) as ProfileRound[];
@@ -64,6 +66,27 @@ export default function Profile() {
               }}
             >
               <Wordmark size={20} color={palette.ink} />
+              <Pressable
+                onPress={() => router.push('/(app)/invites')}
+                hitSlop={8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 11,
+                    letterSpacing: 11 * 0.16,
+                    color: palette.ink,
+                    opacity: 0.7,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  INVITES
+                </Text>
+                {inviteCount > 0 ? (
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.fairway }} />
+                ) : null}
+              </Pressable>
             </View>
 
             {/* Hero block */}
