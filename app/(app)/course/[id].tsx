@@ -1,18 +1,31 @@
 import { useMemo } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { Topo } from '@/components/Topo';
+import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useUserRoundsAtCourse } from '@/lib/queries/stats';
 import { supabase, type Tables } from '@/lib/supabase';
 import { parseLocalDate } from '@/lib/date';
+import { palette, fontFamily } from '@/theme/linksman';
+
+type Round = Tables<'rounds'>;
 
 export default function CourseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
+  const { width: windowWidth } = useWindowDimensions();
 
   const courseQ = useQuery({
     queryKey: ['course', id],
@@ -35,83 +48,199 @@ export default function CourseDetail() {
     return {
       played: rounds.length,
       best: Math.min(...scores),
-      average: Math.round(avg),
+      average: avg,
     };
   }, [roundsQ.data]);
 
   if (!courseQ.data) {
     return (
-      <ScreenContainer>
-        <Text className="text-text-secondary mt-12">Loading…</Text>
+      <ScreenContainer surface="bone">
+        <ActivityIndicator color={palette.ink} style={{ marginTop: 24 }} />
       </ScreenContainer>
     );
   }
 
-  const subtitle = [courseQ.data.city, courseQ.data.state].filter(Boolean).join(', ');
+  const course = courseQ.data;
+  const rounds: Round[] = roundsQ.data ?? [];
+  const subtitle = [course.city, course.state].filter(Boolean).join(', ');
+  const topoHeight = 220;
 
   return (
-    <ScreenContainer>
-      <Pressable onPress={() => router.back()} className="mt-4 mb-2">
-        <Text className="text-text-secondary text-sm">← Back</Text>
-      </Pressable>
-      <Text className="text-text-primary text-3xl font-light tracking-tight mt-2">
-        {courseQ.data.name}
-      </Text>
-      <Text className="text-text-secondary text-sm mt-1 mb-6">
-        {subtitle || '—'} · {courseQ.data.hole_count} holes
-      </Text>
-
-      {stats ? (
-        <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-6 flex-row">
-          <View className="flex-1">
-            <Text className="text-text-secondary text-[10px] uppercase tracking-wider">Played</Text>
-            <Text className="text-text-primary text-2xl font-light mt-1">{stats.played}</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-text-secondary text-[10px] uppercase tracking-wider">Best</Text>
-            <Text className="text-text-primary text-2xl font-light mt-1">{stats.best}</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-text-secondary text-[10px] uppercase tracking-wider">
-              Average
-            </Text>
-            <Text className="text-text-primary text-2xl font-light mt-1">{stats.average}</Text>
-          </View>
-        </View>
-      ) : (
-        <Text className="text-text-secondary text-sm mb-6">
-          You haven&apos;t scored a round here yet.
-        </Text>
-      )}
-
-      <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">
-        Your rounds here
-      </Text>
-      <FlatList
-        data={roundsQ.data ?? []}
+    <ScreenContainer surface="bone">
+      <FlatList<Round>
+        data={rounds}
         keyExtractor={(r) => r.id}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListHeaderComponent={
+          <View>
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={{ paddingTop: 8, paddingBottom: 4 }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 11,
+                  letterSpacing: 11 * 0.16,
+                  color: palette.ink,
+                  opacity: 0.7,
+                  textTransform: 'uppercase',
+                }}
+              >
+                ← BACK
+              </Text>
+            </Pressable>
+
+            <View
+              style={{
+                marginTop: 12,
+                height: topoHeight,
+                marginHorizontal: -24,
+                overflow: 'hidden',
+                backgroundColor: palette.ink,
+              }}
+            >
+              <Topo
+                seed={course.id ?? id ?? 'course'}
+                width={windowWidth}
+                height={topoHeight}
+                stroke={palette.bone + '22'}
+                strokeBold={palette.bone + '40'}
+                greenColor={palette.fairway + '55'}
+                jitter={0.22}
+                showPin
+                pinColor={palette.sage}
+              />
+            </View>
+
+            <Text
+              style={{
+                fontFamily: fontFamily.display,
+                fontSize: 36,
+                letterSpacing: -36 * 0.02,
+                color: palette.ink,
+                marginTop: 24,
+                lineHeight: 36 * 1.05,
+              }}
+            >
+              {course.name}
+            </Text>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 11,
+                letterSpacing: 11 * 0.16,
+                color: palette.ink,
+                opacity: 0.55,
+                marginTop: 4,
+                textTransform: 'uppercase',
+              }}
+            >
+              {subtitle || 'Location unknown'}
+            </Text>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                marginTop: 24,
+                paddingVertical: 16,
+                borderTopWidth: 0.5,
+                borderBottomWidth: 0.5,
+                borderColor: palette.ink + '33',
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Datum label="ROUNDS" value={stats?.played ?? 0} color={palette.ink} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Datum label="BEST" value={stats?.best ?? '—'} color={palette.ink} />
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Datum
+                  label="AVG"
+                  value={stats?.average != null ? stats.average.toFixed(1) : '—'}
+                  color={palette.ink}
+                  align="right"
+                />
+              </View>
+            </View>
+
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 9,
+                letterSpacing: 9 * 0.2,
+                color: palette.ink,
+                opacity: 0.55,
+                marginTop: 24,
+                marginBottom: 8,
+                textTransform: 'uppercase',
+              }}
+            >
+              Your rounds
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => {
           const diff = item.total_score - item.total_par;
-          const dateStr = format(parseLocalDate(item.played_at), 'MMM d, yyyy');
+          const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
           return (
             <Pressable
               onPress={() => router.push(`/round/${item.id}`)}
-              className="flex-row items-center justify-between py-3 border-b border-border-subtle active:opacity-60"
+              style={{
+                flexDirection: 'row',
+                paddingVertical: 14,
+                borderBottomWidth: 0.5,
+                borderBottomColor: palette.ink + '20',
+                alignItems: 'center',
+              }}
             >
-              <View>
-                <Text className="text-text-primary text-sm font-semibold">{dateStr}</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-text-primary text-base font-semibold">
-                  {item.total_score}
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 11,
+                    letterSpacing: 11 * 0.16,
+                    color: palette.ink,
+                    opacity: 0.7,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {format(parseLocalDate(item.played_at), 'MMM d, yyyy').toUpperCase()}
                 </Text>
-                <Text className="text-accent text-xs">{diff >= 0 ? `+${diff}` : diff}</Text>
               </View>
+              <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.ink }}>
+                {item.total_score}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 11,
+                  color: palette.ink,
+                  opacity: 0.6,
+                  marginLeft: 8,
+                  width: 32,
+                  textAlign: 'right',
+                }}
+              >
+                {diffLabel}
+              </Text>
             </Pressable>
           );
         }}
         ListEmptyComponent={
-          <Text className="text-text-secondary text-sm mt-2">No rounds at this course yet.</Text>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 11,
+              color: palette.ink,
+              opacity: 0.55,
+              marginTop: 12,
+            }}
+          >
+            No rounds here yet.
+          </Text>
         }
       />
     </ScreenContainer>
