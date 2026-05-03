@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { palette, fontFamily } from '@/theme/linksman';
 
 type Props = {
@@ -22,6 +22,8 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
     onCommit?.(trimmed);
     setOpen(false);
   };
+
+  const close = () => setOpen(false);
 
   return (
     <>
@@ -57,9 +59,67 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
           {value || 'Tap to add a note about this round'}
         </Text>
       </Pressable>
-      <Modal visible={open} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: palette.ink + 'EE', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: palette.bone, padding: 24, paddingBottom: 48 }}>
+      <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <Pressable
+            onPress={close}
+            style={{ flex: 1, backgroundColor: palette.ink + 'EE' }}
+          />
+          <View style={{ backgroundColor: palette.bone, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+            {/* Action bar at TOP so it stays visible above the keyboard */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingBottom: 12,
+                borderBottomWidth: 0.5,
+                borderBottomColor: palette.ink + '20',
+              }}
+            >
+              <Pressable onPress={close} hitSlop={8}>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 12,
+                    letterSpacing: 12 * 0.16,
+                    color: palette.ink,
+                    opacity: 0.55,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  CANCEL
+                </Text>
+              </Pressable>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 9,
+                  letterSpacing: 9 * 0.2,
+                  color: palette.ink,
+                  opacity: 0.5,
+                  textTransform: 'uppercase',
+                }}
+              >
+                ROUND NOTE
+              </Text>
+              <Pressable onPress={save} hitSlop={8}>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 12,
+                    letterSpacing: 12 * 0.16,
+                    color: palette.fairway,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  SAVE
+                </Text>
+              </Pressable>
+            </View>
             <TextInput
               value={draft}
               onChangeText={(t) => setDraft(t.slice(0, MAX))}
@@ -71,53 +131,26 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
                 fontFamily: fontFamily.editorial,
                 fontSize: 18,
                 color: palette.ink,
-                minHeight: 140,
+                minHeight: 120,
+                maxHeight: 200,
                 textAlignVertical: 'top',
+                marginTop: 12,
               }}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
-              <Text
-                style={{
-                  fontFamily: fontFamily.mono,
-                  fontSize: 10,
-                  color: palette.ink,
-                  opacity: 0.5,
-                }}
-              >
-                {draft.length}/{MAX}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 16 }}>
-                <Pressable onPress={() => setOpen(false)}>
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 12,
-                      letterSpacing: 12 * 0.16,
-                      color: palette.ink,
-                      opacity: 0.55,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    CANCEL
-                  </Text>
-                </Pressable>
-                <Pressable onPress={save}>
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 12,
-                      letterSpacing: 12 * 0.16,
-                      color: palette.fairway,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    SAVE
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                color: palette.ink,
+                opacity: 0.45,
+                marginTop: 8,
+                textAlign: 'right',
+              }}
+            >
+              {draft.length}/{MAX}
+            </Text>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

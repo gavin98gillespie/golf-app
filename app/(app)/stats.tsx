@@ -119,7 +119,7 @@ export default function Stats() {
             fontFamily: fontFamily.mono,
             fontSize: 9,
             letterSpacing: 9 * 0.2,
-            color: palette.ink,
+            color: palette.bone,
             opacity: 0.55,
             textTransform: 'uppercase',
             marginTop: 32,
@@ -129,14 +129,17 @@ export default function Stats() {
           DETAILED STATS · 18-HOLE
         </Text>
         <StatRow
+          surface="ink"
           label="FAIRWAYS"
           value={detailed.fairwayPct == null ? '—' : `${Math.round(detailed.fairwayPct * 100)}%`}
         />
         <StatRow
+          surface="ink"
           label="GREENS IN REG"
           value={detailed.girPct == null ? '—' : `${Math.round(detailed.girPct * 100)}%`}
         />
         <StatRow
+          surface="ink"
           label="AVG PUTTS"
           value={detailed.avgPutts == null ? '—' : detailed.avgPutts.toFixed(1)}
           sub="per hole"
@@ -145,6 +148,7 @@ export default function Stats() {
           const b = detailed.byPar[p];
           return (
             <StatRow
+              surface="ink"
               key={p}
               label={`PAR ${p}`}
               value={b.avg == null ? '—' : b.avg.toFixed(2)}

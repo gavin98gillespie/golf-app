@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -260,16 +260,18 @@ export default function HoleEntry() {
             alignItems: 'flex-start',
           }}
         >
-          <Pressable onPress={exitRound}>
+          <Pressable onPress={isEditMode ? () => void finishEdit() : exitRound} hitSlop={8}>
             <Text
               style={{
                 fontFamily: fontFamily.mono,
                 fontSize: 11,
-                color: palette.bone,
-                opacity: 0.7,
+                color: isEditMode ? palette.fairway : palette.bone,
+                opacity: isEditMode ? 1 : 0.7,
+                textTransform: isEditMode ? 'uppercase' : 'none',
+                letterSpacing: isEditMode ? 11 * 0.16 : 0,
               }}
             >
-              ‹ exit round
+              {isEditMode ? '‹ DONE EDITING' : '‹ exit round'}
             </Text>
           </Pressable>
           <View style={{ alignItems: 'flex-end' }}>
@@ -297,6 +299,46 @@ export default function HoleEntry() {
           </View>
         </View>
 
+        {/* Hole jump bar (edit mode only) */}
+        {isEditMode ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6, paddingVertical: 4 }}
+            style={{ marginTop: 16 }}
+          >
+            {Array.from({ length: totalHoles }, (_, i) => i + 1).map((h) => {
+              const active = h === hole;
+              return (
+                <Pressable
+                  key={h}
+                  onPress={() => router.setParams({ hole: String(h) })}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 0.5,
+                    borderColor: active ? palette.brass : palette.bone + '33',
+                    backgroundColor: active ? palette.brass + '22' : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: fontFamily.mono,
+                      fontSize: 11,
+                      color: active ? palette.brass : palette.bone,
+                      opacity: active ? 1 : 0.7,
+                    }}
+                  >
+                    {h}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+
         {/* Hole metadata */}
         <Text
           style={{
@@ -306,7 +348,7 @@ export default function HoleEntry() {
             color: palette.bone,
             opacity: 0.7,
             textTransform: 'uppercase',
-            marginTop: 32,
+            marginTop: isEditMode ? 24 : 32,
           }}
         >
           HOLE {padded}

@@ -52,11 +52,11 @@ export function useHomeCourse(courseId: string | null | undefined) {
       if (!courseId) return null;
       const { data, error } = await supabase
         .from('courses')
-        .select('id, name')
+        .select('*')
         .eq('id', courseId)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as Tables<'courses'> | null;
     },
     enabled: !!courseId,
   });

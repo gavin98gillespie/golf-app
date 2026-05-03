@@ -6,7 +6,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { CourseListItem } from '@/components/CourseListItem';
 import { useRecentCourses, useCourseSearch, useNearbyCourses } from '@/lib/queries/courses';
 import { useSession } from '@/lib/hooks/useSession';
-import { useUpdateHomeCourse } from '@/lib/queries/profile';
+import { useUpdateHomeCourse, useMyProfile, useHomeCourse } from '@/lib/queries/profile';
 
 export default function CoursePicker() {
   const [query, setQuery] = useState('');
@@ -15,6 +15,8 @@ export default function CoursePicker() {
   const recent = useRecentCourses(session?.user.id, 5);
   const search = useCourseSearch(query);
   const nearbyQ = useNearbyCourses(25);
+  const profileQ = useMyProfile(session?.user.id);
+  const homeCourseQ = useHomeCourse(profileQ.data?.home_course_id);
 
   const params = useLocalSearchParams<{ mode?: string }>();
   const isHomeCourseMode = params.mode === 'homeCourse';
@@ -47,6 +49,18 @@ export default function CoursePicker() {
         className="bg-bg-elevated border border-border-subtle rounded-xl px-4 py-3 text-text-primary"
         autoCapitalize="none"
       />
+
+      {!isSearching && !isHomeCourseMode && homeCourseQ.data ? (
+        <>
+          <Text className="text-text-secondary text-xs uppercase tracking-wider mt-6 mb-2">
+            Home course
+          </Text>
+          <CourseListItem
+            course={homeCourseQ.data}
+            onPress={() => goToCourse(homeCourseQ.data!.id)}
+          />
+        </>
+      ) : null}
 
       {!isSearching && (recent.data?.length ?? 0) > 0 ? (
         <>
