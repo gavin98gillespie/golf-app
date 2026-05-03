@@ -294,6 +294,7 @@ export type Database = {
           home_course_id: string | null
           id: string
           is_private: boolean
+          onboarding_completed: boolean
           updated_at: string
           username: string
         }
@@ -305,6 +306,7 @@ export type Database = {
           home_course_id?: string | null
           id: string
           is_private?: boolean
+          onboarding_completed?: boolean
           updated_at?: string
           username: string
         }
@@ -316,6 +318,7 @@ export type Database = {
           home_course_id?: string | null
           id?: string
           is_private?: boolean
+          onboarding_completed?: boolean
           updated_at?: string
           username?: string
         }
