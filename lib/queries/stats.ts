@@ -48,16 +48,19 @@ export function useUserSummaryStats(userId: string | undefined) {
       if (!userId) return null;
       const { data, error } = await supabase
         .from('rounds')
-        .select('total_score, total_par, played_at, courses(hole_count)')
+        .select('total_score, total_par, played_at, hole_count, courses(hole_count)')
         .eq('user_id', userId)
         .eq('is_draft', false)
         .order('played_at', { ascending: false });
       if (error) throw error;
       const rounds = data ?? [];
-      // Group by hole_count
+      // Group by round.hole_count (override) → course.hole_count (fallback)
       const groups = new Map<number, { scores: number[]; diffs: number[] }>();
       for (const r of rounds) {
-        const hc = (r.courses as { hole_count: number } | null)?.hole_count ?? 18;
+        const hc =
+          (r as { hole_count: number | null }).hole_count ??
+          (r.courses as { hole_count: number } | null)?.hole_count ??
+          18;
         if (!groups.has(hc)) groups.set(hc, { scores: [], diffs: [] });
         const g = groups.get(hc)!;
         g.scores.push(r.total_score);
@@ -116,7 +119,7 @@ export function useScoreTrend(
       if (!userId) return [];
       const q = supabase
         .from('rounds')
-        .select('id, total_score, total_par, played_at, courses(hole_count)')
+        .select('id, total_score, total_par, played_at, hole_count, courses(hole_count)')
         .eq('user_id', userId)
         .eq('is_draft', false)
         .order('played_at', { ascending: false })
@@ -128,10 +131,11 @@ export function useScoreTrend(
         total_score: number;
         total_par: number;
         played_at: string;
+        hole_count: number | null;
         courses: { hole_count: number } | null;
       }[];
       if (holeCount != null) {
-        rows = rows.filter((r) => (r.courses?.hole_count ?? 18) === holeCount);
+        rows = rows.filter((r) => (r.hole_count ?? r.courses?.hole_count ?? 18) === holeCount);
       }
       // Cap to limit and reverse so oldest first.
       return rows.slice(0, limit).reverse();
