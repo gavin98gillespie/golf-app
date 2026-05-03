@@ -313,6 +313,13 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_home_course_id_fkey"
+            columns: ["home_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reports: {
@@ -363,6 +370,7 @@ export type Database = {
           hole_number: number
           id: string
           par: number
+          player_id: string
           putts: number | null
           round_id: string
           score: number
@@ -373,6 +381,7 @@ export type Database = {
           hole_number: number
           id?: string
           par: number
+          player_id: string
           putts?: number | null
           round_id: string
           score: number
@@ -383,16 +392,82 @@ export type Database = {
           hole_number?: number
           id?: string
           par?: number
+          player_id?: string
           putts?: number | null
           round_id?: string
           score?: number
         }
         Relationships: [
           {
+            foreignKeyName: "round_holes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "round_holes_round_id_fkey"
             columns: ["round_id"]
             isOneToOne: false
             referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      round_players: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          invited_by: string | null
+          joined_at: string | null
+          notes: string | null
+          round_id: string
+          status: string
+          tee_box: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          notes?: string | null
+          round_id: string
+          status: string
+          tee_box: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          notes?: string | null
+          round_id?: string
+          status?: string
+          tee_box?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_players_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -403,7 +478,11 @@ export type Database = {
           created_at: string
           hole_count: number | null
           id: string
+          invites_locked_at: string | null
           is_draft: boolean
+          is_group: boolean
+          join_code: string | null
+          live_visible: boolean
           notes: string | null
           played_at: string
           tee_box: string
@@ -418,7 +497,11 @@ export type Database = {
           created_at?: string
           hole_count?: number | null
           id?: string
+          invites_locked_at?: string | null
           is_draft?: boolean
+          is_group?: boolean
+          join_code?: string | null
+          live_visible?: boolean
           notes?: string | null
           played_at?: string
           tee_box?: string
@@ -433,7 +516,11 @@ export type Database = {
           created_at?: string
           hole_count?: number | null
           id?: string
+          invites_locked_at?: string | null
           is_draft?: boolean
+          is_group?: boolean
+          join_code?: string | null
+          live_visible?: boolean
           notes?: string | null
           played_at?: string
           tee_box?: string
