@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -7,9 +7,11 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { Datum } from '@/components/Datum';
 import { ScoreNumeral } from '@/components/ScoreNumeral';
 import { Topo } from '@/components/Topo';
+import { EagleCelebration } from '@/components/EagleCelebration';
 import { palette, fontFamily, deltaLabel } from '@/theme/linksman';
 import { supabase, type Tables } from '@/lib/supabase';
 import { useUpsertHoleScore, useRoundHoles } from '@/lib/queries/rounds';
+import { useSession } from '@/lib/hooks/useSession';
 
 type RoundWithCourse = Tables<'rounds'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count'> | null;
@@ -23,6 +25,14 @@ export default function HoleEntry() {
     hole: string;
   }>();
   const hole = parseInt(holeParam ?? '1', 10);
+  const { session } = useSession();
+
+  const [eagleVisible, setEagleVisible] = useState(false);
+  const [eagleData, setEagleData] = useState<{
+    holeNumber: number;
+    par: number;
+    lifetimeCount: number;
+  } | null>(null);
 
   const roundQ = useQuery({
     queryKey: ['round', roundId],
@@ -103,6 +113,30 @@ export default function HoleEntry() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score, par, hole, roundId, fairwayCategory, putts, gir]);
+
+  const handleEagle = useCallback(
+    async (holeNumber: number, holePar: number) => {
+      if (!session?.user.id) return;
+      // Two-step: pull this user's round IDs, then count round_holes where score - par <= -2.
+      const roundsRes = await supabase.from('rounds').select('id').eq('user_id', session.user.id);
+      if (roundsRes.error) return;
+      const roundIds = (roundsRes.data ?? []).map((r) => r.id);
+      if (roundIds.length === 0) {
+        setEagleData({ holeNumber, par: holePar, lifetimeCount: 1 });
+        setEagleVisible(true);
+        return;
+      }
+      const holesRes = await supabase
+        .from('round_holes')
+        .select('score, par')
+        .in('round_id', roundIds);
+      if (holesRes.error) return;
+      const lifetime = (holesRes.data ?? []).filter((r) => r.score - r.par <= -2).length;
+      setEagleData({ holeNumber, par: holePar, lifetimeCount: Math.max(lifetime, 1) });
+      setEagleVisible(true);
+    },
+    [session?.user.id],
+  );
 
   // Telemetry: holes BEFORE the current one
   const telemetry = useMemo(() => {
@@ -304,7 +338,15 @@ export default function HoleEntry() {
             }}
           >
             <Pressable
-              onPress={() => setScore((s) => Math.max(1, s - 1))}
+              onPress={() =>
+                setScore((s) => {
+                  const next = Math.max(1, s - 1);
+                  if (next - par <= -2 && s - par > -2) {
+                    void handleEagle(hole, par);
+                  }
+                  return next;
+                })
+              }
               style={{
                 width: 56,
                 height: 56,
@@ -321,7 +363,15 @@ export default function HoleEntry() {
             </Pressable>
             <ScoreNumeral value={score} size={120} color={palette.bone} />
             <Pressable
-              onPress={() => setScore((s) => Math.min(20, s + 1))}
+              onPress={() =>
+                setScore((s) => {
+                  const next = Math.min(20, s + 1);
+                  if (next - par <= -2 && s - par > -2) {
+                    void handleEagle(hole, par);
+                  }
+                  return next;
+                })
+              }
               style={{
                 width: 56,
                 height: 56,
@@ -468,6 +518,20 @@ export default function HoleEntry() {
           </Pressable>
         </View>
       </View>
+
+      {eagleData ? (
+        <EagleCelebration
+          visible={eagleVisible}
+          holeNumber={eagleData.holeNumber}
+          par={eagleData.par}
+          lifetimeCount={eagleData.lifetimeCount}
+          onClose={() => setEagleVisible(false)}
+          onSave={() => {
+            setEagleVisible(false);
+            advance();
+          }}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
