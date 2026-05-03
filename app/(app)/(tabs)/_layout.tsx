@@ -1,37 +1,21 @@
 import { Tabs } from 'expo-router';
 
-import { useSession } from '@/lib/hooks/useSession';
-import { useNewFollowersCount } from '@/lib/queries/newFollowers';
-import { colors } from '@/theme';
+import { TabBar } from '@/components/TabBar';
 
 export default function TabsLayout() {
-  const { session } = useSession();
-  const newFollowersQ = useNewFollowersCount(session?.user.id);
-  const showDot = (newFollowersQ.data ?? 0) > 0;
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.bg.surface,
-          borderTopColor: colors.border.subtle,
-        },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.text.secondary,
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => {
+        const route = props.state.routes[props.state.index];
+        const name = route?.name as 'index' | 'discover' | 'profile' | undefined;
+        return <TabBar active={name ?? 'index'} />;
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
-      <Tabs.Screen name="start" options={{ title: '+ Round' }} />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          ...(showDot ? { tabBarBadge: '•' } : {}),
-          tabBarBadgeStyle: { backgroundColor: '#4ade80', color: '#08100c' },
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="discover" />
+      <Tabs.Screen name="start" options={{ href: null }} />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
