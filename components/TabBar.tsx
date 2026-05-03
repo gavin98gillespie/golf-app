@@ -6,7 +6,7 @@ import Svg, { Circle, Line } from 'react-native-svg';
 import { PlayModeSheet } from '@/components/PlayModeSheet';
 import { palette, fontFamily } from '@/theme/linksman';
 
-type TabName = 'index' | 'discover' | 'profile' | 'settings';
+type TabName = 'index' | 'feed' | 'search' | 'profile';
 
 type TabItem = {
   name: TabName;
@@ -14,13 +14,13 @@ type TabItem = {
 };
 
 const ITEMS: TabItem[] = [
-  { name: 'index', label: 'Feed' },
-  { name: 'discover', label: 'Discover' },
+  { name: 'index', label: 'Today' },
+  { name: 'feed', label: 'Feed' },
   { name: 'profile', label: 'Me' },
-  { name: 'settings', label: 'Settings' },
+  { name: 'search', label: 'Search' },
 ];
 
-type Props = { active: TabName };
+type Props = { active: TabName | 'start' | 'discover' | 'settings' };
 
 export function TabBar({ active }: Props) {
   return (
@@ -60,9 +60,9 @@ export function TabBar({ active }: Props) {
 function TabCell({ item, active }: { item: TabItem; active: boolean }) {
   const onPress = () => {
     if (item.name === 'index') router.replace('/(app)/(tabs)');
-    else if (item.name === 'discover') router.replace('/(app)/(tabs)/discover');
+    else if (item.name === 'feed') router.replace('/(app)/(tabs)/feed');
     else if (item.name === 'profile') router.replace('/(app)/(tabs)/profile');
-    else if (item.name === 'settings') router.replace('/(app)/(tabs)/settings');
+    else if (item.name === 'search') router.replace('/(app)/(tabs)/search');
   };
   return (
     <Pressable

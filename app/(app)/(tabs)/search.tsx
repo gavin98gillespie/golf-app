@@ -3,17 +3,22 @@ import { Text, View } from 'react-native';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { palette, fontFamily } from '@/theme/linksman';
 
-export default function Today() {
+export default function Search() {
   return (
-    <ScreenContainer surface="bone">
+    <ScreenContainer>
       <View style={{ marginTop: 24 }}>
         <Text
-          style={{ fontFamily: fontFamily.mono, fontSize: 11, color: palette.ink, opacity: 0.55 }}
+          style={{ fontFamily: fontFamily.mono, fontSize: 11, color: palette.bone, opacity: 0.55 }}
         >
-          TODAY
+          SEARCH
         </Text>
         <Text
-          style={{ fontFamily: fontFamily.display, fontSize: 32, color: palette.ink, marginTop: 4 }}
+          style={{
+            fontFamily: fontFamily.display,
+            fontSize: 32,
+            color: palette.bone,
+            marginTop: 4,
+          }}
         >
           Coming next.
         </Text>
