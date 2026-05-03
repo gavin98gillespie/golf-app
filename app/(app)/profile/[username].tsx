@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View, FlatList } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { FollowButton } from '@/components/FollowButton';
 import { ReportSheet } from '@/components/ReportSheet';
+import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useProfileByUsername } from '@/lib/queries/users';
 import { useFollowerCount, useFollowingCount, useIsMutual } from '@/lib/queries/follows';
@@ -14,6 +15,7 @@ import { useBlock, useUnblock, useIsBlocked } from '@/lib/queries/blocks';
 import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
 import { parseLocalDate } from '@/lib/date';
+import { palette, fontFamily } from '@/theme/linksman';
 
 type RoundWithCourse = Tables<'rounds'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count'> | null;
@@ -118,7 +120,7 @@ export default function OtherProfile() {
   if (profileQ.isLoading) {
     return (
       <ScreenContainer>
-        <ActivityIndicator className="mt-20" />
+        <ActivityIndicator style={{ marginTop: 80 }} color={palette.bone} />
       </ScreenContainer>
     );
   }
@@ -126,7 +128,16 @@ export default function OtherProfile() {
     return (
       <ScreenContainer>
         <BackButton />
-        <Text className="text-text-primary text-xl mt-8">User not found</Text>
+        <Text
+          style={{
+            fontFamily: fontFamily.display,
+            fontSize: 24,
+            color: palette.bone,
+            marginTop: 32,
+          }}
+        >
+          User not found
+        </Text>
       </ScreenContainer>
     );
   }
@@ -136,96 +147,203 @@ export default function OtherProfile() {
 
   return (
     <ScreenContainer>
-      <BackButton />
+      <FlatList
+        data={isMutual ? (recentRoundsQ.data ?? []) : []}
+        keyExtractor={(r) => r.id}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        ListHeaderComponent={
+          <View>
+            <BackButton />
 
-      <View className="flex-row items-center mt-6">
-        <View className="w-16 h-16 rounded-full bg-bg-surface border border-border-subtle items-center justify-center">
-          <Text className="text-text-secondary text-2xl font-semibold">
-            {profile.display_name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <View className="flex-1 ml-4">
-          <Text className="text-text-primary text-2xl font-light">{profile.display_name}</Text>
-          <Text className="text-text-secondary text-sm">@{profile.username}</Text>
-        </View>
-        {viewerId ? <FollowButton viewerId={viewerId} targetId={profile.id} /> : null}
-        {viewerId ? (
-          <Pressable onPress={onTapMore} className="ml-2 p-2 active:opacity-70">
-            <Text className="text-text-secondary text-base">•••</Text>
-          </Pressable>
-        ) : null}
-      </View>
+            {/* Top row: meta + actions */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 9,
+                  letterSpacing: 9 * 0.2,
+                  color: palette.bone,
+                  opacity: 0.5,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {format(new Date(), 'MMMM yyyy').toUpperCase()}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {viewerId ? <FollowButton viewerId={viewerId} targetId={profile.id} /> : null}
+                {viewerId ? (
+                  <Pressable onPress={onTapMore} hitSlop={8} style={{ padding: 4 }}>
+                    <Text
+                      style={{
+                        fontFamily: fontFamily.mono,
+                        fontSize: 14,
+                        color: palette.bone,
+                        opacity: 0.7,
+                      }}
+                    >
+                      •••
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
 
-      {profile.bio ? (
-        <Text className="text-text-primary text-sm mt-4 leading-5">{profile.bio}</Text>
-      ) : null}
+            {/* Hero */}
+            <Text
+              style={{
+                fontFamily: fontFamily.display,
+                fontSize: 36,
+                letterSpacing: -36 * 0.02,
+                color: palette.bone,
+                marginTop: 12,
+              }}
+            >
+              {profile.display_name}
+            </Text>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 11,
+                letterSpacing: 11 * 0.16,
+                color: palette.bone,
+                opacity: 0.55,
+                marginTop: 2,
+              }}
+            >
+              @{profile.username}
+            </Text>
 
-      <View className="flex-row mt-6 py-4 border-y border-border-subtle">
-        <Stat label="Rounds" value={roundsCountQ.data ?? 0} />
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/relations/[username]/followers',
-              params: { username: profile.username },
-            })
-          }
-          className="flex-1 active:opacity-70"
-        >
-          <Stat label="Followers" value={followersQ.data ?? 0} />
-        </Pressable>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/relations/[username]/following',
-              params: { username: profile.username },
-            })
-          }
-          className="flex-1 active:opacity-70"
-        >
-          <Stat label="Following" value={followingQ.data ?? 0} />
-        </Pressable>
-      </View>
+            {profile.bio ? (
+              <Text
+                style={{
+                  fontFamily: fontFamily.editorial,
+                  fontSize: 14,
+                  color: palette.bone,
+                  opacity: 0.85,
+                  marginTop: 16,
+                  lineHeight: 20,
+                }}
+              >
+                {profile.bio}
+              </Text>
+            ) : null}
 
-      <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-6 mb-2">
-        Recent rounds
-      </Text>
+            {/* Stat row */}
+            <View
+              style={{
+                flexDirection: 'row',
+                marginTop: 24,
+                paddingVertical: 16,
+                borderTopWidth: 0.5,
+                borderBottomWidth: 0.5,
+                borderColor: palette.bone + '33',
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Datum label="ROUNDS" value={roundsCountQ.data ?? 0} color={palette.bone} />
+              </View>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/relations/[username]/followers',
+                    params: { username: profile.username },
+                  })
+                }
+                style={{ flex: 1 }}
+              >
+                <Datum label="FOLLOWERS" value={followersQ.data ?? 0} color={palette.bone} />
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/relations/[username]/following',
+                    params: { username: profile.username },
+                  })
+                }
+                style={{ flex: 1, alignItems: 'flex-end' }}
+              >
+                <Datum
+                  label="FOLLOWING"
+                  value={followingQ.data ?? 0}
+                  color={palette.bone}
+                  align="right"
+                />
+              </Pressable>
+            </View>
 
-      {!isMutual ? (
-        <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mt-2">
-          <Text className="text-text-primary text-sm">Follow each other to see their rounds.</Text>
-        </View>
-      ) : recentRoundsQ.isLoading ? (
-        <ActivityIndicator className="my-4" />
-      ) : (recentRoundsQ.data ?? []).length === 0 ? (
-        <Text className="text-text-secondary text-sm mt-2">No rounds yet.</Text>
-      ) : (
-        <FlatList
-          scrollEnabled={false}
-          data={recentRoundsQ.data ?? []}
-          keyExtractor={(r) => r.id}
-          renderItem={({ item }) => <RoundRow round={item} />}
-        />
-      )}
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 9,
+                letterSpacing: 9 * 0.2,
+                color: palette.bone,
+                opacity: 0.55,
+                textTransform: 'uppercase',
+                marginTop: 24,
+                marginBottom: 8,
+              }}
+            >
+              Recent rounds
+            </Text>
 
-      {viewerId && reportTarget ? (
-        <ReportSheet
-          visible
-          reporterId={viewerId}
-          targetType={reportTarget.type}
-          targetId={reportTarget.id}
-          onClose={() => setReportTarget(null)}
-        />
-      ) : null}
+            {!isMutual ? (
+              <View
+                style={{
+                  borderWidth: 0.5,
+                  borderColor: palette.bone + '33',
+                  padding: 16,
+                  marginTop: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: fontFamily.editorial,
+                    fontSize: 14,
+                    color: palette.bone,
+                    opacity: 0.85,
+                  }}
+                >
+                  Follow each other to see their rounds.
+                </Text>
+              </View>
+            ) : recentRoundsQ.isLoading ? (
+              <ActivityIndicator style={{ marginVertical: 16 }} color={palette.bone} />
+            ) : (recentRoundsQ.data ?? []).length === 0 ? (
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 11,
+                  color: palette.bone,
+                  opacity: 0.55,
+                  marginTop: 8,
+                }}
+              >
+                No rounds yet.
+              </Text>
+            ) : null}
+          </View>
+        }
+        renderItem={({ item }) => <RoundRow round={item} />}
+        ListFooterComponent={
+          viewerId && reportTarget ? (
+            <ReportSheet
+              visible
+              reporterId={viewerId}
+              targetType={reportTarget.type}
+              targetId={reportTarget.id}
+              onClose={() => setReportTarget(null)}
+            />
+          ) : null
+        }
+      />
     </ScreenContainer>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <View className="flex-1">
-      <Text className="text-text-primary text-xl font-light">{value}</Text>
-      <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-1">{label}</Text>
-    </View>
   );
 }
 
@@ -235,24 +353,67 @@ function RoundRow({ round }: { round: RoundWithCourse }) {
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/round/[id]', params: { id: round.id } })}
-      className="flex-row items-center py-3 border-b border-border-subtle active:opacity-70"
+      style={{
+        flexDirection: 'row',
+        paddingVertical: 14,
+        borderBottomWidth: 0.5,
+        borderBottomColor: palette.bone + '20',
+        alignItems: 'center',
+      }}
     >
-      <View className="flex-1">
-        <Text className="text-text-primary text-base">{round.courses?.name ?? '—'}</Text>
-        <Text className="text-text-secondary text-xs mt-0.5">
-          {format(parseLocalDate(round.played_at), 'MMM d, yyyy')}
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: fontFamily.display, fontSize: 16, color: palette.bone }}>
+          {round.courses?.name ?? '—'}
+        </Text>
+        <Text
+          style={{
+            fontFamily: fontFamily.mono,
+            fontSize: 10,
+            letterSpacing: 10 * 0.16,
+            color: palette.bone,
+            opacity: 0.55,
+            marginTop: 2,
+            textTransform: 'uppercase',
+          }}
+        >
+          {format(parseLocalDate(round.played_at), 'MMM d, yyyy').toUpperCase()}
         </Text>
       </View>
-      <Text className="text-text-primary text-lg font-light">{round.total_score}</Text>
-      <Text className="text-text-secondary text-xs ml-2 w-10 text-right">{diffLabel}</Text>
+      <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.bone }}>
+        {round.total_score}
+      </Text>
+      <Text
+        style={{
+          fontFamily: fontFamily.mono,
+          fontSize: 11,
+          color: palette.bone,
+          opacity: 0.6,
+          marginLeft: 8,
+          width: 32,
+          textAlign: 'right',
+        }}
+      >
+        {diffLabel}
+      </Text>
     </Pressable>
   );
 }
 
 function BackButton() {
   return (
-    <Pressable onPress={() => router.back()} className="mt-6 active:opacity-70">
-      <Text className="text-accent text-sm">← Back</Text>
+    <Pressable onPress={() => router.back()} style={{ marginTop: 16 }} hitSlop={8}>
+      <Text
+        style={{
+          fontFamily: fontFamily.mono,
+          fontSize: 11,
+          letterSpacing: 11 * 0.16,
+          color: palette.bone,
+          opacity: 0.7,
+          textTransform: 'uppercase',
+        }}
+      >
+        ← BACK
+      </Text>
     </Pressable>
   );
 }
