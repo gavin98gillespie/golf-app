@@ -12,7 +12,17 @@ export function useCreateDraftRound() {
         .select()
         .single();
       if (error) throw error;
-      return data as Tables<'rounds'>;
+      const round = data as Tables<'rounds'>;
+      // Auto-insert host's round_players row so all scoring code uses the join table uniformly
+      const { error: pErr } = await supabase.from('round_players').insert({
+        round_id: round.id,
+        user_id: round.user_id,
+        tee_box: round.tee_box ?? 'default',
+        status: 'joined',
+        joined_at: new Date().toISOString(),
+      } as Inserts<'round_players'>);
+      if (pErr) throw pErr;
+      return round;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['rounds'] });

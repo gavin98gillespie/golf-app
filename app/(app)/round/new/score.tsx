@@ -105,9 +105,12 @@ export default function HoleEntry() {
   // Debounced autosave: writes round_holes whenever any tracked field changes.
   useEffect(() => {
     if (!roundId) return;
+    if (!session?.user.id) return;
+    const playerId = session.user.id;
     const t = setTimeout(() => {
       upsert.mutate({
         round_id: roundId,
+        player_id: playerId,
         hole_number: hole,
         score,
         par,
@@ -118,7 +121,7 @@ export default function HoleEntry() {
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [score, par, hole, roundId, fairwayCategory, gir]);
+  }, [score, par, hole, roundId, fairwayCategory, gir, session?.user.id]);
 
   const handleEagle = useCallback(
     async (
