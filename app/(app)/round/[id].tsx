@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { GroupRoundDetail } from '@/components/GroupRoundDetail';
 import { HoleGrid } from '@/components/HoleGrid';
 import { ScoreNumeral } from '@/components/ScoreNumeral';
 import { MonoBadge } from '@/components/MonoBadge';
@@ -149,6 +150,10 @@ export default function RoundDetail() {
         </Text>
       </ScreenContainer>
     );
+  }
+
+  if (round.is_group) {
+    return <GroupRoundDetail roundId={round.id} />;
   }
 
   const courseName = round.courses?.name ?? null;

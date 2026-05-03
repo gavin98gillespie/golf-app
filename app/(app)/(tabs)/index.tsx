@@ -5,6 +5,7 @@ import { format, getWeek } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { FeedRoundCard } from '@/components/FeedRoundCard';
+import { GroupRoundCard } from '@/components/GroupRoundCard';
 import { Wordmark } from '@/components/Wordmark';
 import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
@@ -65,7 +66,13 @@ export default function Feed() {
         data={feed}
         keyExtractor={(r) => r.id}
         renderItem={({ item }) =>
-          userId ? <FeedRoundCard round={item} viewerId={userId} /> : null
+          userId ? (
+            item.is_group ? (
+              <GroupRoundCard round={item} viewerId={userId} />
+            ) : (
+              <FeedRoundCard round={item} viewerId={userId} />
+            )
+          ) : null
         }
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
