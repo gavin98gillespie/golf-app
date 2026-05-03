@@ -4,15 +4,17 @@ import { supabase } from '@/lib/supabase';
 export type ParBucket = { count: number; avg: number | null; best: number | null };
 export type DetailedStats = {
   fairwayPct: number | null;
+  fairwayTracked: number;
   girPct: number | null;
-  avgPutts: number | null;
+  girTracked: number;
   byPar: Record<3 | 4 | 5, ParBucket>;
 };
 
-const EMPTY: DetailedStats = {
+export const EMPTY_DETAILED_STATS: DetailedStats = {
   fairwayPct: null,
+  fairwayTracked: 0,
   girPct: null,
-  avgPutts: null,
+  girTracked: 0,
   byPar: {
     3: { count: 0, avg: null, best: null },
     4: { count: 0, avg: null, best: null },
@@ -24,7 +26,7 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
   return useQuery({
     queryKey: ['stats', 'detailed', userId, holeCount],
     queryFn: async (): Promise<DetailedStats> => {
-      if (!userId) return EMPTY;
+      if (!userId) return EMPTY_DETAILED_STATS;
 
       const roundsRes = await supabase
         .from('rounds')
@@ -42,11 +44,11 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
           )
         : rows;
       const ids = filtered.map((r) => r.id);
-      if (ids.length === 0) return EMPTY;
+      if (ids.length === 0) return EMPTY_DETAILED_STATS;
 
       const holesRes = await supabase
         .from('round_holes')
-        .select('par, score, putts, fairway_hit, gir')
+        .select('par, score, fairway_hit, gir')
         .in('round_id', ids);
       if (holesRes.error) throw holesRes.error;
       const holes = holesRes.data ?? [];
@@ -55,8 +57,6 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
       let fwTotal = 0;
       let girHit = 0;
       let girTotal = 0;
-      let puttsSum = 0;
-      let puttsTotal = 0;
       const sums: Record<number, { sum: number; n: number; min: number }> = {};
 
       for (const h of holes) {
@@ -69,10 +69,6 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
         if (h.gir !== null) {
           girTotal++;
           if (h.gir) girHit++;
-        }
-        if (h.putts !== null) {
-          puttsTotal++;
-          puttsSum += h.putts;
         }
         if (h.par === 3 || h.par === 4 || h.par === 5) {
           const s = sums[h.par] ?? { sum: 0, n: 0, min: Infinity };
@@ -95,8 +91,9 @@ export function useDetailedStats(userId: string | undefined, holeCount?: number)
       }
       return {
         fairwayPct: fwTotal ? fwHit / fwTotal : null,
+        fairwayTracked: fwTotal,
         girPct: girTotal ? girHit / girTotal : null,
-        avgPutts: puttsTotal ? puttsSum / puttsTotal : null,
+        girTracked: girTotal,
         byPar,
       };
     },
