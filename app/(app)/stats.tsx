@@ -7,6 +7,8 @@ import { ScoreTrendChart } from '@/components/ScoreTrendChart';
 import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useScoreTrend, useBestPerPar, type BestForPar } from '@/lib/queries/stats';
+import { useDetailedStats } from '@/lib/queries/detailedStats';
+import { StatRow } from '@/components/StatRow';
 import { palette, fontFamily } from '@/theme/linksman';
 import { parseLocalDate } from '@/lib/date';
 
@@ -14,10 +16,21 @@ export default function Stats() {
   const { session } = useSession();
   const trendQ = useScoreTrend(session?.user.id, { limit: 20, holeCount: 18 });
   const bestQ = useBestPerPar(session?.user.id);
+  const detailedQ = useDetailedStats(session?.user.id, 18);
   const { width } = useWindowDimensions();
   const chartWidth = width - 48;
 
   const bestPerPar = bestQ.data ?? { 3: null, 4: null, 5: null, 6: null };
+  const detailed = detailedQ.data ?? {
+    fairwayPct: null,
+    girPct: null,
+    avgPutts: null,
+    byPar: {
+      3: { count: 0, avg: null, best: null },
+      4: { count: 0, avg: null, best: null },
+      5: { count: 0, avg: null, best: null },
+    },
+  } as const;
 
   return (
     <ScreenContainer>
@@ -93,13 +106,53 @@ export default function Stats() {
           Best per hole type
         </Text>
 
-        <View style={{ gap: 12, paddingBottom: 40 }}>
+        <View style={{ gap: 12 }}>
           {([3, 4, 5, 6] as const)
             .filter((par) => par !== 6 || bestPerPar[6] != null)
             .map((par) => (
               <BestParCell key={par} par={par} best={bestPerPar[par] ?? null} />
             ))}
         </View>
+
+        <Text
+          style={{
+            fontFamily: fontFamily.mono,
+            fontSize: 9,
+            letterSpacing: 9 * 0.2,
+            color: palette.ink,
+            opacity: 0.55,
+            textTransform: 'uppercase',
+            marginTop: 32,
+            marginBottom: 4,
+          }}
+        >
+          DETAILED STATS · 18-HOLE
+        </Text>
+        <StatRow
+          label="FAIRWAYS"
+          value={detailed.fairwayPct == null ? '—' : `${Math.round(detailed.fairwayPct * 100)}%`}
+        />
+        <StatRow
+          label="GREENS IN REG"
+          value={detailed.girPct == null ? '—' : `${Math.round(detailed.girPct * 100)}%`}
+        />
+        <StatRow
+          label="AVG PUTTS"
+          value={detailed.avgPutts == null ? '—' : detailed.avgPutts.toFixed(1)}
+          sub="per hole"
+        />
+        {([3, 4, 5] as const).map((p) => {
+          const b = detailed.byPar[p];
+          return (
+            <StatRow
+              key={p}
+              label={`PAR ${p}`}
+              value={b.avg == null ? '—' : b.avg.toFixed(2)}
+              sub={b.best == null ? '' : `best ${b.best}`}
+            />
+          );
+        })}
+        <View style={{ paddingBottom: 40 }} />
       </ScrollView>
     </ScreenContainer>
   );
