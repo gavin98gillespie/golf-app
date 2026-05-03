@@ -168,8 +168,8 @@ export default function Profile() {
                 borderColor: palette.ink + '33',
               }}
             >
-              <View style={{ flex: 1 }}>
-                <Datum label="ROUNDS" value={totalRounds} color={palette.ink} />
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <Datum label="ROUNDS" value={totalRounds} color={palette.ink} align="center" />
               </View>
               <Pressable
                 onPress={() =>
@@ -178,9 +178,14 @@ export default function Profile() {
                     params: { username },
                   })
                 }
-                style={{ flex: 1 }}
+                style={{ flex: 1, alignItems: 'center' }}
               >
-                <Datum label="FOLLOWERS" value={followersQ.data ?? 0} color={palette.ink} />
+                <Datum
+                  label="FOLLOWERS"
+                  value={followersQ.data ?? 0}
+                  color={palette.ink}
+                  align="center"
+                />
               </Pressable>
               <Pressable
                 onPress={() =>
@@ -189,13 +194,13 @@ export default function Profile() {
                     params: { username },
                   })
                 }
-                style={{ flex: 1, alignItems: 'flex-end' }}
+                style={{ flex: 1, alignItems: 'center' }}
               >
                 <Datum
                   label="FOLLOWING"
                   value={followingQ.data ?? 0}
                   color={palette.ink}
-                  align="right"
+                  align="center"
                 />
               </Pressable>
             </View>

@@ -6,12 +6,14 @@ type Props = {
   value: string | number;
   color?: string;
   valueColor?: string;
-  align?: 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
 };
 
 export function Datum({ label, value, color = '#F4F0E6', valueColor, align = 'left' }: Props) {
+  const alignItems =
+    align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
   return (
-    <View style={{ alignItems: align === 'right' ? 'flex-end' : 'flex-start', gap: 4 }}>
+    <View style={{ alignItems, gap: 4 }}>
       <Text
         style={{
           fontFamily: fontFamily.mono,

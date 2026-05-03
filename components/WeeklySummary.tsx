@@ -84,20 +84,27 @@ export function WeeklySummary({ userId }: Props) {
       >
         This week
       </Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Datum label="ROUNDS" value={data.thisCount} color={palette.ink} />
-        <Datum
-          label="AVG VS PAR"
-          value={data.thisAvgDelta != null ? data.thisAvgDelta.toFixed(1) : '—'}
-          color={palette.ink}
-        />
-        <Datum
-          label="WK/WK"
-          value={trendLabel}
-          color={palette.ink}
-          valueColor={trendColor}
-          align="right"
-        />
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Datum label="ROUNDS" value={data.thisCount} color={palette.ink} align="center" />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Datum
+            label="AVG VS PAR"
+            value={data.thisAvgDelta != null ? data.thisAvgDelta.toFixed(1) : '—'}
+            color={palette.ink}
+            align="center"
+          />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Datum
+            label="WK/WK"
+            value={trendLabel}
+            color={palette.ink}
+            valueColor={trendColor}
+            align="center"
+          />
+        </View>
       </View>
     </View>
   );

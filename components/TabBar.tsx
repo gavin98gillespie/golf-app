@@ -42,7 +42,7 @@ export function TabBar({ active }: Props) {
           <TabCell item={it} active={active === it.name} />
         </View>
       ))}
-      <View style={{ width: 56, alignItems: 'center' }}>
+      <View style={{ flex: 1, alignItems: 'center' }}>
         <PlayButton />
       </View>
       {ITEMS.slice(2).map((it) => (
