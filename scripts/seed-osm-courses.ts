@@ -1,4 +1,4 @@
-// Run with: npx ts-node --transpile-only scripts/seed-osm-courses.ts
+// Run with: npx tsx scripts/seed-osm-courses.ts
 //
 // Required env in .env.local:
 //   EXPO_PUBLIC_SUPABASE_URL
@@ -8,8 +8,12 @@
 // continental US bbox and upserts into the `courses` table. Idempotent
 // via courses.osm_id (UNIQUE).
 
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+
+// Expo's convention is .env.local; dotenv's auto-load only reads .env.
+loadEnv({ path: '.env.local' });
+loadEnv();
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
