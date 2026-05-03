@@ -40,6 +40,7 @@ export default function RoundSetup() {
       total_score: 0,
       total_par: 0,
       played_at: format(new Date(), 'yyyy-MM-dd'),
+      hole_count: holeCount,
     });
     router.replace({
       pathname: '/round/new/score',

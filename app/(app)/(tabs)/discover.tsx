@@ -104,6 +104,7 @@ export default function Discover() {
           renderItem={null}
           keyExtractor={() => 'unused'}
           contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <View>
               <Text

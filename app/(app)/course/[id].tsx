@@ -71,6 +71,7 @@ export default function CourseDetail() {
         data={rounds}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View>
             <Pressable

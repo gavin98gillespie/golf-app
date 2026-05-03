@@ -1,6 +1,6 @@
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, getWeek } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -19,6 +19,7 @@ export default function Feed() {
 
   const draftQ = useDraftRound(userId);
   const feedQ = useFeed(userId);
+  const qc = useQueryClient();
 
   const courseQ = useQuery({
     queryKey: ['course', draftQ.data?.course_id],
@@ -35,7 +36,7 @@ export default function Feed() {
     enabled: !!draftQ.data?.course_id,
   });
 
-  const totalHoles = courseQ.data?.hole_count ?? 18;
+  const totalHoles = draftQ.data?.hole_count ?? courseQ.data?.hole_count ?? 18;
   const resumeQ = useQuery({
     queryKey: ['resume_hole', draftQ.data?.id, totalHoles],
     queryFn: async () => {
@@ -67,6 +68,7 @@ export default function Feed() {
           userId ? <FeedRoundCard round={item} viewerId={userId} /> : null
         }
         contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View>
             {/* Top bar — wordmark left, search/notif placeholders right */}
@@ -134,6 +136,37 @@ export default function Feed() {
                 >
                   Continue scoring at hole {resumeQ.data ?? 1}
                 </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert('Discard this round?', 'You will lose any scores entered.', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Discard',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await supabase.from('rounds').delete().eq('id', draft.id);
+                            void qc.invalidateQueries({ queryKey: ['rounds', 'draft', userId] });
+                            void qc.invalidateQueries({ queryKey: ['rounds'] });
+                          },
+                        },
+                      ]);
+                    }}
+                    hitSlop={8}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: fontFamily.mono,
+                        fontSize: 10,
+                        letterSpacing: 10 * 0.16,
+                        color: palette.clay,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      DISCARD
+                    </Text>
+                  </Pressable>
+                </View>
               </Pressable>
             ) : null}
 

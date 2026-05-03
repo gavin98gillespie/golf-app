@@ -27,23 +27,28 @@ export function TabBar({ active }: Props) {
         left: 0,
         right: 0,
         bottom: 0,
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 30,
         backgroundColor: palette.ink + 'EE',
         borderTopWidth: 0.5,
         borderTopColor: palette.bone + '1A',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
       }}
     >
       {ITEMS.slice(0, 2).map((it) => (
-        <TabCell key={it.name} item={it} active={active === it.name} />
+        <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
+          <TabCell item={it} active={active === it.name} />
+        </View>
       ))}
-      <PlayButton />
+      <View style={{ width: 56, alignItems: 'center' }}>
+        <PlayButton />
+      </View>
       {ITEMS.slice(2).map((it) => (
-        <TabCell key={it.name} item={it} active={active === it.name} />
+        <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
+          <TabCell item={it} active={active === it.name} />
+        </View>
       ))}
     </View>
   );
@@ -58,7 +63,7 @@ function TabCell({ item, active }: { item: TabItem; active: boolean }) {
   return (
     <Pressable
       onPress={onPress}
-      style={{ alignItems: 'center', minWidth: 54, gap: 4, opacity: active ? 1 : 0.4 }}
+      style={{ alignItems: 'center', gap: 4, opacity: active ? 1 : 0.4 }}
     >
       <View
         style={{

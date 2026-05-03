@@ -70,7 +70,7 @@ export default function Summary() {
     router.replace('/(app)/(tabs)/profile');
   }
 
-  const totalHoles = roundQ.data?.courses?.hole_count ?? 18;
+  const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;
 
   return (
     <ScreenContainer>

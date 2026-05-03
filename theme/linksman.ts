@@ -26,9 +26,10 @@ export function deltaColor(delta: number): string {
   return palette.clay;
 }
 
-export function deltaLabel(delta: number): string {
-  if (delta <= -3) return 'ALB.';
-  if (delta === -2) return 'EAGLE';
+export function deltaLabel(delta: number, par?: number, score?: number): string {
+  if (par === 3 && score === 1) return 'ACE';
+  if (par != null && score != null && par - score >= 3) return 'ALB.';
+  if (delta <= -2) return 'EAGLE';
   if (delta === -1) return 'BIRDIE';
   if (delta === 0) return 'PAR';
   if (delta === 1) return 'BOGEY';

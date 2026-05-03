@@ -151,6 +151,7 @@ export default function OtherProfile() {
         data={isMutual ? (recentRoundsQ.data ?? []) : []}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View>
             <BackButton />

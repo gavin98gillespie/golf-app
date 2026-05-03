@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,6 +37,7 @@ export default function RoundDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
 
   const roundQ = useQuery({
     queryKey: ['round', id],
@@ -84,13 +85,35 @@ export default function RoundDetail() {
 
   const onTapMore = () => {
     if (!viewerId || !round) return;
-    Alert.alert('Options', undefined, [
+    const buttons = [
+      ...(isOwner
+        ? [
+            {
+              text: 'Delete round',
+              style: 'destructive' as const,
+              onPress: () =>
+                Alert.alert('Delete this round?', 'This cannot be undone.', [
+                  { text: 'Cancel', style: 'cancel' as const },
+                  {
+                    text: 'Delete',
+                    style: 'destructive' as const,
+                    onPress: async () => {
+                      await supabase.from('rounds').delete().eq('id', round.id);
+                      void qc.invalidateQueries({ queryKey: ['rounds'] });
+                      router.back();
+                    },
+                  },
+                ]),
+            },
+          ]
+        : []),
       {
         text: 'Report this round',
         onPress: () => setReportTarget({ type: 'round', id: round.id }),
       },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+      { text: 'Cancel', style: 'cancel' as const },
+    ];
+    Alert.alert('Options', undefined, buttons);
   };
 
   const holeRows = useMemo(
@@ -122,6 +145,7 @@ export default function RoundDetail() {
 
   const courseName = round.courses?.name ?? null;
   const courseHoleCount = round.courses?.hole_count ?? null;
+  const displayHoleCount = round.hole_count ?? courseHoleCount ?? 18;
   const totalDelta = round.total_score - round.total_par;
   const deltaColor =
     totalDelta <= -2
@@ -144,6 +168,7 @@ export default function RoundDetail() {
           automaticallyAdjustKeyboardInsets
           contentContainerStyle={{ paddingBottom: 40 }}
           style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
         >
           <View
             style={{
@@ -289,13 +314,15 @@ export default function RoundDetail() {
               borderColor: palette.bone + '14',
             }}
           >
-            <ScoreNumeral
-              value={round.total_score}
-              delta={totalDelta}
-              size={72}
-              color={palette.bone}
-              deltaColor={deltaColor}
-            />
+            <View style={{ flexShrink: 1, flexWrap: 'wrap' }}>
+              <ScoreNumeral
+                value={round.total_score}
+                delta={totalDelta}
+                size={72}
+                color={palette.bone}
+                deltaColor={deltaColor}
+              />
+            </View>
             <Text
               style={{
                 fontFamily: fontFamily.mono,
@@ -307,7 +334,7 @@ export default function RoundDetail() {
               }}
             >
               {totalDelta >= 0 ? '+' : ''}
-              {totalDelta} · {courseHoleCount ?? 18} holes · Par {round.total_par}
+              {totalDelta} · {displayHoleCount} holes · Par {round.total_par}
             </Text>
             {totalDelta <= -2 ? (
               <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>

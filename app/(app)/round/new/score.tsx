@@ -70,7 +70,7 @@ export default function HoleEntry() {
   const roundHolesQ = useRoundHoles(roundId);
   const upsert = useUpsertHoleScore();
 
-  const totalHoles = roundQ.data?.courses?.hole_count ?? 18;
+  const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;
   const courseHole = courseHolesQ.data?.find((h) => h.hole_number === hole);
   const existingHole = roundHolesQ.data?.find((h) => h.hole_number === hole);
 
@@ -403,7 +403,7 @@ export default function HoleEntry() {
               textTransform: 'uppercase',
             }}
           >
-            {deltaLabel(delta)}
+            {deltaLabel(delta, par, score)}
           </Text>
         </View>
 

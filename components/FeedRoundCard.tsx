@@ -188,7 +188,7 @@ export function FeedRoundCard({ round, viewerId }: Props) {
                 textTransform: 'uppercase',
               }}
             >
-              {course?.hole_count ?? 18} HOLES
+              {round.hole_count ?? course?.hole_count ?? 18} HOLES
             </Text>
           </View>
         </View>
@@ -211,6 +211,7 @@ export function FeedRoundCard({ round, viewerId }: Props) {
           <ScoreNumeral
             value={round.total_score}
             delta={diff}
+            stack
             size={isEagleOrBetter ? 76 : 60}
             color={fg}
             deltaColor={

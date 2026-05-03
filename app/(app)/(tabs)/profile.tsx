@@ -48,6 +48,7 @@ export default function Profile() {
         data={rounds}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
         refreshing={roundsQ.isFetching}
         onRefresh={() => roundsQ.refetch()}
         ListHeaderComponent={
