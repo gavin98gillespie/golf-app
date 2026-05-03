@@ -15,8 +15,13 @@ export default function AppLayout() {
       router.replace('/(auth)/welcome');
       return;
     }
-    if (!profileQ.isLoading && !profileQ.data) {
+    if (profileQ.isLoading) return;
+    if (!profileQ.data) {
       router.replace('/(auth)/profile-setup');
+      return;
+    }
+    if (!profileQ.data.onboarding_completed) {
+      router.replace('/(onboarding)/home-course');
     }
   }, [session, sessionLoading, profileQ.isLoading, profileQ.data]);
 
