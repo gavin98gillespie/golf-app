@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { z } from 'zod';
 
-import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useSession } from '@/lib/hooks/useSession';
 import { explainProfanity } from '@/lib/profanity';
 import { useCheckUsername, useCreateProfile } from '@/lib/queries/profile';
+import { fontFamily, palette } from '@/theme/linksman';
 
 const Schema = z.object({
   username: z
@@ -18,6 +17,21 @@ const Schema = z.object({
     .regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers, underscore'),
   displayName: z.string().min(1, 'Required').max(60, 'At most 60'),
 });
+
+const monoLabel = {
+  fontFamily: fontFamily.mono,
+  fontSize: 11,
+  letterSpacing: 0.18 * 11,
+  color: palette.ink,
+  opacity: 0.55,
+} as const;
+
+const fieldStyle = {
+  fontFamily: fontFamily.editorial,
+  fontSize: 18,
+  color: palette.ink,
+  paddingVertical: 8,
+} as const;
 
 export default function ProfileSetup() {
   const { session } = useSession();
@@ -64,34 +78,84 @@ export default function ProfileSetup() {
   const loading = checkUsername.isPending || createProfile.isPending;
 
   return (
-    <ScreenContainer>
+    <ScreenContainer surface="bone">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
-        <View className="flex-1 justify-center">
-          <Text className="text-text-primary text-3xl font-light tracking-tight mb-2">
-            Create your profile
+        <View className="flex-1 mt-12">
+          <Text style={monoLabel}>PROFILE</Text>
+          <Text
+            style={{
+              fontFamily: fontFamily.display,
+              fontSize: 28,
+              color: palette.ink,
+              marginTop: 8,
+              marginBottom: 40,
+            }}
+          >
+            Pick your handle.
           </Text>
-          <Text className="text-text-secondary text-sm mb-8">
-            How you&apos;ll show up to friends.
-          </Text>
-          <Input
-            label="Username"
-            value={username}
-            onChangeText={(v) => setUsername(v.toLowerCase())}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="username"
-          />
-          <Input
-            label="Display name"
-            value={displayName}
-            onChangeText={setDisplayName}
-            autoComplete="name"
-          />
-          {error ? <Text className="text-red-500 text-sm mb-4">{error}</Text> : null}
-          <Button label="Continue" onPress={onSubmit} loading={loading} />
+
+          <View className="mb-6">
+            <Text style={[monoLabel, { marginBottom: 6 }]}>USERNAME</Text>
+            <TextInput
+              value={username}
+              onChangeText={(v) => setUsername(v.toLowerCase())}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="username"
+              placeholder="lowercase, numbers, underscore"
+              placeholderTextColor={`${palette.ink}55`}
+              style={fieldStyle}
+              className="border-b border-ink/20"
+            />
+          </View>
+
+          <View className="mb-6">
+            <Text style={[monoLabel, { marginBottom: 6 }]}>DISPLAY NAME</Text>
+            <TextInput
+              value={displayName}
+              onChangeText={setDisplayName}
+              autoComplete="name"
+              placeholder="how friends see you"
+              placeholderTextColor={`${palette.ink}55`}
+              style={fieldStyle}
+              className="border-b border-ink/20"
+            />
+          </View>
+
+          {error ? (
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 12,
+                letterSpacing: 0.18 * 12,
+                color: palette.clay,
+                marginBottom: 16,
+              }}
+            >
+              {error.toUpperCase()}
+            </Text>
+          ) : null}
+
+          <Pressable
+            onPress={onSubmit}
+            disabled={loading}
+            className="bg-ink rounded-full py-4 items-center mt-4"
+            style={{ opacity: loading ? 0.6 : 1 }}
+          >
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 13,
+                letterSpacing: 0.18 * 13,
+                color: palette.bone,
+              }}
+            >
+              {loading ? 'SAVING…' : 'CONTINUE'}
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </ScreenContainer>
