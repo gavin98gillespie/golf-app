@@ -10,8 +10,7 @@ type Props = {
 };
 
 export function Datum({ label, value, color = '#F4F0E6', valueColor, align = 'left' }: Props) {
-  const alignItems =
-    align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
+  const alignItems = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
   return (
     <View style={{ alignItems, gap: 4 }}>
       <Text
