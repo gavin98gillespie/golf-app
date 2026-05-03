@@ -8,9 +8,11 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { z } from 'zod';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { Wordmark } from '@/components/Wordmark';
 import { useActionSheet } from '@/components/ActionSheet';
 import { signUp } from '@/lib/auth';
 import { fontFamily, palette } from '@/theme/linksman';
@@ -77,6 +79,9 @@ export default function SignUp() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
+        <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 24 }}>
+          <Wordmark size={28} color={palette.ink} />
+        </View>
         <Pressable onPress={() => router.back()} className="mt-2 mb-8 self-start">
           <Text style={monoLabel}>← BACK</Text>
         </Pressable>
@@ -158,9 +163,87 @@ export default function SignUp() {
             </Text>
           </Pressable>
 
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              marginTop: 14,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                letterSpacing: 10 * 0.14,
+                color: palette.ink,
+                opacity: 0.55,
+                textTransform: 'uppercase',
+              }}
+            >
+              BY CREATING AN ACCOUNT YOU AGREE TO OUR{' '}
+            </Text>
+            <Pressable
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  'https://gavin98gillespie.github.io/golf-app/legal/terms.html',
+                )
+              }
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 10,
+                  letterSpacing: 10 * 0.14,
+                  color: palette.fairway,
+                  textTransform: 'uppercase',
+                }}
+              >
+                TERMS
+              </Text>
+            </Pressable>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                letterSpacing: 10 * 0.14,
+                color: palette.ink,
+                opacity: 0.55,
+                textTransform: 'uppercase',
+              }}
+            >
+              {' '}AND{' '}
+            </Text>
+            <Pressable
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  'https://gavin98gillespie.github.io/golf-app/legal/privacy.html',
+                )
+              }
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 10,
+                  letterSpacing: 10 * 0.14,
+                  color: palette.fairway,
+                  textTransform: 'uppercase',
+                }}
+              >
+                PRIVACY
+              </Text>
+            </Pressable>
+          </View>
+
           <Pressable
             onPress={() => router.replace('/(auth)/sign-in')}
-            className="mt-8 items-center"
+            hitSlop={12}
+            style={{
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              alignSelf: 'center',
+              marginTop: 16,
+            }}
           >
             <Text style={monoLabel}>ALREADY HAVE AN ACCOUNT? SIGN IN.</Text>
           </Pressable>

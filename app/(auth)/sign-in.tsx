@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { z } from 'zod';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -137,9 +138,87 @@ export default function SignIn() {
             </Text>
           </Pressable>
 
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              marginTop: 14,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                letterSpacing: 10 * 0.14,
+                color: palette.ink,
+                opacity: 0.55,
+                textTransform: 'uppercase',
+              }}
+            >
+              BY SIGNING IN YOU AGREE TO OUR{' '}
+            </Text>
+            <Pressable
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  'https://gavin98gillespie.github.io/golf-app/legal/terms.html',
+                )
+              }
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 10,
+                  letterSpacing: 10 * 0.14,
+                  color: palette.fairway,
+                  textTransform: 'uppercase',
+                }}
+              >
+                TERMS
+              </Text>
+            </Pressable>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                letterSpacing: 10 * 0.14,
+                color: palette.ink,
+                opacity: 0.55,
+                textTransform: 'uppercase',
+              }}
+            >
+              {' '}AND{' '}
+            </Text>
+            <Pressable
+              onPress={() =>
+                WebBrowser.openBrowserAsync(
+                  'https://gavin98gillespie.github.io/golf-app/legal/privacy.html',
+                )
+              }
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 10,
+                  letterSpacing: 10 * 0.14,
+                  color: palette.fairway,
+                  textTransform: 'uppercase',
+                }}
+              >
+                PRIVACY
+              </Text>
+            </Pressable>
+          </View>
+
           <Pressable
             onPress={() => router.replace('/(auth)/sign-up')}
-            className="mt-8 items-center"
+            hitSlop={12}
+            style={{
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              alignSelf: 'center',
+              marginTop: 16,
+            }}
           >
             <Text style={monoLabel}>NO ACCOUNT? CREATE ONE.</Text>
           </Pressable>

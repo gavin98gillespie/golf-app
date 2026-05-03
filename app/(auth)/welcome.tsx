@@ -29,12 +29,28 @@ export default function Welcome() {
             style={{
               fontFamily: fontFamily.display,
               fontSize: 28,
+              letterSpacing: -28 * 0.02,
               color: palette.ink,
               marginTop: 16,
               textAlign: 'center',
+              lineHeight: 28 * 1.2,
+              paddingHorizontal: 16,
             }}
           >
-            Quiet. Precise. Earned.
+            Private scorecards for the people you play with.
+          </Text>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 11,
+              letterSpacing: 11 * 0.16,
+              color: palette.ink,
+              opacity: 0.5,
+              marginTop: 12,
+              textTransform: 'uppercase',
+            }}
+          >
+            QUIET · PRECISE · EARNED
           </Text>
         </View>
 
