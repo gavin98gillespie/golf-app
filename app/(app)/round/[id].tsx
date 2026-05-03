@@ -89,6 +89,14 @@ export default function RoundDetail() {
       ...(isOwner
         ? [
             {
+              text: 'Edit round',
+              onPress: () =>
+                router.push({
+                  pathname: '/round/new/score',
+                  params: { roundId: round.id, hole: '1' },
+                }),
+            },
+            {
               text: 'Delete round',
               style: 'destructive' as const,
               onPress: () =>

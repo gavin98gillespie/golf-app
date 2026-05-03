@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Datum } from '@/components/Datum';
@@ -27,6 +27,7 @@ export default function HoleEntry() {
   }>();
   const hole = parseInt(holeParam ?? '1', 10);
   const { session } = useSession();
+  const qc = useQueryClient();
 
   const [eagleVisible, setEagleVisible] = useState(false);
   const [eagleData, setEagleData] = useState<{
@@ -52,6 +53,8 @@ export default function HoleEntry() {
     },
     enabled: !!roundId,
   });
+
+  const isEditMode = !!roundQ.data && roundQ.data.is_draft === false;
 
   const courseHolesQ = useQuery({
     queryKey: ['course_holes', roundQ.data?.course_id, roundQ.data?.tee_box],
@@ -171,15 +174,48 @@ export default function HoleEntry() {
   const padded = String(hole).padStart(2, '0');
   const totalPadded = String(totalHoles).padStart(2, '0');
 
+  const finishEdit = async () => {
+    if (!roundQ.data) return;
+    const { data: holes, error: hErr } = await supabase
+      .from('round_holes')
+      .select('score, par')
+      .eq('round_id', roundQ.data.id);
+    if (hErr) {
+      console.error('recompute totals fetch failed', hErr);
+      return;
+    }
+    const total_score = (holes ?? []).reduce((s, h) => s + (h.score ?? 0), 0);
+    const total_par = (holes ?? []).reduce((s, h) => s + (h.par ?? 0), 0);
+    const { error: uErr } = await supabase
+      .from('rounds')
+      .update({ total_score, total_par })
+      .eq('id', roundQ.data.id);
+    if (uErr) {
+      console.error('recompute totals update failed', uErr);
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ['round', roundQ.data.id] });
+    qc.invalidateQueries({ queryKey: ['rounds'] });
+    router.replace({ pathname: '/round/[id]', params: { id: roundQ.data.id } });
+  };
+
   const advanceToNext = () => {
     if (isLast) {
-      router.replace({ pathname: '/round/new/summary', params: { roundId } });
+      if (isEditMode) {
+        void finishEdit();
+      } else {
+        router.replace({ pathname: '/round/new/summary', params: { roundId } });
+      }
     } else {
       router.setParams({ hole: String(nextHole) });
     }
   };
 
   const advance = () => {
+    if (isEditMode) {
+      advanceToNext();
+      return;
+    }
     const delta = score - par;
     const isAce = par === 3 && score === 1;
     const isAlbatross = par - score >= 3;
@@ -429,7 +465,7 @@ export default function HoleEntry() {
               textTransform: 'uppercase',
             }}
           >
-            {isLast ? 'FINISH ROUND →' : `HOLE ${nextHole} · PAR ${nextPar} →`}
+            {isLast ? (isEditMode ? 'DONE →' : 'FINISH ROUND →') : `HOLE ${nextHole} · PAR ${nextPar} →`}
           </Text>
         </Pressable>
 
