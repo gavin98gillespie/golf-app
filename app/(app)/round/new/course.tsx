@@ -30,6 +30,10 @@ export default function CoursePicker() {
       router.back();
       return;
     }
+    if (params.mode === 'groupRoundSelect') {
+      router.replace({ pathname: '/round/new/group-setup', params: { courseId } });
+      return;
+    }
     router.push({ pathname: '/round/new/setup', params: { courseId } });
   };
 
@@ -39,7 +43,7 @@ export default function CoursePicker() {
         <Text className="text-text-secondary text-sm">← Cancel</Text>
       </Pressable>
       <Text className="text-text-primary text-3xl font-light mt-2 mb-4">
-        {isHomeCourseMode ? 'Pick your home course' : 'Pick a course'}
+        {isHomeCourseMode ? 'Pick your home course' : params.mode === 'groupRoundSelect' ? 'Pick a course for the group' : 'Pick a course'}
       </Text>
       <TextInput
         value={query}
