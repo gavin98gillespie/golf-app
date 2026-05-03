@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 
 import { supabase, type Tables, type Inserts } from '@/lib/supabase';
 
@@ -19,27 +20,56 @@ export function useCourseSearch(query: string) {
   });
 }
 
-export function useNearbyCourses(lat: number | null, lng: number | null) {
+export type NearbyCourse = Tables<'courses'> & { distanceMi: number };
+
+export function useNearbyCourses(limitMi = 25) {
   return useQuery({
-    queryKey: ['courses', 'nearby', lat, lng],
-    queryFn: async () => {
-      if (lat == null || lng == null) return [];
-      // Bounding-box query: ~0.3deg ~= 20mi at mid-latitudes. First-pass; we
-      // can replace with a haversine RPC later if needed.
-      const delta = 0.3;
+    queryKey: ['nearby_courses', limitMi],
+    queryFn: async (): Promise<NearbyCourse[]> => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return [];
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude, longitude } = loc.coords;
+
+      // Bbox for cheap server-side filter, then exact distance + sort client-side.
+      const dLat = limitMi / 69;
+      const dLng = limitMi / (69 * Math.cos((latitude * Math.PI) / 180));
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .gte('lat', lat - delta)
-        .lte('lat', lat + delta)
-        .gte('lng', lng - delta)
-        .lte('lng', lng + delta)
-        .limit(50);
+        .gte('lat', latitude - dLat)
+        .lte('lat', latitude + dLat)
+        .gte('lng', longitude - dLng)
+        .lte('lng', longitude + dLng)
+        .limit(80);
       if (error) throw error;
-      return (data ?? []) as Tables<'courses'>[];
+
+      const withDist: NearbyCourse[] = (data ?? [])
+        .filter((c): c is Tables<'courses'> => c.lat != null && c.lng != null)
+        .map((c) => ({
+          ...c,
+          distanceMi: haversine(latitude, longitude, Number(c.lat), Number(c.lng)),
+        }));
+      return withDist
+        .filter((c) => c.distanceMi <= limitMi)
+        .sort((a, b) => a.distanceMi - b.distanceMi)
+        .slice(0, 30);
     },
-    enabled: lat != null && lng != null,
+    staleTime: 5 * 60 * 1000,
   });
+}
+
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3959;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export function useRecentCourses(userId: string | undefined, limit = 5) {

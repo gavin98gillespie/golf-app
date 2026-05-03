@@ -151,12 +151,14 @@ export type Database = {
           added_by: string | null
           city: string | null
           country: string
+          cover_image_url: string | null
           created_at: string
           hole_count: number
           id: string
           lat: number | null
           lng: number | null
           name: string
+          osm_id: number | null
           source: string
           state: string | null
           verified: boolean
@@ -165,12 +167,14 @@ export type Database = {
           added_by?: string | null
           city?: string | null
           country?: string
+          cover_image_url?: string | null
           created_at?: string
           hole_count?: number
           id?: string
           lat?: number | null
           lng?: number | null
           name: string
+          osm_id?: number | null
           source: string
           state?: string | null
           verified?: boolean
@@ -179,12 +183,14 @@ export type Database = {
           added_by?: string | null
           city?: string | null
           country?: string
+          cover_image_url?: string | null
           created_at?: string
           hole_count?: number
           id?: string
           lat?: number | null
           lng?: number | null
           name?: string
+          osm_id?: number | null
           source?: string
           state?: string | null
           verified?: boolean
