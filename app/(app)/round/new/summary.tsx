@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/Button';
 import { MonoBadge } from '@/components/MonoBadge';
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { HoleScoreGrid } from '@/components/HoleScoreGrid';
+import { HoleGrid } from '@/components/HoleGrid';
 import { palette } from '@/theme/linksman';
 import { useFinalizeRound, useRoundHoles } from '@/lib/queries/rounds';
 import { usePersonalBestAtCourse } from '@/lib/queries/stats';
@@ -107,7 +107,13 @@ export default function Summary() {
 
       <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4">
         <Text className="text-text-secondary text-xs uppercase tracking-wider mb-3">Holes</Text>
-        <HoleScoreGrid holes={holesQ.data ?? []} totalHoles={totalHoles} />
+        <HoleGrid
+          holes={(holesQ.data ?? []).map((h) => ({
+            score: h.score,
+            par: h.par,
+            delta: h.score - h.par,
+          }))}
+        />
       </View>
 
       <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-6">
