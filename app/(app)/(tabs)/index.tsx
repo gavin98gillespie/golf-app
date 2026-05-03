@@ -1,12 +1,16 @@
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { format, getWeek } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { FeedRoundCard } from '@/components/FeedRoundCard';
+import { Wordmark } from '@/components/Wordmark';
+import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useDraftRound } from '@/lib/queries/rounds';
 import { useFeed } from '@/lib/queries/feed';
+import { palette, fontFamily } from '@/theme/linksman';
 import { supabase, type Tables } from '@/lib/supabase';
 
 export default function Feed() {
@@ -50,6 +54,9 @@ export default function Feed() {
 
   const draft = draftQ.data;
   const feed = feedQ.data ?? [];
+  const now = new Date();
+  const weekNumber = getWeek(now);
+  const monthYear = format(now, 'MMMM yyyy').toUpperCase();
 
   return (
     <ScreenContainer>
@@ -59,10 +66,25 @@ export default function Feed() {
         renderItem={({ item }) =>
           userId ? <FeedRoundCard round={item} viewerId={userId} /> : null
         }
+        contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <Text className="text-text-primary text-3xl font-light mt-8">Home</Text>
+            {/* Top bar — wordmark left, search/notif placeholders right */}
+            <View
+              style={{
+                paddingTop: 8,
+                paddingBottom: 14,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottomWidth: 0.5,
+                borderBottomColor: palette.bone + '14',
+              }}
+            >
+              <Wordmark size={22} color={palette.bone} />
+            </View>
 
+            {/* In-progress draft banner */}
             {draft && courseQ.data ? (
               <Pressable
                 onPress={() =>
@@ -71,32 +93,121 @@ export default function Feed() {
                     params: { roundId: draft.id, hole: String(resumeQ.data ?? 1) },
                   })
                 }
-                className="bg-bg-surface border border-accent rounded-2xl p-4 mt-4 mb-2 active:opacity-80"
+                style={{
+                  marginTop: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderWidth: 1,
+                  borderColor: palette.brass,
+                  borderRadius: 6,
+                }}
               >
-                <Text className="text-accent text-xs uppercase tracking-wider font-semibold">
-                  In progress
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 9,
+                    letterSpacing: 9 * 0.2,
+                    color: palette.brass,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  IN PROGRESS
                 </Text>
-                <Text className="text-text-primary text-lg font-semibold mt-1">
+                <Text
+                  style={{
+                    fontFamily: fontFamily.display,
+                    fontSize: 18,
+                    color: palette.bone,
+                    marginTop: 4,
+                  }}
+                >
                   Resume at {courseQ.data.name}
                 </Text>
-                <Text className="text-text-secondary text-sm mt-1">
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 11,
+                    color: palette.bone,
+                    opacity: 0.6,
+                    marginTop: 2,
+                  }}
+                >
                   Continue scoring at hole {resumeQ.data ?? 1}
                 </Text>
               </Pressable>
             ) : null}
 
-            <Text className="text-text-secondary text-[10px] uppercase tracking-wider mt-6 mb-3">
-              Recent from people you follow
-            </Text>
+            {/* Section header */}
+            <View
+              style={{
+                paddingTop: 24,
+                paddingBottom: 10,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+              }}
+            >
+              <View>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 9,
+                    letterSpacing: 9 * 0.2,
+                    color: palette.bone,
+                    opacity: 0.5,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  WEEK {weekNumber} · {monthYear}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.display,
+                    fontSize: 28,
+                    letterSpacing: -28 * 0.02,
+                    color: palette.bone,
+                    marginTop: 4,
+                  }}
+                >
+                  Friends on the course
+                </Text>
+              </View>
+              <Datum label="ROUNDS" value={feed.length} color={palette.bone} align="right" />
+            </View>
           </View>
         }
         ListEmptyComponent={
           feedQ.isLoading ? (
-            <ActivityIndicator className="my-6" />
+            <ActivityIndicator color={palette.bone} style={{ marginVertical: 24 }} />
           ) : (
-            <View className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mt-2">
-              <Text className="text-text-primary text-sm">Your feed is quiet.</Text>
-              <Text className="text-text-secondary text-xs mt-1">
+            <View
+              style={{
+                marginTop: 12,
+                paddingHorizontal: 20,
+                paddingVertical: 18,
+                borderWidth: 0.5,
+                borderColor: palette.bone + '1F',
+                borderRadius: 6,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.display,
+                  fontSize: 18,
+                  color: palette.bone,
+                }}
+              >
+                Your feed is quiet.
+              </Text>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 11,
+                  color: palette.bone,
+                  opacity: 0.6,
+                  marginTop: 6,
+                }}
+              >
                 Follow players from Discover. When you and someone follow each other, their rounds
                 show up here.
               </Text>

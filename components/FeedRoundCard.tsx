@@ -1,22 +1,26 @@
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { format } from 'date-fns';
 
+import { palette, fontFamily } from '@/theme/linksman';
+import { Topo } from '@/components/Topo';
+import { Crosshair } from '@/components/Crosshair';
+import { ScoreNumeral } from '@/components/ScoreNumeral';
+import { MonoBadge } from '@/components/MonoBadge';
 import { parseLocalDate } from '@/lib/date';
 import { useHasLiked, useLikeCount, useLike, useUnlike } from '@/lib/queries/likes';
 import { useComments } from '@/lib/queries/comments';
 import type { FeedRound } from '@/lib/queries/feed';
 
-type Props = {
-  round: FeedRound;
-  viewerId: string;
-};
+type Props = { round: FeedRound; viewerId: string };
 
 export function FeedRoundCard({ round, viewerId }: Props) {
   const owner = round.profiles;
   const course = round.courses;
   const diff = round.total_score - round.total_par;
-  const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
+  const isUnder = diff < 0;
+  const isEagleOrBetter = diff <= -2;
 
   const hasLikedQ = useHasLiked(viewerId, round.id);
   const likeCountQ = useLikeCount(round.id);
@@ -37,66 +41,290 @@ export function FeedRoundCard({ round, viewerId }: Props) {
     else like.mutate({ userId: viewerId, roundId: round.id });
   };
 
+  const seed = `${round.course_id ?? 'course'}-${round.id}`;
+  const topoHeight = isEagleOrBetter ? 168 : 132;
+  const fg = palette.bone;
+  const bg = palette.graphite;
+  const hairline = fg + '1f';
+
   return (
     <Pressable
       onPress={goToRound}
-      className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-3 active:opacity-70"
+      style={{
+        backgroundColor: bg,
+        borderRadius: 6,
+        overflow: 'hidden',
+        marginBottom: 14,
+        borderWidth: 0.5,
+        borderColor: hairline,
+      }}
     >
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full bg-bg-base border border-border-subtle items-center justify-center">
-          <Text className="text-text-secondary text-base font-semibold">
-            {(owner?.display_name ?? '?').charAt(0).toUpperCase()}
-          </Text>
+      {/* Topo header */}
+      <View style={{ position: 'relative', height: topoHeight }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.85 }}>
+          <Topo
+            seed={seed}
+            width={400}
+            height={topoHeight}
+            stroke={fg + '22'}
+            strokeBold={fg + '38'}
+            greenColor={isEagleOrBetter ? palette.brass + '40' : palette.fairway + '55'}
+            jitter={0.22}
+            showPin
+            pinColor={isEagleOrBetter ? palette.brass : palette.fairway}
+          />
         </View>
-        <View className="flex-1 ml-3">
-          <Text className="text-text-primary text-base font-semibold">
+
+        <View style={{ position: 'absolute', top: 10, left: 10 }}>
+          <Crosshair size={8} color={fg} opacity={0.6} />
+        </View>
+        <View style={{ position: 'absolute', top: 10, right: 10 }}>
+          <Crosshair size={8} color={fg} opacity={0.6} />
+        </View>
+
+        {/* Top metadata */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: 24,
+            right: 24,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 9,
+              letterSpacing: 9 * 0.2,
+              color: fg,
+              opacity: 0.7,
+              textTransform: 'uppercase',
+            }}
+          >
+            {format(parseLocalDate(round.played_at), 'MMM d').toUpperCase()}
+          </Text>
+          {isEagleOrBetter ? (
+            <MonoBadge color={palette.brass} bg="transparent" border={false}>
+              ◆ EAGLE
+            </MonoBadge>
+          ) : null}
+        </View>
+
+        {/* Course label bottom */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 24,
+            right: 24,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+          }}
+        >
+          <View>
+            <Text
+              style={{
+                fontFamily: fontFamily.display,
+                fontSize: 17,
+                letterSpacing: -17 * 0.01,
+                color: fg,
+              }}
+            >
+              {course?.name ?? 'Unknown course'}
+            </Text>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 9,
+                letterSpacing: 9 * 0.16,
+                color: fg,
+                opacity: 0.55,
+                marginTop: 2,
+                textTransform: 'uppercase',
+              }}
+            >
+              {course?.hole_count ?? 18} HOLES
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Score block */}
+      <View
+        style={{
+          paddingHorizontal: 24,
+          paddingTop: 18,
+          paddingBottom: 14,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          borderTopWidth: 0.5,
+          borderTopColor: hairline,
+        }}
+      >
+        <View style={{ gap: 6 }}>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 9,
+              letterSpacing: 9 * 0.2,
+              color: fg,
+              opacity: 0.55,
+              textTransform: 'uppercase',
+            }}
+          >
             {owner?.display_name ?? 'Unknown'}
           </Text>
-          <Text className="text-text-secondary text-xs">
-            @{owner?.username ?? '—'} · {format(parseLocalDate(round.played_at), 'MMM d')}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-end justify-between mt-3">
-        <View>
-          <Text className="text-text-primary text-lg font-light">
-            {course?.name ?? 'Unknown course'}
-          </Text>
-          <Text className="text-text-secondary text-xs">{course?.hole_count ?? 18} holes</Text>
-        </View>
-        <View className="items-end">
-          <Text className="text-text-primary text-3xl font-light">{round.total_score}</Text>
+          <ScoreNumeral
+            value={round.total_score}
+            delta={diff}
+            size={isEagleOrBetter ? 76 : 60}
+            color={fg}
+            deltaColor={
+              isEagleOrBetter
+                ? palette.brass
+                : isUnder
+                  ? palette.brass
+                  : diff > 3
+                    ? palette.clay
+                    : fg + '99'
+            }
+          />
           <Text
-            className={`text-sm font-semibold ${
-              diff < 0 ? 'text-accent' : diff > 0 ? 'text-text-secondary' : 'text-text-primary'
-            }`}
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 10,
+              color: fg,
+              opacity: 0.55,
+            }}
           >
-            {diffLabel} vs par
+            par {round.total_par}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 9,
+              letterSpacing: 9 * 0.18,
+              color: fg,
+              opacity: 0.55,
+              textTransform: 'uppercase',
+            }}
+          >
+            @{owner?.username ?? '—'}
           </Text>
         </View>
       </View>
 
-      {/* Inline action row */}
-      <View className="flex-row items-center mt-4 pt-3 border-t border-border-subtle">
-        <Pressable
-          onPress={onTapLike}
-          disabled={busy}
-          hitSlop={8}
-          className={`flex-row items-center mr-5 ${busy ? 'opacity-50' : 'active:opacity-60'}`}
+      {/* Note */}
+      {round.notes ? (
+        <View
+          style={{
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderTopWidth: 0.5,
+            borderTopColor: hairline,
+          }}
         >
-          <Text className="text-lg">{liked ? '❤️' : '🤍'}</Text>
-          <Text className="text-text-secondary text-sm font-semibold ml-2">{likeCount}</Text>
-        </Pressable>
-        <Pressable
-          onPress={goToRound}
-          hitSlop={8}
-          className="flex-row items-center active:opacity-60"
+          <Text
+            style={{
+              fontFamily: fontFamily.displayItalic,
+              fontSize: 14,
+              color: fg,
+              opacity: 0.85,
+              lineHeight: 20,
+            }}
+          >
+            “{round.notes}”
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Reactions row */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderTopWidth: 0.5,
+          borderTopColor: hairline,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 18 }}>
+          <Pressable
+            onPress={onTapLike}
+            disabled={busy}
+            hitSlop={8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, opacity: busy ? 0.5 : 1 }}
+          >
+            <FlagstickIcon color={liked ? palette.brass : fg} filled={liked} />
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 11,
+                color: fg,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {likeCount}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={goToRound}
+            hitSlop={8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          >
+            <CommentIcon color={fg} />
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 11,
+                color: fg,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {commentCount}
+            </Text>
+          </Pressable>
+        </View>
+        <Text
+          style={{
+            fontFamily: fontFamily.mono,
+            fontSize: 9,
+            letterSpacing: 9 * 0.18,
+            color: fg,
+            opacity: 0.4,
+            textTransform: 'uppercase',
+          }}
         >
-          <Text className="text-lg">💬</Text>
-          <Text className="text-text-secondary text-sm font-semibold ml-2">{commentCount}</Text>
-        </Pressable>
+          VIEW ROUND
+        </Text>
       </View>
     </Pressable>
+  );
+}
+
+function FlagstickIcon({ color, filled }: { color: string; filled: boolean }) {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 14 14">
+      <Line x1={3} y1={2} x2={3} y2={12} stroke={color} strokeWidth={1.2} />
+      <Path d="M3 2 L9 3.5 L3 5 Z" fill={filled ? color : color} stroke={color} strokeWidth={1.2} />
+      <Circle cx={3} cy={12} r={1} fill={color} />
+    </Svg>
+  );
+}
+
+function CommentIcon({ color }: { color: string }) {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 14 14">
+      <Path d="M2 3 H12 V9 H7 L4 12 V9 H2 Z" stroke={color} strokeWidth={1.1} fill="none" />
+    </Svg>
   );
 }
