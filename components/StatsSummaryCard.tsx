@@ -21,7 +21,7 @@ function SliceRow({ holeCount, slice }: { holeCount: number; slice: SummarySlice
     trend.tone === 'good'
       ? 'text-accent'
       : trend.tone === 'bad'
-        ? 'text-red-500'
+        ? 'text-clay'
         : 'text-text-secondary';
   return (
     <View className="py-3 border-b border-border-subtle last:border-b-0">

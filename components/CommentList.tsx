@@ -34,7 +34,7 @@ export function CommentList({ comments, viewerId, roundId }: Props) {
     const RightActions = () => (
       <Pressable
         onPress={() => confirmDelete(commentId)}
-        className="bg-red-500 justify-center px-6 active:opacity-80"
+        className="bg-clay justify-center px-6 active:opacity-80"
       >
         <Text className="text-white font-semibold">Delete</Text>
       </Pressable>

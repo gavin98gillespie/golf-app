@@ -4,8 +4,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/Button';
+import { MonoBadge } from '@/components/MonoBadge';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleScoreGrid } from '@/components/HoleScoreGrid';
+import { palette } from '@/theme/linksman';
 import { useFinalizeRound, useRoundHoles } from '@/lib/queries/rounds';
 import { usePersonalBestAtCourse } from '@/lib/queries/stats';
 import { useSession } from '@/lib/hooks/useSession';
@@ -94,10 +96,9 @@ export default function Summary() {
 
       {isNewBest ? (
         <View className="bg-accent-soft border border-accent rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
-          <Text className="text-base">🏆</Text>
-          <Text className="text-accent font-semibold text-sm">
-            {bestQ.data == null ? 'First round at this course!' : 'New course best'}
-          </Text>
+          <MonoBadge color={palette.brass} bg="transparent" border={false}>
+            {bestQ.data == null ? '◆ FIRST ROUND' : '◆ COURSE BEST'}
+          </MonoBadge>
           {bestQ.data != null ? (
             <Text className="text-text-secondary text-xs">(was {bestQ.data.total_score})</Text>
           ) : null}

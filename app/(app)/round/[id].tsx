@@ -370,12 +370,13 @@ export default function RoundDetail() {
                   style={{
                     fontFamily: fontFamily.mono,
                     fontSize: 12,
+                    letterSpacing: 12 * 0.14,
                     color: palette.bone,
                     opacity: 0.7,
                     marginLeft: 16,
                   }}
                 >
-                  💬 {comments.length}
+                  {comments.length} COMMENTS
                 </Text>
               </View>
 

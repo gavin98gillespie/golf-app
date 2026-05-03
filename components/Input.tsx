@@ -14,10 +14,10 @@ export function Input({ label, error, ...rest }: Props) {
         placeholderTextColor="#4a5a52"
         {...rest}
         className={`bg-bg-elevated border rounded-xl px-4 py-3 text-text-primary text-base ${
-          error ? 'border-red-500' : 'border-border-subtle'
+          error ? 'border-clay' : 'border-border-subtle'
         }`}
       />
-      {error ? <Text className="text-red-500 text-xs mt-1">{error}</Text> : null}
+      {error ? <Text className="text-clay text-xs mt-1">{error}</Text> : null}
     </View>
   );
 }

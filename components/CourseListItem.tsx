@@ -15,7 +15,7 @@ export function CourseListItem({ course, onPress }: Props) {
       className="flex-row items-center gap-3 py-3 border-b border-border-subtle active:opacity-60"
     >
       <View className="w-10 h-10 rounded-lg bg-bg-elevated items-center justify-center">
-        <Text className="text-base">⛳</Text>
+        <Text className="text-text-secondary text-base">◆</Text>
       </View>
       <View className="flex-1">
         <Text className="text-text-primary font-semibold text-sm">{course.name}</Text>

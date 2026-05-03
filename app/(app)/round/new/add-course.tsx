@@ -102,7 +102,7 @@ export default function AddCourse() {
             })}
           </View>
 
-          {error ? <Text className="text-red-500 text-sm mb-4">{error}</Text> : null}
+          {error ? <Text className="text-clay text-sm mb-4">{error}</Text> : null}
           <Button
             label="Add course & continue"
             onPress={onSubmit}
