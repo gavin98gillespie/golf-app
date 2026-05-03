@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { CourseListItem } from '@/components/CourseListItem';
 import { useRecentCourses, useCourseSearch, useNearbyCourses } from '@/lib/queries/courses';
 import { useSession } from '@/lib/hooks/useSession';
+import { useUpdateHomeCourse } from '@/lib/queries/profile';
 
 export default function CoursePicker() {
   const [query, setQuery] = useState('');
@@ -15,16 +16,29 @@ export default function CoursePicker() {
   const search = useCourseSearch(query);
   const nearbyQ = useNearbyCourses(25);
 
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const isHomeCourseMode = params.mode === 'homeCourse';
+  const updateHomeCourse = useUpdateHomeCourse();
+
   const isSearching = query.length >= 2;
-  const goToCourse = (courseId: string) =>
+  const goToCourse = async (courseId: string) => {
+    if (isHomeCourseMode) {
+      if (!session?.user.id) return;
+      await updateHomeCourse.mutateAsync({ userId: session.user.id, courseId });
+      router.back();
+      return;
+    }
     router.push({ pathname: '/round/new/setup', params: { courseId } });
+  };
 
   return (
     <ScreenContainer>
       <Pressable onPress={() => router.replace('/(app)/(tabs)')} className="mt-4 mb-2">
         <Text className="text-text-secondary text-sm">← Cancel</Text>
       </Pressable>
-      <Text className="text-text-primary text-3xl font-light mt-2 mb-4">Pick a course</Text>
+      <Text className="text-text-primary text-3xl font-light mt-2 mb-4">
+        {isHomeCourseMode ? 'Pick your home course' : 'Pick a course'}
+      </Text>
       <TextInput
         value={query}
         onChangeText={setQuery}

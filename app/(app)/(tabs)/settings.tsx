@@ -151,6 +151,76 @@ export default function Settings() {
           </View>
         ) : null}
 
+        {profileQ.data?.home_course_id ? (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/course/[id]',
+                params: { id: profileQ.data!.home_course_id! },
+              })
+            }
+            style={{
+              paddingVertical: 14,
+              borderBottomWidth: 0.5,
+              borderBottomColor: palette.ink + '20',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <View>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 9,
+                  letterSpacing: 9 * 0.2,
+                  color: palette.ink,
+                  opacity: 0.55,
+                  textTransform: 'uppercase',
+                }}
+              >
+                HOME COURSE
+              </Text>
+              <Text
+                style={{
+                  fontFamily: fontFamily.display,
+                  fontSize: 18,
+                  color: palette.ink,
+                  marginTop: 2,
+                }}
+              >
+                {(profileQ.data as { home_course?: { name: string } | null }).home_course?.name ??
+                  '—'}
+              </Text>
+            </View>
+            <Text
+              style={{ fontFamily: fontFamily.mono, fontSize: 13, color: palette.ink, opacity: 0.4 }}
+            >
+              →
+            </Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={() => router.push('/(app)/round/new/course?mode=homeCourse')}
+          style={{
+            paddingVertical: 14,
+            borderBottomWidth: 0.5,
+            borderBottomColor: palette.ink + '20',
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 12,
+              letterSpacing: 12 * 0.12,
+              color: palette.fairway,
+              textTransform: 'uppercase',
+            }}
+          >
+            {profileQ.data?.home_course_id ? 'CHANGE HOME COURSE' : 'SET HOME COURSE'}
+          </Text>
+        </Pressable>
+
         <Text
           style={{
             fontFamily: fontFamily.mono,

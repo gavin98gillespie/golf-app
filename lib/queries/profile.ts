@@ -9,11 +9,13 @@ export function useMyProfile(userId: string | undefined) {
       if (!userId) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, home_course:courses!home_course_id(id, name)')
         .eq('id', userId)
         .maybeSingle();
       if (error) throw error;
-      return data as Tables<'profiles'> | null;
+      return data as
+        | (Tables<'profiles'> & { home_course: { id: string; name: string } | null })
+        | null;
     },
     enabled: !!userId,
   });
@@ -41,6 +43,22 @@ export function useCreateProfile() {
     },
     onSuccess: (profile) => {
       qc.setQueryData(['profile', profile.id], profile);
+    },
+  });
+}
+
+export function useUpdateHomeCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; courseId: string | null }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ home_course_id: input.courseId })
+        .eq('id', input.userId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      void qc.invalidateQueries({ queryKey: ['profile', vars.userId] });
     },
   });
 }
