@@ -232,6 +232,35 @@ export function useWithdrawFromRound() {
   });
 }
 
+export function useDeleteMySlice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { roundId: string; userId: string }) => {
+      // Delete this user's hole rows first (FK-safe even though there is no
+      // strict FK from round_holes to round_players).
+      const { error: hErr } = await supabase
+        .from('round_holes')
+        .delete()
+        .eq('round_id', input.roundId)
+        .eq('player_id', input.userId);
+      if (hErr) throw hErr;
+      const { error: pErr } = await supabase
+        .from('round_players')
+        .delete()
+        .eq('round_id', input.roundId)
+        .eq('user_id', input.userId);
+      if (pErr) throw pErr;
+    },
+    onSuccess: (_d, vars) => {
+      void qc.invalidateQueries({ queryKey: ['groupRound', vars.roundId] });
+      void qc.invalidateQueries({ queryKey: ['rounds'] });
+      void qc.invalidateQueries({ queryKey: ['stats'] });
+      void qc.invalidateQueries({ queryKey: ['achievements'] });
+      void qc.invalidateQueries({ queryKey: ['feed'] });
+    },
+  });
+}
+
 export function useFinishMySlice() {
   const qc = useQueryClient();
   return useMutation({

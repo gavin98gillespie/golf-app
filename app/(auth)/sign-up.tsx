@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,6 +11,7 @@ import { router } from 'expo-router';
 import { z } from 'zod';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { useActionSheet } from '@/components/ActionSheet';
 import { signUp } from '@/lib/auth';
 import { fontFamily, palette } from '@/theme/linksman';
 
@@ -40,6 +40,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const sheet = useActionSheet();
 
   async function onSubmit() {
     setError(null);
@@ -59,11 +60,12 @@ export default function SignUp() {
       return;
     }
     if (needsEmailConfirmation) {
-      Alert.alert(
-        'Check your email',
-        'We sent you a confirmation link. Tap it to finish creating your account, then come back and sign in.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-in') }],
-      );
+      sheet.show({
+        title: 'Check your email',
+        subtitle:
+          'We sent you a confirmation link. Tap it to finish creating your account, then come back and sign in.',
+        actions: [{ label: 'OK', onPress: () => router.replace('/(auth)/sign-in') }],
+      });
       return;
     }
     router.replace('/(auth)/profile-setup');

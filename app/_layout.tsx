@@ -20,6 +20,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ActionSheetProvider } from '@/components/ActionSheet';
 import { queryClient } from '@/lib/queryClient';
 import { initSentry } from '@/lib/sentry';
 
@@ -52,8 +53,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <ActionSheetProvider>
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false }} />
+          </ActionSheetProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>

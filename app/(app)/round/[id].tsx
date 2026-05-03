@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { useActionSheet } from '@/components/ActionSheet';
 import { GroupRoundDetail } from '@/components/GroupRoundDetail';
 import { HoleGrid } from '@/components/HoleGrid';
 import { ScoreNumeral } from '@/components/ScoreNumeral';
@@ -39,6 +39,7 @@ export default function RoundDetail() {
   const { session } = useSession();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
+  const sheet = useActionSheet();
 
   const roundQ = useQuery({
     queryKey: ['round', id],
@@ -86,43 +87,48 @@ export default function RoundDetail() {
 
   const onTapMore = () => {
     if (!viewerId || !round) return;
-    const buttons = [
-      ...(isOwner
-        ? [
-            {
-              text: 'Edit round',
-              onPress: () =>
-                router.push({
-                  pathname: '/round/new/score',
-                  params: { roundId: round.id, hole: '1' },
-                }),
-            },
-            {
-              text: 'Delete round',
-              style: 'destructive' as const,
-              onPress: () =>
-                Alert.alert('Delete this round?', 'This cannot be undone.', [
-                  { text: 'Cancel', style: 'cancel' as const },
-                  {
-                    text: 'Delete',
-                    style: 'destructive' as const,
-                    onPress: async () => {
-                      await supabase.from('rounds').delete().eq('id', round.id);
-                      void qc.invalidateQueries({ queryKey: ['rounds'] });
-                      router.back();
-                    },
-                  },
-                ]),
-            },
-          ]
-        : []),
-      {
-        text: 'Report this round',
-        onPress: () => setReportTarget({ type: 'round', id: round.id }),
-      },
-      { text: 'Cancel', style: 'cancel' as const },
-    ];
-    Alert.alert('Options', undefined, buttons);
+    sheet.show({
+      eyebrow: 'OPTIONS',
+      title: 'Round',
+      actions: [
+        ...(isOwner
+          ? [
+              {
+                label: 'Edit round',
+                onPress: () =>
+                  router.push({
+                    pathname: '/round/new/score',
+                    params: { roundId: round.id, hole: '1' },
+                  }),
+              },
+              {
+                label: 'Delete round',
+                tone: 'destructive' as const,
+                onPress: () =>
+                  sheet.show({
+                    title: 'Delete this round?',
+                    subtitle: 'This cannot be undone.',
+                    actions: [
+                      {
+                        label: 'Delete',
+                        tone: 'destructive' as const,
+                        onPress: async () => {
+                          await supabase.from('rounds').delete().eq('id', round.id);
+                          void qc.invalidateQueries({ queryKey: ['rounds'] });
+                          router.back();
+                        },
+                      },
+                    ],
+                  }),
+              },
+            ]
+          : []),
+        {
+          label: 'Report this round',
+          onPress: () => setReportTarget({ type: 'round', id: round.id }),
+        },
+      ],
+    });
   };
 
   const holeRows = useMemo(

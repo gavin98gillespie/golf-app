@@ -32,7 +32,21 @@ export function useFeed(viewerId: string | undefined, limit = 30) {
       const mutualIds = (backFollows ?? []).map((r) => r.follower_id);
       if (mutualIds.length === 0) return [];
 
-      // Step C: rounds from mutuals, mutual-or-public visibility, not drafts.
+      // Step C: round IDs where any mutual is a joined/finished player.
+      // Solo rounds also have a round_players row (host as sole player), so
+      // this query covers solo + group rounds uniformly. Group rounds where
+      // the viewer is host but a mutual is a participant will also surface,
+      // which solves the case of multi-player rounds going missing from the
+      // feed when only the non-host happens to be a mutual.
+      const { data: rpRows, error: rpErr } = await supabase
+        .from('round_players')
+        .select('round_id')
+        .in('user_id', mutualIds)
+        .in('status', ['joined', 'finished']);
+      if (rpErr) throw rpErr;
+      const roundIds = Array.from(new Set((rpRows ?? []).map((r) => r.round_id)));
+      if (roundIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from('rounds')
         .select(
@@ -42,7 +56,7 @@ export function useFeed(viewerId: string | undefined, limit = 30) {
           profiles!rounds_user_id_fkey ( id, username, display_name, avatar_url )
           `,
         )
-        .in('user_id', mutualIds)
+        .in('id', roundIds)
         .in('visibility', ['mutuals', 'public'])
         .eq('is_draft', false)
         .order('played_at', { ascending: false })

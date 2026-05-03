@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
 
+import { useActionSheet } from '@/components/ActionSheet';
 import { containsProfanity } from '@/lib/profanity';
 import { usePostComment } from '@/lib/queries/comments';
 
@@ -9,13 +10,18 @@ type Props = { viewerId: string; roundId: string };
 export function CommentInput({ viewerId, roundId }: Props) {
   const [body, setBody] = useState('');
   const post = usePostComment();
+  const sheet = useActionSheet();
   const trimmed = body.trim();
   const canSend = trimmed.length > 0 && !post.isPending;
 
   const onSend = () => {
     if (!canSend) return;
     if (containsProfanity(trimmed)) {
-      Alert.alert('Comment rejected', 'That contains language not allowed here.');
+      sheet.show({
+        title: 'Comment rejected',
+        subtitle: 'That contains language not allowed here.',
+        actions: [{ label: 'OK' }],
+      });
       return;
     }
     post.mutate(

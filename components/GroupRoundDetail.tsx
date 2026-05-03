@@ -17,9 +17,12 @@ import { Topo } from '@/components/Topo';
 import { LikeButton } from '@/components/LikeButton';
 import { CommentList } from '@/components/CommentList';
 import { CommentInput } from '@/components/CommentInput';
-import { useGroupRound } from '@/lib/queries/groupRounds';
+import { ReportSheet } from '@/components/ReportSheet';
+import { useActionSheet } from '@/components/ActionSheet';
+import { useGroupRound, useDeleteMySlice } from '@/lib/queries/groupRounds';
 import { useSession } from '@/lib/hooks/useSession';
 import { useComments } from '@/lib/queries/comments';
+import type { ReportTargetType } from '@/lib/queries/reports';
 import { palette, fontFamily } from '@/theme/linksman';
 import { parseLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
@@ -34,6 +37,69 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
   const holes = groupQ.data?.holes ?? [];
   const commentsQ = useComments(roundId);
   const comments = commentsQ.data ?? [];
+  const deleteMine = useDeleteMySlice();
+  const sheet = useActionSheet();
+
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(
+    null,
+  );
+
+  const me = players.find((p) => p.user_id === viewerId);
+  const canEditOrDelete = !!me && (me.status === 'joined' || me.status === 'finished');
+
+  const onTapMore = () => {
+    if (!viewerId) return;
+    sheet.show({
+      eyebrow: 'OPTIONS',
+      title: 'Group round',
+      actions: [
+        ...(canEditOrDelete
+          ? [
+              {
+                label: 'Edit my round',
+                onPress: () =>
+                  router.push({
+                    pathname: '/round/group/[id]/score',
+                    params: { id: roundId, hole: '1' },
+                  }),
+              },
+              {
+                label: 'Delete my round',
+                tone: 'destructive' as const,
+                onPress: () =>
+                  sheet.show({
+                    title: 'Delete your round?',
+                    subtitle:
+                      'This removes your scores from this group round. Other players will still see the round without you.',
+                    actions: [
+                      {
+                        label: 'Delete',
+                        tone: 'destructive' as const,
+                        onPress: async () => {
+                          try {
+                            await deleteMine.mutateAsync({ roundId, userId: viewerId });
+                            router.back();
+                          } catch (e) {
+                            sheet.show({
+                              title: 'Could not delete',
+                              subtitle: (e as Error).message,
+                              actions: [{ label: 'OK' }],
+                            });
+                          }
+                        },
+                      },
+                    ],
+                  }),
+              },
+            ]
+          : []),
+        {
+          label: 'Report this round',
+          onPress: () => setReportTarget({ type: 'round', id: roundId }),
+        },
+      ],
+    });
+  };
 
   const [courseName, setCourseName] = useState<string | null>(null);
   useEffect(() => {
@@ -103,6 +169,20 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
                 ‹ BACK
               </Text>
             </Pressable>
+            {viewerId ? (
+              <Pressable onPress={onTapMore} hitSlop={8} style={{ padding: 8 }}>
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 16,
+                    color: palette.bone,
+                    opacity: 0.7,
+                  }}
+                >
+                  •••
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           {/* Header — group label, course name, date, with topo backdrop */}
@@ -326,6 +406,16 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
           </View>
         ) : null}
       </KeyboardAvoidingView>
+
+      {viewerId && reportTarget ? (
+        <ReportSheet
+          visible
+          reporterId={viewerId}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onClose={() => setReportTarget(null)}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }

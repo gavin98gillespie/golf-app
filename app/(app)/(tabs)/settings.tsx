@@ -1,9 +1,10 @@
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
+import { useActionSheet } from '@/components/ActionSheet';
 import { signOut } from '@/lib/auth';
 import { useSession } from '@/lib/hooks/useSession';
 import { useMyProfile, useHomeCourse } from '@/lib/queries/profile';
@@ -14,6 +15,7 @@ export default function Settings() {
   const { session } = useSession();
   const profileQ = useMyProfile(session?.user.id);
   const homeCourseQ = useHomeCourse(profileQ.data?.home_course_id);
+  const sheet = useActionSheet();
 
   const openLegal = (url: string) => WebBrowser.openBrowserAsync(url);
 
@@ -23,20 +25,24 @@ export default function Settings() {
   }
 
   function onDeleteAccount() {
-    Alert.alert(
-      'Delete account?',
-      'This permanently removes your profile, rounds, comments, and follows. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    sheet.show({
+      title: 'Delete account?',
+      subtitle:
+        'This permanently removes your profile, rounds, comments, and follows. This cannot be undone.',
+      actions: [
         {
-          text: 'Delete forever',
-          style: 'destructive',
+          label: 'Delete forever',
+          tone: 'destructive',
           onPress: async () => {
             const { error } = await supabase.functions.invoke('delete-account', {
               method: 'POST',
             });
             if (error) {
-              Alert.alert('Could not delete', error.message);
+              sheet.show({
+                title: 'Could not delete',
+                subtitle: error.message,
+                actions: [{ label: 'OK' }],
+              });
               return;
             }
             await supabase.auth.signOut();
@@ -44,7 +50,7 @@ export default function Settings() {
           },
         },
       ],
-    );
+    });
   }
 
   const legalLinks: { label: string; url: string }[] = [

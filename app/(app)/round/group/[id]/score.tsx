@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { useActionSheet } from '@/components/ActionSheet';
 import { ScoreNumeral } from '@/components/ScoreNumeral';
 import { Topo } from '@/components/Topo';
 import { Datum } from '@/components/Datum';
@@ -32,6 +33,7 @@ export default function GroupScore() {
   const finishMine = useFinishMySlice();
   const forceEnd = useForceEndRound();
   const withdraw = useWithdrawFromRound();
+  const sheet = useActionSheet();
 
   const round = groupQ.data?.round;
   const players = groupQ.data?.players ?? [];
@@ -106,10 +108,16 @@ export default function GroupScore() {
     return { thru: hole, totalScore, vsPar, projected };
   }, [myHoles, courseHoles, hole, score, par]);
 
+  const isEditMode = me?.status === 'finished';
+
   const onAdvance = () => {
     if (!id) return;
     if (hole >= totalHoles) {
-      onFinishMine();
+      if (isEditMode) {
+        router.replace({ pathname: '/round/[id]', params: { id } });
+      } else {
+        onFinishMine();
+      }
     } else {
       router.setParams({ hole: String(hole + 1) });
     }
@@ -117,45 +125,51 @@ export default function GroupScore() {
 
   const onFinishMine = () => {
     if (!id || !meId) return;
-    Alert.alert(
-      'Finish your round?',
-      "You'll be locked out of further scoring on this round.",
-      [
-        { text: 'Keep playing', style: 'cancel' as const },
+    sheet.show({
+      title: 'Finish your round?',
+      subtitle: "You'll be locked out of further scoring on this round.",
+      cancelLabel: 'Keep playing',
+      actions: [
         {
-          text: 'Finish',
+          label: 'Finish',
+          tone: 'sage',
           onPress: async () => {
             await finishMine.mutateAsync({ roundId: id, userId: meId });
             router.replace({ pathname: '/round/[id]', params: { id } });
           },
         },
       ],
-    );
+    });
   };
 
   const onMore = () => {
     if (!id || !meId) return;
-    type Btn = { text: string; style?: 'destructive' | 'cancel'; onPress?: () => void };
-    const buttons: Btn[] = [{ text: 'Cancel', style: 'cancel' }];
-    if (isHost) {
-      buttons.push({
-        text: 'End round for everyone',
-        style: 'destructive',
-        onPress: async () => {
-          await forceEnd.mutateAsync({ roundId: id });
-          router.replace({ pathname: '/round/[id]', params: { id } });
+    sheet.show({
+      eyebrow: 'OPTIONS',
+      title: 'Round options',
+      actions: [
+        ...(isHost
+          ? [
+              {
+                label: 'End round for everyone',
+                tone: 'destructive' as const,
+                onPress: async () => {
+                  await forceEnd.mutateAsync({ roundId: id });
+                  router.replace({ pathname: '/round/[id]', params: { id } });
+                },
+              },
+            ]
+          : []),
+        {
+          label: 'Withdraw',
+          tone: 'destructive' as const,
+          onPress: async () => {
+            await withdraw.mutateAsync({ roundId: id, userId: meId });
+            router.replace('/(app)/(tabs)');
+          },
         },
-      });
-    }
-    buttons.push({
-      text: 'Withdraw',
-      style: 'destructive',
-      onPress: async () => {
-        await withdraw.mutateAsync({ roundId: id, userId: meId });
-        router.replace('/(app)/(tabs)');
-      },
+      ],
     });
-    Alert.alert('Round options', undefined, buttons);
   };
 
   if (!round || !me) return null;
@@ -352,7 +366,11 @@ export default function GroupScore() {
               textTransform: 'uppercase',
             }}
           >
-            {isLast ? 'FINISH MY SLICE →' : `HOLE ${nextHole} · PAR ${nextPar} →`}
+            {isLast
+              ? isEditMode
+                ? 'DONE EDITING →'
+                : 'FINISH MY SLICE →'
+              : `HOLE ${nextHole} · PAR ${nextPar} →`}
           </Text>
         </Pressable>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { FollowButton } from '@/components/FollowButton';
 import { ReportSheet } from '@/components/ReportSheet';
+import { useActionSheet } from '@/components/ActionSheet';
 import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useProfileByUsername } from '@/lib/queries/users';
@@ -42,6 +43,7 @@ export default function OtherProfile() {
   const isBlockedQ = useIsBlocked(viewerId, profile?.id);
   const block = useBlock();
   const unblock = useUnblock();
+  const sheet = useActionSheet();
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(
     null,
   );
@@ -53,35 +55,39 @@ export default function OtherProfile() {
   const onTapMore = () => {
     if (!viewerId || !profile) return;
     const blocked = isBlockedQ.data ?? false;
-    Alert.alert('Options', `@${profile.username}`, [
-      blocked
-        ? {
-            text: 'Unblock',
-            onPress: () => unblock.mutate({ blockerId: viewerId, blockedId: profile.id }),
-          }
-        : {
-            text: 'Block',
-            style: 'destructive',
-            onPress: () =>
-              Alert.alert(
-                'Block this user?',
-                "They won't be able to see your profile or rounds. You won't see theirs.",
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Block',
-                    style: 'destructive',
-                    onPress: () => block.mutate({ blockerId: viewerId, blockedId: profile.id }),
-                  },
-                ],
-              ),
-          },
-      {
-        text: 'Report',
-        onPress: () => openReportSheet({ targetType: 'profile', targetId: profile.id }),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    sheet.show({
+      eyebrow: `@${profile.username}`,
+      title: 'Options',
+      actions: [
+        blocked
+          ? {
+              label: 'Unblock',
+              onPress: () => unblock.mutate({ blockerId: viewerId, blockedId: profile.id }),
+            }
+          : {
+              label: 'Block',
+              tone: 'destructive' as const,
+              onPress: () =>
+                sheet.show({
+                  title: 'Block this user?',
+                  subtitle:
+                    "They won't be able to see your profile or rounds. You won't see theirs.",
+                  actions: [
+                    {
+                      label: 'Block',
+                      tone: 'destructive' as const,
+                      onPress: () =>
+                        block.mutate({ blockerId: viewerId, blockedId: profile.id }),
+                    },
+                  ],
+                }),
+            },
+        {
+          label: 'Report',
+          onPress: () => openReportSheet({ targetType: 'profile', targetId: profile.id }),
+        },
+      ],
+    });
   };
 
   const roundsCountQ = useQuery({

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { useActionSheet } from '@/components/ActionSheet';
 import { Wordmark } from '@/components/Wordmark';
 import { PlayerTile } from '@/components/PlayerTile';
 import { InviteSearchSheet } from '@/components/InviteSearchSheet';
@@ -25,6 +26,7 @@ export default function Lobby() {
   const start = useStartGroupRound();
   const withdraw = useWithdrawFromRound();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const sheet = useActionSheet();
 
   const round = groupQ.data?.round;
   const players = groupQ.data?.players ?? [];
@@ -40,7 +42,11 @@ export default function Lobby() {
   const onCopyCode = async () => {
     if (!round?.join_code) return;
     await Clipboard.setStringAsync(round.join_code);
-    Alert.alert('Copied', `Code ${round.join_code} copied to clipboard.`);
+    sheet.show({
+      title: 'Copied',
+      subtitle: `Code ${round.join_code} copied to clipboard.`,
+      actions: [{ label: 'OK' }],
+    });
   };
 
   const onStart = async () => {
@@ -50,16 +56,16 @@ export default function Lobby() {
 
   const onLeave = () => {
     if (!round || !session?.user.id) return;
-    Alert.alert(
-      isHost ? 'Cancel round?' : 'Leave round?',
-      isHost
+    sheet.show({
+      title: isHost ? 'Cancel round?' : 'Leave round?',
+      subtitle: isHost
         ? 'This deletes the round for everyone.'
         : 'You can rejoin later via the join code.',
-      [
-        { text: 'Stay', style: 'cancel' as const },
+      cancelLabel: 'Stay',
+      actions: [
         {
-          text: isHost ? 'Cancel round' : 'Leave',
-          style: 'destructive' as const,
+          label: isHost ? 'Cancel round' : 'Leave',
+          tone: 'destructive',
           onPress: async () => {
             if (isHost) {
               await supabase.from('rounds').delete().eq('id', round.id);
@@ -70,7 +76,7 @@ export default function Lobby() {
           },
         },
       ],
-    );
+    });
   };
 
   if (!round) return null;

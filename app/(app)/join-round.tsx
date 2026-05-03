@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
+import { useActionSheet } from '@/components/ActionSheet';
 import { useJoinViaCode } from '@/lib/queries/groupRounds';
 import { palette, fontFamily } from '@/theme/linksman';
 
@@ -11,17 +12,26 @@ export default function JoinRound() {
   const [code, setCode] = useState('');
   const [tee, setTee] = useState('white');
   const join = useJoinViaCode();
+  const sheet = useActionSheet();
 
   const onJoin = async () => {
     if (code.length !== 6) {
-      Alert.alert('Invalid code', 'Codes are 6 characters.');
+      sheet.show({
+        title: 'Invalid code',
+        subtitle: 'Codes are 6 characters.',
+        actions: [{ label: 'OK' }],
+      });
       return;
     }
     try {
       const roundId = await join.mutateAsync({ code: code.toUpperCase(), teeBox: tee });
       router.replace(`/round/group/${roundId}/lobby` as never);
     } catch (e: unknown) {
-      Alert.alert('Could not join', e instanceof Error ? e.message : 'Unknown error');
+      sheet.show({
+        title: 'Could not join',
+        subtitle: e instanceof Error ? e.message : 'Unknown error',
+        actions: [{ label: 'OK' }],
+      });
     }
   };
 

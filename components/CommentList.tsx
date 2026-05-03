@@ -1,8 +1,9 @@
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
+import { useActionSheet } from '@/components/ActionSheet';
 import type { CommentWithAuthor } from '@/lib/queries/comments';
 import { useDeleteComment } from '@/lib/queries/comments';
 
@@ -14,20 +15,24 @@ type Props = {
 
 export function CommentList({ comments, viewerId, roundId }: Props) {
   const deleteComment = useDeleteComment();
+  const sheet = useActionSheet();
 
   if (comments.length === 0) {
     return <Text className="text-text-secondary text-sm py-2">No comments yet.</Text>;
   }
 
   const confirmDelete = (commentId: string) => {
-    Alert.alert('Delete comment?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteComment.mutate({ commentId, roundId }),
-      },
-    ]);
+    sheet.show({
+      title: 'Delete comment?',
+      subtitle: 'This cannot be undone.',
+      actions: [
+        {
+          label: 'Delete',
+          tone: 'destructive',
+          onPress: () => deleteComment.mutate({ commentId, roundId }),
+        },
+      ],
+    });
   };
 
   const renderRightActions = (commentId: string) => {

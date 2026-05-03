@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Modal, Pressable, Text, View, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useActionSheet } from '@/components/ActionSheet';
 import { useSubmitReport, type ReportReason, type ReportTargetType } from '@/lib/queries/reports';
+import { palette, fontFamily } from '@/theme/linksman';
 
 type Props = {
   visible: boolean;
@@ -22,6 +25,13 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const submit = useSubmitReport();
+  const sheet = useActionSheet();
+  const insets = useSafeAreaInsets();
+
+  const reset = () => {
+    setReason(null);
+    setDetails('');
+  };
 
   const onSubmit = () => {
     if (!reason) return;
@@ -36,38 +46,106 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
       },
       {
         onSuccess: () => {
-          Alert.alert('Thanks', 'Your report has been submitted.');
-          setReason(null);
-          setDetails('');
+          reset();
           onClose();
+          sheet.show({
+            title: 'Thanks',
+            subtitle: 'Your report has been submitted.',
+            actions: [{ label: 'OK' }],
+          });
         },
-        onError: (err) => Alert.alert('Could not submit', err.message),
+        onError: (err) =>
+          sheet.show({
+            title: 'Could not submit',
+            subtitle: err.message,
+            actions: [{ label: 'OK' }],
+          }),
       },
     );
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/60">
-        <View className="bg-bg-base border-t border-border-subtle rounded-t-3xl p-6 pb-10">
-          <Text className="text-text-primary text-2xl font-light">Report</Text>
-          <Text className="text-text-secondary text-sm mt-1">Why are you reporting this?</Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: palette.ink + 'CC', justifyContent: 'flex-end' }}
+      >
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: palette.bone,
+            paddingHorizontal: 24,
+            paddingTop: 24,
+            paddingBottom: Math.max(insets.bottom, 16) + 8,
+            borderTopLeftRadius: 4,
+            borderTopRightRadius: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: fontFamily.mono,
+              fontSize: 9,
+              letterSpacing: 9 * 0.2,
+              color: palette.ink,
+              opacity: 0.5,
+              textTransform: 'uppercase',
+            }}
+          >
+            REPORT
+          </Text>
+          <Text
+            style={{
+              fontFamily: fontFamily.display,
+              fontSize: 24,
+              letterSpacing: -24 * 0.02,
+              color: palette.ink,
+              marginTop: 4,
+            }}
+          >
+            Why are you reporting this?
+          </Text>
 
-          <View className="mt-4">
+          <View style={{ marginTop: 16 }}>
             {REASONS.map((r) => {
               const selected = reason === r.value;
               return (
                 <Pressable
                   key={r.value}
                   onPress={() => setReason(r.value)}
-                  className={`flex-row items-center py-3 px-4 mb-2 rounded-2xl border ${
-                    selected ? 'border-accent bg-accent/10' : 'border-border-subtle'
-                  } active:opacity-70`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 14,
+                    borderTopWidth: 0.5,
+                    borderColor: palette.ink + '22',
+                  }}
                 >
                   <View
-                    className={`w-5 h-5 rounded-full border ${selected ? 'border-accent bg-accent' : 'border-border-subtle'}`}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: selected ? palette.fairway : palette.ink + '55',
+                      backgroundColor: selected ? palette.fairway : 'transparent',
+                      marginRight: 14,
+                    }}
                   />
-                  <Text className="text-text-primary text-sm ml-3">{r.label}</Text>
+                  <Text
+                    style={{
+                      fontFamily: fontFamily.display,
+                      fontSize: 18,
+                      color: palette.ink,
+                    }}
+                  >
+                    {r.label}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -77,37 +155,80 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
             value={details}
             onChangeText={setDetails}
             placeholder="Additional details (optional)"
-            placeholderTextColor="#4a5a52"
+            placeholderTextColor={palette.ink + '66'}
             multiline
             maxLength={500}
-            className="bg-bg-surface border border-border-subtle rounded-2xl px-4 py-3 mt-2 text-text-primary text-sm min-h-[80px]"
+            style={{
+              fontFamily: fontFamily.editorial ?? fontFamily.display,
+              fontSize: 16,
+              color: palette.ink,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              marginTop: 12,
+              borderWidth: 0.5,
+              borderColor: palette.ink + '33',
+              minHeight: 84,
+              textAlignVertical: 'top',
+            }}
           />
 
-          <View className="flex-row mt-4">
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
             <Pressable
-              onPress={onClose}
-              className="flex-1 py-3 rounded-full border border-border-subtle mr-2 active:opacity-70"
+              onPress={() => {
+                reset();
+                onClose();
+              }}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                borderWidth: 0.5,
+                borderColor: palette.ink + '55',
+                alignItems: 'center',
+              }}
             >
-              <Text className="text-text-primary text-sm font-semibold text-center">Cancel</Text>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 12,
+                  letterSpacing: 12 * 0.16,
+                  color: palette.ink,
+                  opacity: 0.7,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Cancel
+              </Text>
             </Pressable>
             <Pressable
               disabled={!reason || submit.isPending}
               onPress={onSubmit}
-              className={`flex-1 py-3 rounded-full ${reason && !submit.isPending ? 'bg-accent active:opacity-70' : 'bg-bg-surface opacity-50'}`}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                backgroundColor: palette.fairway,
+                alignItems: 'center',
+                opacity: !reason || submit.isPending ? 0.4 : 1,
+              }}
             >
               {submit.isPending ? (
-                <ActivityIndicator size="small" color="#08100c" />
+                <ActivityIndicator size="small" color={palette.bone} />
               ) : (
                 <Text
-                  className={`text-sm font-semibold text-center ${reason ? 'text-bg-base' : 'text-text-secondary'}`}
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    fontSize: 12,
+                    letterSpacing: 12 * 0.16,
+                    color: palette.bone,
+                    textTransform: 'uppercase',
+                  }}
                 >
                   Submit
                 </Text>
               )}
             </Pressable>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

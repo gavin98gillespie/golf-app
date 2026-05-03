@@ -1,9 +1,10 @@
-import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, getWeek } from 'date-fns';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { useActionSheet } from '@/components/ActionSheet';
 import { FeedRoundCard } from '@/components/FeedRoundCard';
 import { GroupRoundCard } from '@/components/GroupRoundCard';
 import { Wordmark } from '@/components/Wordmark';
@@ -21,6 +22,7 @@ export default function Feed() {
   const draftQ = useDraftRound(userId);
   const feedQ = useFeed(userId);
   const qc = useQueryClient();
+  const sheet = useActionSheet();
 
   const courseQ = useQuery({
     queryKey: ['course', draftQ.data?.course_id],
@@ -146,18 +148,21 @@ export default function Feed() {
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                   <Pressable
                     onPress={() => {
-                      Alert.alert('Discard this round?', 'You will lose any scores entered.', [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Discard',
-                          style: 'destructive',
-                          onPress: async () => {
-                            await supabase.from('rounds').delete().eq('id', draft.id);
-                            void qc.invalidateQueries({ queryKey: ['rounds', 'draft', userId] });
-                            void qc.invalidateQueries({ queryKey: ['rounds'] });
+                      sheet.show({
+                        title: 'Discard this round?',
+                        subtitle: 'You will lose any scores entered.',
+                        actions: [
+                          {
+                            label: 'Discard',
+                            tone: 'destructive',
+                            onPress: async () => {
+                              await supabase.from('rounds').delete().eq('id', draft.id);
+                              void qc.invalidateQueries({ queryKey: ['rounds', 'draft', userId] });
+                              void qc.invalidateQueries({ queryKey: ['rounds'] });
+                            },
                           },
-                        },
-                      ]);
+                        ],
+                      });
                     }}
                     hitSlop={8}
                   >
