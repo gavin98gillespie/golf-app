@@ -65,7 +65,7 @@ export function useUpsertHoleScore() {
     mutationFn: async (input: Inserts<'round_holes'>) => {
       const { data, error } = await supabase
         .from('round_holes')
-        .upsert(input, { onConflict: 'round_id,hole_number' })
+        .upsert(input, { onConflict: 'round_id,player_id,hole_number' })
         .select()
         .single();
       if (error) throw error;
@@ -76,7 +76,7 @@ export function useUpsertHoleScore() {
       // the user's next tap and revert their input).
       qc.setQueryData<Tables<'round_holes'>[]>(['round_holes', vars.round_id], (prev) => {
         const list = prev ?? [];
-        const idx = list.findIndex((h) => h.hole_number === saved.hole_number);
+        const idx = list.findIndex((h) => h.hole_number === saved.hole_number && h.player_id === saved.player_id);
         if (idx === -1) return [...list, saved].sort((a, b) => a.hole_number - b.hole_number);
         const next = list.slice();
         next[idx] = saved;
