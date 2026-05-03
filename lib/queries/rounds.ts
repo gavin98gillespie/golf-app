@@ -103,6 +103,23 @@ export function useRoundHoles(roundId: string | undefined) {
   });
 }
 
+export function useUpdateRoundNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { roundId: string; notes: string }) => {
+      const { error } = await supabase
+        .from('rounds')
+        .update({ notes: input.notes || null })
+        .eq('id', input.roundId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      void qc.invalidateQueries({ queryKey: ['round', vars.roundId] });
+      void qc.invalidateQueries({ queryKey: ['rounds'] });
+    },
+  });
+}
+
 export function useFinalizeRound() {
   const qc = useQueryClient();
   return useMutation({

@@ -345,6 +345,21 @@ export default function RoundDetail() {
             ) : null}
           </View>
 
+          {round.notes ? (
+            <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
+              <Text
+                style={{
+                  fontFamily: fontFamily.displayItalic ?? fontFamily.display,
+                  fontSize: 18,
+                  lineHeight: 26,
+                  color: palette.bone,
+                }}
+              >
+                “{round.notes}”
+              </Text>
+            </View>
+          ) : null}
+
           {/* Hole grid */}
           {holeRows.length > 0 ? (
             <View

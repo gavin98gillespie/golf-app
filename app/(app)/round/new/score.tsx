@@ -10,7 +10,8 @@ import { Topo } from '@/components/Topo';
 import { EagleCelebration } from '@/components/EagleCelebration';
 import { palette, fontFamily, deltaLabel } from '@/theme/linksman';
 import { supabase, type Tables } from '@/lib/supabase';
-import { useUpsertHoleScore, useRoundHoles } from '@/lib/queries/rounds';
+import { useUpsertHoleScore, useRoundHoles, useUpdateRoundNotes } from '@/lib/queries/rounds';
+import { NotesField } from '@/components/NotesField';
 import { useSession } from '@/lib/hooks/useSession';
 
 type RoundWithCourse = Tables<'rounds'> & {
@@ -69,6 +70,7 @@ export default function HoleEntry() {
 
   const roundHolesQ = useRoundHoles(roundId);
   const upsert = useUpsertHoleScore();
+  const updateRoundNotes = useUpdateRoundNotes();
 
   const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;
   const courseHole = courseHolesQ.data?.find((h) => h.hole_number === hole);
@@ -495,6 +497,16 @@ export default function HoleEntry() {
               GIR · {gir == null ? '—' : gir ? 'YES' : 'NO'}
             </Text>
           </Pressable>
+        </View>
+
+        <View style={{ marginTop: 24, borderTopWidth: 0.5, borderTopColor: palette.bone + '22' }}>
+          <NotesField
+            value={roundQ.data?.notes ?? ''}
+            onChange={(t) => {
+              if (roundQ.data) updateRoundNotes.mutate({ roundId: roundQ.data.id, notes: t });
+            }}
+            surface="ink"
+          />
         </View>
       </View>
 

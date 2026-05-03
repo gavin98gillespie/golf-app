@@ -8,7 +8,8 @@ import { MonoBadge } from '@/components/MonoBadge';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleGrid } from '@/components/HoleGrid';
 import { palette } from '@/theme/linksman';
-import { useFinalizeRound, useRoundHoles } from '@/lib/queries/rounds';
+import { useFinalizeRound, useRoundHoles, useUpdateRoundNotes } from '@/lib/queries/rounds';
+import { NotesField } from '@/components/NotesField';
 import { usePersonalBestAtCourse } from '@/lib/queries/stats';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
@@ -21,6 +22,7 @@ export default function Summary() {
   const { roundId } = useLocalSearchParams<{ roundId: string }>();
   const [visibility, setVisibility] = useState<'mutuals' | 'private'>('mutuals');
   const finalize = useFinalizeRound();
+  const updateRoundNotes = useUpdateRoundNotes();
 
   const roundQ = useQuery({
     queryKey: ['round', roundId],
@@ -92,6 +94,16 @@ export default function Summary() {
           {totals.diff >= 0 ? `+${totals.diff}` : totals.diff} · {totalHoles} holes · Par{' '}
           {totals.par}
         </Text>
+      </View>
+
+      <View style={{ marginBottom: 16, borderTopWidth: 0.5, borderTopColor: palette.ink + '14' }}>
+        <NotesField
+          value={roundQ.data?.notes ?? ''}
+          onChange={(t) => {
+            if (roundQ.data) updateRoundNotes.mutate({ roundId: roundQ.data.id, notes: t });
+          }}
+          surface="bone"
+        />
       </View>
 
       {isNewBest ? (
