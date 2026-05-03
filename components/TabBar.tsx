@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Svg, { Circle, Line } from 'react-native-svg';
 
+import { PlayModeSheet } from '@/components/PlayModeSheet';
 import { palette, fontFamily } from '@/theme/linksman';
 
 type TabName = 'index' | 'discover' | 'profile' | 'settings';
@@ -92,27 +94,31 @@ function TabCell({ item, active }: { item: TabItem; active: boolean }) {
 }
 
 function PlayButton() {
+  const [open, setOpen] = useState(false);
   return (
-    <Pressable
-      onPress={() => router.push('/(app)/(tabs)/start')}
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: palette.brass,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: palette.brass,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-      }}
-    >
-      <Svg width={22} height={22} viewBox="0 0 22 22">
-        <Circle cx={11} cy={6} r={3} fill={palette.ink} />
-        <Line x1={11} y1={9} x2={11} y2={16} stroke={palette.ink} strokeWidth={1.4} />
-        <Line x1={7} y1={16} x2={15} y2={16} stroke={palette.ink} strokeWidth={1.4} />
-      </Svg>
-    </Pressable>
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: palette.brass,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: palette.brass,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 16,
+        }}
+      >
+        <Svg width={22} height={22} viewBox="0 0 22 22">
+          <Circle cx={11} cy={6} r={3} fill={palette.ink} />
+          <Line x1={11} y1={9} x2={11} y2={16} stroke={palette.ink} strokeWidth={1.4} />
+          <Line x1={7} y1={16} x2={15} y2={16} stroke={palette.ink} strokeWidth={1.4} />
+        </Svg>
+      </Pressable>
+      <PlayModeSheet visible={open} onClose={() => setOpen(false)} />
+    </>
   );
 }
