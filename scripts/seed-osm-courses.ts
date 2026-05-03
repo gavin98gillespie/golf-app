@@ -56,15 +56,42 @@ type CourseRow = {
   verified: boolean;
 };
 
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
+async function fetchOverpass(): Promise<{ elements?: OsmElement[] }> {
+  let lastErr: unknown = null;
+  for (const url of ENDPOINTS) {
+    try {
+      console.log(`fetching from ${url}…`);
+      const res = await fetch(url, {
+        method: 'POST',
+        body: new URLSearchParams({ data: OVERPASS_QUERY }).toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+          'User-Agent': 'linksman-app-seed/0.1 (gavin98gillespie@gmail.com)',
+        },
+      });
+      if (!res.ok) {
+        lastErr = new Error(`${url} → ${res.status} ${res.statusText}`);
+        console.warn(`  ${res.status} ${res.statusText}, trying next mirror…`);
+        continue;
+      }
+      return (await res.json()) as { elements?: OsmElement[] };
+    } catch (e) {
+      lastErr = e;
+      console.warn(`  ${(e as Error).message}, trying next mirror…`);
+    }
+  }
+  throw lastErr ?? new Error('all Overpass mirrors failed');
+}
+
 async function main(): Promise<void> {
-  console.log('fetching from Overpass…');
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(OVERPASS_QUERY),
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-  if (!res.ok) throw new Error(`Overpass ${res.status} ${res.statusText}`);
-  const json = (await res.json()) as { elements?: OsmElement[] };
+  const json = await fetchOverpass();
   const elements = json.elements ?? [];
   console.log(`got ${elements.length} elements`);
 
