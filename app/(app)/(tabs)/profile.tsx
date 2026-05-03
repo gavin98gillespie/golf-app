@@ -195,6 +195,35 @@ export default function Profile() {
             {/* Weekly summary */}
             {viewerId ? <WeeklySummary userId={viewerId} /> : null}
 
+            <Pressable
+              onPress={() => router.push('/(app)/achievements')}
+              style={{
+                marginTop: 24,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderTopWidth: 0.5,
+                borderBottomWidth: 0.5,
+                borderColor: palette.ink + '33',
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 12,
+                  letterSpacing: 12 * 0.12,
+                  color: palette.ink,
+                  textTransform: 'uppercase',
+                }}
+              >
+                TROPHY CASE
+              </Text>
+              <Text style={{ fontFamily: fontFamily.mono, fontSize: 13, color: palette.ink, opacity: 0.4 }}>
+                →
+              </Text>
+            </Pressable>
+
             {/* Recent rounds label */}
             <Text
               style={{
