@@ -1,6 +1,7 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
@@ -67,44 +68,78 @@ export default function Profile() {
               }}
             >
               <Wordmark size={20} color={palette.ink} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Pressable
-                  onPress={() => router.push('/(app)/settings')}
-                  hitSlop={8}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.ink,
-                      opacity: 0.7,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    SETTINGS
-                  </Text>
-                </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
                 <Pressable
                   onPress={() => router.push('/(app)/invites')}
-                  hitSlop={8}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  hitSlop={10}
+                  style={{ padding: 4 }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.ink,
-                      opacity: 0.7,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    INVITES
-                  </Text>
+                  {/* Bell glyph: 22x22, rounded body + clapper */}
+                  <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Path
+                      d="M12 3a5 5 0 0 0-5 5v3.2c0 .9-.36 1.77-1 2.4L4.6 15.4a.6.6 0 0 0 .42 1.02h13.96a.6.6 0 0 0 .42-1.02l-1.4-1.8a3.4 3.4 0 0 1-1-2.4V8a5 5 0 0 0-5-5z"
+                      fill="none"
+                      stroke={palette.ink}
+                      strokeWidth={1.4}
+                      strokeLinejoin="round"
+                    />
+                    <Path
+                      d="M10 18.5a2 2 0 0 0 4 0"
+                      fill="none"
+                      stroke={palette.ink}
+                      strokeWidth={1.4}
+                      strokeLinecap="round"
+                    />
+                  </Svg>
                   {inviteCount > 0 ? (
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.fairway }} />
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: palette.fairway,
+                        borderWidth: 1.5,
+                        borderColor: palette.bone,
+                      }}
+                    />
                   ) : null}
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/(app)/settings')}
+                  hitSlop={10}
+                  style={{ padding: 4 }}
+                >
+                  {/* Gear glyph: 22x22 ring + 6 short teeth + center hub */}
+                  <Svg width={22} height={22} viewBox="0 0 24 24">
+                    <Circle
+                      cx={12}
+                      cy={12}
+                      r={6.5}
+                      fill="none"
+                      stroke={palette.ink}
+                      strokeWidth={1.4}
+                    />
+                    <Circle cx={12} cy={12} r={1.6} fill={palette.ink} />
+                    {[0, 60, 120, 180, 240, 300].map((deg) => {
+                      const rad = (deg * Math.PI) / 180;
+                      const x1 = 12 + Math.cos(rad) * 7.4;
+                      const y1 = 12 + Math.sin(rad) * 7.4;
+                      const x2 = 12 + Math.cos(rad) * 9.6;
+                      const y2 = 12 + Math.sin(rad) * 9.6;
+                      return (
+                        <Path
+                          key={deg}
+                          d={`M${x1} ${y1} L${x2} ${y2}`}
+                          stroke={palette.ink}
+                          strokeWidth={1.6}
+                          strokeLinecap="round"
+                        />
+                      );
+                    })}
+                  </Svg>
                 </Pressable>
               </View>
             </View>
