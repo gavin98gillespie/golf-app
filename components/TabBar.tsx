@@ -16,8 +16,8 @@ type TabItem = {
 const ITEMS: TabItem[] = [
   { name: 'index', label: 'Today' },
   { name: 'feed', label: 'Feed' },
-  { name: 'profile', label: 'Me' },
   { name: 'search', label: 'Search' },
+  { name: 'profile', label: 'Me' },
 ];
 
 type Props = { active: TabName | 'start' };

@@ -15,13 +15,24 @@ import type { FeedRound } from '@/lib/queries/feed';
 type Props = { round: FeedRound; viewerId: string };
 
 export function GroupRoundCard({ round, viewerId }: Props) {
-  const owner = round.profiles;
-  const course = round.courses;
-
   const groupQ = useGroupRound(round.id);
   const players = (groupQ.data?.players ?? []).filter(
     (p) => p.status === 'joined' || p.status === 'finished',
   );
+
+  // Pick the most relevant face for the feed card. If the viewer is the host of
+  // this group round, surface a non-viewer participant instead so the viewer
+  // doesn't see their own avatar/name on a card in their own feed.
+  const fallbackToParticipant = round.profiles?.id === viewerId;
+  const otherPlayer = players.find((p) => p.user_id !== viewerId)?.profile ?? null;
+  const owner = (fallbackToParticipant && otherPlayer ? otherPlayer : round.profiles) as {
+    id: string;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+
+  const course = round.courses;
   const holes = groupQ.data?.holes ?? [];
 
   const hasLikedQ = useHasLiked(viewerId, round.id);

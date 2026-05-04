@@ -14,21 +14,10 @@ export default function OnboardingBegin() {
 
   const courseName = homeCourseQ.data?.name ?? 'Linksman';
 
-  const finish = async (target: 'card' | 'today') => {
+  const finish = async () => {
     if (!session?.user.id) return;
     await complete.mutateAsync(session.user.id);
-    if (target === 'card') {
-      if (homeCourseQ.data?.id) {
-        router.replace({
-          pathname: '/round/new/setup',
-          params: { courseId: homeCourseQ.data.id },
-        });
-      } else {
-        router.replace('/round/new/course');
-      }
-    } else {
-      router.replace('/(app)/(tabs)');
-    }
+    router.replace('/(app)/(tabs)');
   };
 
   const datum = (label: string, value: string) => (
@@ -107,7 +96,7 @@ export default function OnboardingBegin() {
 
         <View style={{ paddingBottom: 24 }}>
           <Pressable
-            onPress={() => finish('card')}
+            onPress={finish}
             disabled={complete.isPending}
             style={{
               paddingVertical: 16,
@@ -125,25 +114,7 @@ export default function OnboardingBegin() {
                 textTransform: 'uppercase',
               }}
             >
-              START A CARD →
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => finish('today')}
-            disabled={complete.isPending}
-            style={{ paddingVertical: 16, alignItems: 'center', marginTop: 4 }}
-          >
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 12,
-                letterSpacing: 12 * 0.16,
-                color: palette.ink,
-                opacity: 0.6,
-                textTransform: 'uppercase',
-              }}
-            >
-              GO TO TODAY
+              CONTINUE →
             </Text>
           </Pressable>
         </View>

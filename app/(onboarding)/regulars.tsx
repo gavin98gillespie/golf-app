@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { UserListItem } from '@/components/UserListItem';
+import { OnboardingUserResult } from '@/components/OnboardingUserResult';
 import { OnboardingFooter } from '@/components/OnboardingFooter';
 import { useSearchUsers } from '@/lib/queries/users';
 import { useSession } from '@/lib/hooks/useSession';
@@ -80,7 +80,7 @@ export default function OnboardingRegulars() {
         <View style={{ marginTop: 16 }}>
           {viewerId
             ? (usersQ.data ?? []).map((u) => (
-                <UserListItem key={u.id} user={u} viewerId={viewerId} />
+                <OnboardingUserResult key={u.id} user={u} viewerId={viewerId} />
               ))
             : null}
           {q.trim().length >= 2 && (usersQ.data ?? []).length === 0 ? (
