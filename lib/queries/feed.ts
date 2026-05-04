@@ -21,32 +21,21 @@ export function useFeed(viewerId: string | undefined, limit = 30) {
       const followingIds = (follows ?? []).map((r) => r.following_id);
       if (followingIds.length === 0) return [];
 
-      // Step B: of those, who follows me back? RLS will filter to mutuals,
-      // but we narrow client-side first to keep the rounds query small.
-      const { data: backFollows, error: backErr } = await supabase
-        .from('follows')
-        .select('follower_id')
-        .eq('following_id', viewerId)
-        .in('follower_id', followingIds);
-      if (backErr) throw backErr;
-      const mutualIds = (backFollows ?? []).map((r) => r.follower_id);
-      if (mutualIds.length === 0) return [];
-
-      // Step C: round IDs where any mutual is a joined/finished player.
+      // Step B: round IDs where any followed user is a joined/finished player.
+      // RLS narrows further to rounds the viewer is permitted to see.
       // Solo rounds also have a round_players row (host as sole player), so
-      // this query covers solo + group rounds uniformly. Group rounds where
-      // the viewer is host but a mutual is a participant will also surface,
-      // which solves the case of multi-player rounds going missing from the
-      // feed when only the non-host happens to be a mutual.
+      // this query covers solo + group rounds uniformly.
       const { data: rpRows, error: rpErr } = await supabase
         .from('round_players')
         .select('round_id')
-        .in('user_id', mutualIds)
+        .in('user_id', followingIds)
         .in('status', ['joined', 'finished']);
       if (rpErr) throw rpErr;
       const roundIds = Array.from(new Set((rpRows ?? []).map((r) => r.round_id)));
       if (roundIds.length === 0) return [];
 
+      // Fetch rounds visible to viewer from people they follow. RLS enforces
+      // final visibility; the visibility filter here is a client-side hint only.
       const { data, error } = await supabase
         .from('rounds')
         .select(

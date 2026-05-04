@@ -54,9 +54,7 @@ export default function OnboardingRegulars() {
             lineHeight: 18,
           }}
         >
-          {
-            "Linksman is mutual-only. Follow people you actually play with — you'll see their rounds when they follow you back."
-          }
+          {'Follow people you actually play with. Their rounds will appear in your feed.'}
         </Text>
 
         <TextInput

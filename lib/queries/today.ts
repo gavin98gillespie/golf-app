@@ -106,8 +106,8 @@ export type RegularsPulse = {
 };
 
 /**
- * Most recent round visible to the viewer where a mutual is a joined/finished player.
- * Same filter pattern as the feed query (lib/queries/feed.ts step C).
+ * Most recent round visible to the viewer where someone they follow is a joined/finished player.
+ * Same filter pattern as the feed query (lib/queries/feed.ts step B).
  */
 export function useLatestRegularsPulse(viewerId: string | undefined) {
   return useQuery({
@@ -122,22 +122,13 @@ export function useLatestRegularsPulse(viewerId: string | undefined) {
       const followingIds = (followsRes.data ?? []).map((r) => r.following_id);
       if (followingIds.length === 0) return null;
 
-      const backRes = await supabase
-        .from('follows')
-        .select('follower_id')
-        .eq('following_id', viewerId)
-        .in('follower_id', followingIds);
-      if (backRes.error) throw backRes.error;
-      const mutualIds = (backRes.data ?? []).map((r) => r.follower_id);
-      if (mutualIds.length === 0) return null;
-
-      // Pull the most recent finished slice from any mutual.
+      // Pull the most recent finished slice from anyone the viewer follows.
       const sumRes = await supabase
         .from('user_round_summaries')
         .select(
           'round_id, user_id, total_score, total_par, played_at, course_id, hole_count, visibility, is_group',
         )
-        .in('user_id', mutualIds)
+        .in('user_id', followingIds)
         .in('player_status', ['joined', 'finished'])
         .eq('is_draft', false)
         .in('visibility', ['mutuals', 'public'])

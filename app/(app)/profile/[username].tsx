@@ -11,7 +11,7 @@ import { useActionSheet } from '@/components/ActionSheet';
 import { Datum } from '@/components/Datum';
 import { useSession } from '@/lib/hooks/useSession';
 import { useProfileByUsername } from '@/lib/queries/users';
-import { useFollowerCount, useFollowingCount, useIsMutual } from '@/lib/queries/follows';
+import { useFollowerCount, useFollowingCount, useIsFollowing } from '@/lib/queries/follows';
 import { useBlock, useUnblock, useIsBlocked } from '@/lib/queries/blocks';
 import type { ReportTargetType } from '@/lib/queries/reports';
 import { supabase, type Tables } from '@/lib/supabase';
@@ -38,7 +38,7 @@ export default function OtherProfile() {
 
   const followersQ = useFollowerCount(profile?.id);
   const followingQ = useFollowingCount(profile?.id);
-  const mutualQ = useIsMutual(viewerId, profile?.id);
+  const isFollowingQ = useIsFollowing(viewerId, profile?.id);
 
   const isBlockedQ = useIsBlocked(viewerId, profile?.id);
   const block = useBlock();
@@ -76,8 +76,7 @@ export default function OtherProfile() {
                     {
                       label: 'Block',
                       tone: 'destructive' as const,
-                      onPress: () =>
-                        block.mutate({ blockerId: viewerId, blockedId: profile.id }),
+                      onPress: () => block.mutate({ blockerId: viewerId, blockedId: profile.id }),
                     },
                   ],
                 }),
@@ -120,7 +119,7 @@ export default function OtherProfile() {
       if (error) throw error;
       return (data ?? []) as RoundWithCourse[];
     },
-    enabled: !!profile?.id && (mutualQ.data ?? false),
+    enabled: !!profile?.id && (isFollowingQ.data ?? false),
   });
 
   if (profileQ.isLoading) {
@@ -149,12 +148,12 @@ export default function OtherProfile() {
   }
   if (isSelf) return null;
 
-  const isMutual = mutualQ.data ?? false;
+  const isFollowing = isFollowingQ.data ?? false;
 
   return (
     <ScreenContainer>
       <FlatList
-        data={isMutual ? (recentRoundsQ.data ?? []) : []}
+        data={isFollowing ? (recentRoundsQ.data ?? []) : []}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
@@ -300,7 +299,7 @@ export default function OtherProfile() {
               Recent rounds
             </Text>
 
-            {!isMutual ? (
+            {!isFollowing ? (
               <View
                 style={{
                   borderWidth: 0.5,
@@ -317,7 +316,7 @@ export default function OtherProfile() {
                     opacity: 0.85,
                   }}
                 >
-                  Follow each other to see their rounds.
+                  Follow them to see their rounds.
                 </Text>
               </View>
             ) : recentRoundsQ.isLoading ? (

@@ -651,6 +651,14 @@ export type Database = {
       force_end_round: { Args: { p_round_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
       is_blocked: { Args: { a: string; b: string }; Returns: boolean }
+      is_following: {
+        Args: { p_target: string; p_viewer: string }
+        Returns: boolean
+      }
+      is_following_any_round_player: {
+        Args: { p_round_id: string; p_viewer: string }
+        Returns: boolean
+      }
       is_in_round: {
         Args: { p_round_id: string; p_viewer: string }
         Returns: boolean
