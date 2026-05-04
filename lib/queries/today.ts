@@ -28,22 +28,32 @@ export function useBestCard(userId: string | undefined, homeCourseId: string | n
         .eq('is_draft', false)
         .gt('total_score', 0)
         .order('total_score', { ascending: true })
-        .limit(1);
+        .limit(50);
       if (homeCourseId) q = q.eq('course_id', homeCourseId);
       const { data, error } = await q;
       if (error) throw error;
-      const row = (data ?? [])[0];
-      if (!row) return null;
-      const courseRes = row.course_id
-        ? await supabase.from('courses').select('id, name').eq('id', row.course_id).maybeSingle()
+      const rows = (data ?? []) as {
+        round_id: string;
+        played_at: string;
+        total_score: number;
+        total_par: number;
+        hole_count: number | null;
+        course_id: string | null;
+      }[];
+      if (rows.length === 0) return null;
+      const best = rows.reduce((a, b) =>
+        a.total_score - a.total_par <= b.total_score - b.total_par ? a : b,
+      );
+      const courseRes = best.course_id
+        ? await supabase.from('courses').select('id, name').eq('id', best.course_id).maybeSingle()
         : { data: null, error: null };
       if (courseRes.error) throw courseRes.error;
       return {
-        id: row.round_id as string,
-        played_at: row.played_at as string,
-        total_score: row.total_score as number,
-        total_par: row.total_par as number,
-        hole_count: (row.hole_count as number | null) ?? null,
+        id: best.round_id,
+        played_at: best.played_at,
+        total_score: best.total_score,
+        total_par: best.total_par,
+        hole_count: best.hole_count,
         course: courseRes.data
           ? { id: courseRes.data.id as string, name: courseRes.data.name as string | null }
           : null,
@@ -121,41 +131,64 @@ export function useLatestRegularsPulse(viewerId: string | undefined) {
       const mutualIds = (backRes.data ?? []).map((r) => r.follower_id);
       if (mutualIds.length === 0) return null;
 
-      const rpRes = await supabase
-        .from('round_players')
-        .select('round_id')
-        .in('user_id', mutualIds)
-        .in('status', ['joined', 'finished']);
-      if (rpRes.error) throw rpRes.error;
-      const roundIds = Array.from(new Set((rpRes.data ?? []).map((r) => r.round_id)));
-      if (roundIds.length === 0) return null;
-
-      const { data, error } = await supabase
-        .from('rounds')
+      // Pull the most recent finished slice from any mutual.
+      const sumRes = await supabase
+        .from('user_round_summaries')
         .select(
-          `
-          *,
-          courses(name),
-          profiles!rounds_user_id_fkey(id, username, display_name)
-          `,
+          'round_id, user_id, total_score, total_par, played_at, course_id, hole_count, visibility, is_group',
         )
-        .in('id', roundIds)
-        .in('visibility', ['mutuals', 'public'])
+        .in('user_id', mutualIds)
+        .in('player_status', ['joined', 'finished'])
         .eq('is_draft', false)
+        .in('visibility', ['mutuals', 'public'])
         .order('played_at', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1);
-      if (error) throw error;
-      const row = (data ?? [])[0];
+      if (sumRes.error) throw sumRes.error;
+      const row = (sumRes.data ?? [])[0] as
+        | {
+            round_id: string;
+            user_id: string;
+            total_score: number;
+            total_par: number;
+            played_at: string;
+            course_id: string | null;
+            hole_count: number | null;
+            visibility: string | null;
+            is_group: boolean | null;
+          }
+        | undefined;
       if (!row) return null;
-      type Row = Tables<'rounds'> & {
-        courses: { name: string | null } | null;
-        profiles: { id: string; username: string | null; display_name: string | null } | null;
+
+      const [profileRes, courseRes, fullRoundRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, username, display_name')
+          .eq('id', row.user_id)
+          .maybeSingle(),
+        row.course_id
+          ? supabase.from('courses').select('id, name').eq('id', row.course_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        supabase.from('rounds').select('*').eq('id', row.round_id).maybeSingle(),
+      ]);
+      if (profileRes.error) throw profileRes.error;
+      if (courseRes.error) throw courseRes.error;
+      if (fullRoundRes.error) throw fullRoundRes.error;
+      const fullRound = fullRoundRes.data as Tables<'rounds'> | null;
+      if (!fullRound) return null;
+
+      // Override stroke totals with the mutual's per-player slice (not the host's).
+      const round = {
+        ...fullRound,
+        total_score: row.total_score,
+        total_par: row.total_par,
+        played_at: row.played_at,
+        courses: courseRes.data ? { name: (courseRes.data as { name: string | null }).name } : null,
       };
-      const r = row as Row;
+
       return {
-        round: { ...r, profiles: undefined } as unknown as RegularsPulse['round'],
-        owner: r.profiles,
+        round: round as RegularsPulse['round'],
+        owner: profileRes.data as RegularsPulse['owner'],
       };
     },
     enabled: !!viewerId,
