@@ -16,13 +16,13 @@ export default function OnboardingHomeCourse() {
       <CoursePicker
         headline="Where do you play most?"
         hideHomeCourseRow
+        hideCancel
         onPick={async (courseId) => {
           if (!session?.user.id) return true;
           await updateHome.mutateAsync({ userId: session.user.id, courseId });
           advance();
           return true;
         }}
-        onCancel={advance}
       />
       <OnboardingFooter onSkip={advance} />
     </>

@@ -15,11 +15,13 @@ type Props = {
   onPick: (courseId: string) => boolean | void | Promise<boolean | void>;
   /** Hide the home course row at top (e.g. when picking the home course itself). */
   hideHomeCourseRow?: boolean;
+  /** Hide the ‹ CANCEL header button (e.g. in onboarding where a footer Skip link handles dismissal). */
+  hideCancel?: boolean;
   /** Called when the user dismisses without picking. Default: router.back(). */
   onCancel?: () => void;
 };
 
-export function CoursePicker({ headline, onPick, hideHomeCourseRow, onCancel }: Props) {
+export function CoursePicker({ headline, onPick, hideHomeCourseRow, hideCancel, onCancel }: Props) {
   const [query, setQuery] = useState('');
   const { session } = useSession();
   const recent = useRecentCourses(session?.user.id, 5);
@@ -55,30 +57,32 @@ export function CoursePicker({ headline, onPick, hideHomeCourseRow, onCancel }: 
 
   return (
     <ScreenContainer>
-      <View
-        style={{
-          paddingTop: 8,
-          paddingBottom: 14,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Pressable onPress={onCancel ?? (() => router.back())} hitSlop={8}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.16,
-              color: palette.bone,
-              opacity: 0.7,
-              textTransform: 'uppercase',
-            }}
-          >
-            ‹ CANCEL
-          </Text>
-        </Pressable>
-      </View>
+      {!hideCancel ? (
+        <View
+          style={{
+            paddingTop: 8,
+            paddingBottom: 14,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Pressable onPress={onCancel ?? (() => router.back())} hitSlop={8}>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 11,
+                letterSpacing: 11 * 0.16,
+                color: palette.bone,
+                opacity: 0.7,
+                textTransform: 'uppercase',
+              }}
+            >
+              ‹ CANCEL
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Text
         style={{
           fontFamily: fontFamily.display,
