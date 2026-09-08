@@ -66,3 +66,11 @@ This supersedes the first slice's process-restart limitation once the journal wr
 Phone test: load a hole while connected, disconnect, change its score and allow the local write to complete; terminate the app, reconnect, reopen that round/hole as the same player, and verify that the recovered edit is saved. Repeat with another account to confirm drafts are isolated. Test low-storage failure and retry where practical.
 
 The GitHub checkpoint contains source, tests and migration files; pushing it does not deploy Supabase migrations or publish app builds. The README describes current setup and limitations instead of the old Phase 0 placeholder. GitHub Actions setup remains a later task.
+
+## Hosted verification and iPhone test preparation
+
+The linked `golf-app-dev` project was inspected through Supabase CLI. Its 20 existing migration versions matched the repository. Hosted inspection confirmed anonymous execution privileges on `force_end_round` and an empty scoring Realtime publication. The dashboard reported no managed backups, so a private local snapshot of scoring rows and preflight schema metadata was saved under gitignored `.local-backups/`. This is a targeted recovery snapshot, not a complete Postgres backup.
+
+All three September 8 migrations, including `20260908000003_scoring_realtime.sql`, were rehearsed against the hosted database in one rolled-back transaction, then applied through `supabase db push`. Post-application checks confirmed the new migration history, removal of anonymous/PUBLIC force-end grants, and publication of rounds, round_players and round_holes. The 9 round rows, 9 player rows and 126 score rows were compared before/after and were unchanged. There were no solo rows needing the backfill. Database types were regenerated from the hosted schema.
+
+Expo's compatibility check identified SDK-mismatched clipboard and Babel packages plus outdated patch versions. Dependencies were aligned using `expo install --fix`; compatibility and type checks passed. An Expo Go LAN server was prepared for the owner's iPhone. Physical-device interaction and multi-device Realtime delivery remain unverified until phone testing happens.

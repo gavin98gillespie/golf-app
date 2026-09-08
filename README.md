@@ -34,7 +34,7 @@ Tests include scoring state/persistence and all database migrations executed in 
 - Shared scoring drafts wait for loading and serialize server writes.
 - Pending score edits are journaled on the phone and recovered when the same player reopens that round/hole.
 - Local recovery is not complete offline round support: authentication and round/course loading still require their existing network paths. Finishing still requires server acknowledgment. Multi-device conflict resolution remains outstanding.
-- New local migrations harden round access and make solo finalization atomic. Their presence in GitHub does not mean they have been applied to Supabase.
+- The three September 8 migrations harden round access, make solo finalization atomic and publish scoring tables to Realtime. They have been applied and verified on the linked golf-app-dev project; other environments must apply them separately.
 
 Before applying migrations to a hosted project, check migration/schema drift and backup availability, verify in staging, regenerate database types and run two-phone acceptance tests. GitHub pushes do not deploy database changes.
 
