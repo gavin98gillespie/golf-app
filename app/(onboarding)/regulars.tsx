@@ -103,14 +103,6 @@ export default function OnboardingRegulars() {
             }}
           />
 
-          <Pressable
-            onPress={Keyboard.dismiss}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss keyboard"
-            style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-end' }}
-          >
-            <Text style={{ color: palette.fairway, fontSize: 16 }}>Done searching</Text>
-          </Pressable>
           <View style={{ marginTop: 16 }}>
             {viewerId
               ? (usersQ.data ?? []).map((u) => (
