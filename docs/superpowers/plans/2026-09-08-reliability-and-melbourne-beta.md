@@ -74,3 +74,11 @@ The linked `golf-app-dev` project was inspected through Supabase CLI. Its 20 exi
 All three September 8 migrations, including `20260908000003_scoring_realtime.sql`, were rehearsed against the hosted database in one rolled-back transaction, then applied through `supabase db push`. Post-application checks confirmed the new migration history, removal of anonymous/PUBLIC force-end grants, and publication of rounds, round_players and round_holes. The 9 round rows, 9 player rows and 126 score rows were compared before/after and were unchanged. There were no solo rows needing the backfill. Database types were regenerated from the hosted schema.
 
 Expo's compatibility check identified SDK-mismatched clipboard and Babel packages plus outdated patch versions. Dependencies were aligned using `expo install --fix`; compatibility and type checks passed. An Expo Go LAN server was prepared for the owner's iPhone. Physical-device interaction and multi-device Realtime delivery remain unverified until phone testing happens.
+
+## SDK 57 correction after physical-device connection
+
+The owner's iPhone reported Expo Go SDK 57 and rejected the SDK 54 project. The previous dependency check only validated packages against SDK 54; it did not establish compatibility with the installed phone app.
+
+Upgraded Expo to SDK 57 with React Native 0.86.3 and React 19.2.3, aligning Expo modules, animations, router and tooling. Migrated the score navigation guard to Expo Router's own navigation context, removed the external React Navigation dependency, moved splash configuration into its plugin, removed obsolete configuration fields and added the stylesheet declaration required by TypeScript 6. Updated hook memoization to pass the newer React lint checks.
+
+Validation: 22 tests passed; typecheck and ESLint error checks passed (existing formatting warnings remain); Expo Doctor passed all 21 checks; iOS and Android Hermes exports succeeded. The LAN server's iOS manifest reports SDK 57.0.0. Physical iPhone launch and scoring acceptance still require the owner to retry. Dependency audit remediation remains a separate launch-readiness task.

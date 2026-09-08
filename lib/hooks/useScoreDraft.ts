@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DraftJournal, draftKey } from '@/lib/scoring/draftJournal';
-import { useNavigation, usePreventRemove } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
+import { usePreventRemove } from 'expo-router/react-navigation';
 
 import { ScoreDraft, type HoleDraft } from '@/lib/scoring/scoreDraft';
 import { useUpsertHoleScore } from '@/lib/queries/rounds';
@@ -18,16 +19,14 @@ export function useScoreDraft(input: {
   existing: Tables<'round_holes'> | undefined;
   coursePar: number | undefined;
 }) {
-  const mutation = useUpsertHoleScore();
-  const saveRef = useRef(mutation.mutateAsync);
-  saveRef.current = mutation.mutateAsync;
+  const { mutateAsync: saveScore } = useUpsertHoleScore();
   const { roundId, playerId, hole, ready, existing, coursePar } = input;
   const draft = useMemo(
     () =>
       new ScoreDraft(
         async (value) => {
           if (!roundId || !playerId) throw new Error('Missing player or round');
-          await saveRef.current({
+          await saveScore({
             round_id: roundId,
             player_id: playerId,
             hole_number: hole,
@@ -44,7 +43,7 @@ export function useScoreDraft(input: {
           acknowledge: (value) => journal.acknowledge(draftKey(playerId!, roundId!, hole), value),
         },
       ),
-    [roundId, playerId, hole],
+    [roundId, playerId, hole, saveScore],
   );
   const state = useSyncExternalStore(draft.subscribe, draft.getSnapshot, draft.getSnapshot);
   const [recovery, setRecovery] = useState<{ draft: ScoreDraft; error: boolean } | null>(null);

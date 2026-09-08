@@ -117,7 +117,7 @@ export default function HoleEntry() {
       setEagleData({ holeNumber, par: holePar, lifetimeCount: Math.max(lifetime, 1), ...flags });
       setEagleVisible(true);
     },
-    [session?.user.id],
+    [session],
   );
 
   // Telemetry: holes BEFORE the current one

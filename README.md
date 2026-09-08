@@ -1,6 +1,6 @@
 # Linksman
 
-Golf scoring and continuing rivalries for people who play together. Built with Expo SDK 54, React Native, TypeScript, Expo Router, TanStack Query and Supabase.
+Golf scoring and continuing rivalries for people who play together. Built with Expo SDK 57, React Native, TypeScript, Expo Router, TanStack Query and Supabase.
 
 The existing app includes solo/group scoring, invitations, profiles, follows, feed and statistics. The planned rivalry layer adds brass points, games, head-to-head history and circles. The primary experience is for 2–4 players, with readable controls and optional detail for golfers of different ages and comfort with apps.
 
