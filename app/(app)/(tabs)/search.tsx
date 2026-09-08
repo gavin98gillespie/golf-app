@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
+import { SearchField } from '@/components/SearchField';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
 import { CourseListItem } from '@/components/CourseListItem';
@@ -72,7 +73,7 @@ export default function Search() {
         </Text>
       </View>
 
-      <TextInput
+      <SearchField
         value={q}
         onChangeText={setQ}
         placeholder="Search players, courses, or join code"
@@ -91,6 +92,8 @@ export default function Search() {
       />
 
       <ScrollView
+        style={{ flex: 1 }}
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

@@ -8,12 +8,11 @@ import {
   ScrollView,
   Pressable,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
 
-import { KeyboardDoneAccessory } from '@/components/KeyboardDoneAccessory';
+import { SearchField } from '@/components/SearchField';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { CourseListItem } from '@/components/CourseListItem';
 import { useRecentCourses, useCourseSearch, useNearbyCourses } from '@/lib/queries/courses';
@@ -135,8 +134,7 @@ export function CoursePicker({
           >
             {headline}
           </Text>
-          <TextInput
-            inputAccessoryViewID="course-search-done"
+          <SearchField
             accessibilityLabel="Search courses"
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
@@ -250,7 +248,6 @@ export function CoursePicker({
         </ScrollView>
         {footer}
       </KeyboardAvoidingView>
-      <KeyboardDoneAccessory id="course-search-done" />
     </ScreenContainer>
   );
 }

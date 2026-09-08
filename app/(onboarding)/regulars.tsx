@@ -6,12 +6,11 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
 
-import { KeyboardDoneAccessory } from '@/components/KeyboardDoneAccessory';
+import { SearchField } from '@/components/SearchField';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { OnboardingUserResult } from '@/components/OnboardingUserResult';
 import { OnboardingFooter } from '@/components/OnboardingFooter';
@@ -79,8 +78,8 @@ export default function OnboardingRegulars() {
             {'Follow people you actually play with. Their rounds will appear in your feed.'}
           </Text>
 
-          <TextInput
-            inputAccessoryViewID="friends-search-done"
+          <SearchField
+            surface="bone"
             accessibilityLabel="Search golfers by username or name"
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
@@ -157,7 +156,6 @@ export default function OnboardingRegulars() {
         </Pressable>
         <OnboardingFooter onSkip={advance} />
       </KeyboardAvoidingView>
-      <KeyboardDoneAccessory id="friends-search-done" />
     </ScreenContainer>
   );
 }

@@ -110,3 +110,11 @@ Sign in now includes Forgot password. The recovery screen requests an email code
 Hosted settings currently use eight-digit codes expiring in one hour and have no custom SMTP sender. The owner explicitly deferred domain/email-service setup until launch preparation. Supabase's default sender only supports project-team addresses with restrictive delivery limits; general tester recovery delivery remains blocked until custom SMTP is configured. See https://supabase.com/docs/guides/auth/auth-smtp.
 
 Validation: all 27 tests pass, typecheck and ESLint error checks pass, and iOS/Android Hermes exports succeed. Physical iPhone acceptance and actual recovery-email delivery remain to be tested by the owner.
+
+## Stale phone build and NativeWind development-server crash
+
+The owner reported unchanged onboarding behavior and confirmed Forgot password was absent, indicating the phone had not loaded the previous change. The old Metro session exposed a crash in NativeWind/react-native-css-interop's virtual-module change event: SDK 57 Metro expects addedFiles metadata that this integration does not supply.
+
+Enabled NativeWind's forceWriteFileSystem option instead of patching dependencies. Restarted Metro with a cleared cache on port 8082 to distinguish the fresh connection from the old 8081 session. Verified the served iOS development bundle includes the new onboarding-completion helper, Forgot password and keyboard controls. File-based style generation may require reload/restart to see styling edits; do not assume hot style refresh proves delivery.
+
+Added a shared SearchField with an always-visible Done control beside the input, explicitly blurring the field and dismissing the keyboard. Used it for course search, onboarding friends and the Search tab. This avoids relying on an iOS accessory toolbar. The existing onboarding fix still needs acceptance on the current physical-device bundle; earlier reports from the outdated bundle do not establish whether it resolves the redirect.
