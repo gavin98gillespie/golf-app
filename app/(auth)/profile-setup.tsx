@@ -69,7 +69,9 @@ export default function ProfileSetup() {
         username: parsed.data.username,
         display_name: parsed.data.displayName,
       });
-      router.replace('/(app)/(tabs)');
+      // A brand-new profile always has onboarding_completed = false, so go
+      // straight there rather than tapping the tabs and getting redirected.
+      router.replace('/(onboarding)/home-course');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
     }

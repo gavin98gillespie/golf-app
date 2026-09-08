@@ -21,10 +21,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ActionSheetProvider } from '@/components/ActionSheet';
+import { SessionProvider, useSessionState } from '@/lib/hooks/useSession';
 import { queryClient } from '@/lib/queryClient';
 import { initSentry } from '@/lib/sentry';
+import { palette } from '@/theme/linksman';
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -34,18 +36,22 @@ export default function RootLayout() {
     JetBrainsMono_500Medium,
     JetBrainsMono_600SemiBold,
   });
+  const sessionState = useSessionState();
+
+  // Hold the splash until both fonts and the auth session have resolved.
+  // Hiding on fonts alone flashes an unstyled frame while the guards are
+  // still deciding where to send the user.
+  const ready = (fontsLoaded || fontError) && !sessionState.loading;
 
   useEffect(() => {
     initSentry();
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    if (ready) void SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
 
-  if (!fontsLoaded && !fontError) {
+  if (!ready) {
     return null;
   }
 
@@ -53,10 +59,20 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <ActionSheetProvider>
-            <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false }} />
-          </ActionSheetProvider>
+          <SessionProvider value={sessionState}>
+            <ActionSheetProvider>
+              <StatusBar style="light" />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  // Route groups are destinations, not pushes. Fading between
+                  // them reads as a state change instead of a stack shuffle.
+                  animation: 'fade',
+                  contentStyle: { backgroundColor: palette.ink },
+                }}
+              />
+            </ActionSheetProvider>
+          </SessionProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>

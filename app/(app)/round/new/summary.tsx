@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
@@ -61,15 +61,19 @@ export default function Summary() {
 
   async function onSave() {
     if (!roundId) return;
-    await finalize.mutateAsync({
-      roundId,
-      updates: {
-        total_score: totals.score,
-        total_par: totals.par,
-        visibility,
-      },
-    });
-    router.replace('/(app)/(tabs)/profile');
+    try {
+      await finalize.mutateAsync({
+        roundId,
+        updates: { total_score: totals.score, total_par: totals.par, visibility },
+      });
+      router.replace('/(app)/(tabs)/profile');
+    } catch (error) {
+      const message =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : 'Check your connection and try saving again.';
+      Alert.alert('Round not saved', message);
+    }
   }
 
   const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;

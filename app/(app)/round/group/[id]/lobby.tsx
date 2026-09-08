@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -35,8 +35,11 @@ export default function Lobby() {
 
   // If round has started, route to score
   if (round?.invites_locked_at) {
-    router.replace(`/round/group/${round.id}/score?hole=1` as never);
-    return null;
+    return (
+      <Redirect
+        href={{ pathname: '/round/group/[id]/score', params: { id: round.id, hole: '1' } }}
+      />
+    );
   }
 
   const onCopyCode = async () => {

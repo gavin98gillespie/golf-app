@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -10,15 +10,14 @@ import { Topo } from '@/components/Topo';
 import { EagleCelebration } from '@/components/EagleCelebration';
 import { palette, fontFamily, deltaLabel } from '@/theme/linksman';
 import { supabase, type Tables } from '@/lib/supabase';
-import { useUpsertHoleScore, useRoundHoles, useUpdateRoundNotes } from '@/lib/queries/rounds';
+import { useRoundHoles, useUpdateRoundNotes } from '@/lib/queries/rounds';
 import { NotesField } from '@/components/NotesField';
 import { useSession } from '@/lib/hooks/useSession';
+import { useScoreDraft } from '@/lib/hooks/useScoreDraft';
 
 type RoundWithCourse = Tables<'rounds'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count'> | null;
 };
-
-type FairwayCategory = 'fairway' | 'rough' | 'sand' | 'water' | null;
 
 export default function HoleEntry() {
   const { roundId, hole: holeParam } = useLocalSearchParams<{
@@ -72,56 +71,23 @@ export default function HoleEntry() {
   });
 
   const roundHolesQ = useRoundHoles(roundId);
-  const upsert = useUpsertHoleScore();
   const updateRoundNotes = useUpdateRoundNotes();
 
   const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;
   const courseHole = courseHolesQ.data?.find((h) => h.hole_number === hole);
-  const existingHole = roundHolesQ.data?.find((h) => h.hole_number === hole);
-
-  const initialPar = courseHole?.par ?? existingHole?.par ?? 4;
-  const initialScore = existingHole?.score ?? initialPar;
-  const [par, setPar] = useState(initialPar);
-  const [score, setScore] = useState(initialScore);
-  const [fairwayCategory, setFairwayCategory] = useState<FairwayCategory>(
-    existingHole?.fairway_hit === true ? 'fairway' : null,
+  const existingHole = roundHolesQ.data?.find(
+    (h) => h.hole_number === hole && h.player_id === session?.user.id,
   );
-  const [gir, setGir] = useState<boolean | null>(existingHole?.gir ?? null);
-
-  // Re-sync local state ONLY when navigating to a different hole. We deliberately
-  // don't re-sync on roundHolesQ.data changes — that would race with the user's
-  // next tap and revert in-progress edits. (Phase 2.1 fix)
-  useEffect(() => {
-    const eh = roundHolesQ.data?.find((h) => h.hole_number === hole);
-    const ch = courseHolesQ.data?.find((h) => h.hole_number === hole);
-    const newPar = ch?.par ?? eh?.par ?? 4;
-    setPar(newPar);
-    setScore(eh?.score ?? newPar);
-    setFairwayCategory(eh?.fairway_hit === true ? 'fairway' : null);
-    setGir(eh?.gir ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hole]);
-
-  // Debounced autosave: writes round_holes whenever any tracked field changes.
-  useEffect(() => {
-    if (!roundId) return;
-    if (!session?.user.id) return;
-    const playerId = session.user.id;
-    const t = setTimeout(() => {
-      upsert.mutate({
-        round_id: roundId,
-        player_id: playerId,
-        hole_number: hole,
-        score,
-        par,
-        putts: null,
-        fairway_hit: fairwayCategory === 'fairway' ? true : fairwayCategory == null ? null : false,
-        gir,
-      });
-    }, 250);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [score, par, hole, roundId, fairwayCategory, gir, session?.user.id]);
+  const editor = useScoreDraft({
+    roundId,
+    playerId: session?.user.id,
+    hole,
+    ready: roundQ.isSuccess && courseHolesQ.isSuccess && roundHolesQ.isSuccess,
+    existing: existingHole,
+    coursePar: courseHole?.par,
+  });
+  const { setPar, setScore, setFairwayCategory, setGir } = editor;
+  const { par = 4, score = 4, fairwayCategory = null, gir = null } = editor.value ?? {};
 
   const handleEagle = useCallback(
     async (
@@ -130,8 +96,6 @@ export default function HoleEntry() {
       flags: { isAce: boolean; isAlbatross: boolean },
     ) => {
       if (!session?.user.id) return;
-      // Wait for the autosave to flush so the current eagle is included in the lifetime count.
-      await new Promise((r) => setTimeout(r, 350));
       const { data: rounds } = await supabase
         .from('rounds')
         .select('id')
@@ -144,6 +108,7 @@ export default function HoleEntry() {
       const { data: holes } = await supabase
         .from('round_holes')
         .select('score, par')
+        .eq('player_id', session.user.id)
         .in(
           'round_id',
           rounds.map((r) => r.id),
@@ -178,7 +143,7 @@ export default function HoleEntry() {
   const totalPadded = String(totalHoles).padStart(2, '0');
 
   const finishEdit = async () => {
-    if (!roundQ.data) return;
+    if (!roundQ.data || !(await editor.save(false))) return;
     const { data: holes, error: hErr } = await supabase
       .from('round_holes')
       .select('score, par')
@@ -202,7 +167,8 @@ export default function HoleEntry() {
     router.replace({ pathname: '/round/[id]', params: { id: roundQ.data.id } });
   };
 
-  const advanceToNext = () => {
+  const advanceToNext = async () => {
+    if (!(await editor.save())) return;
     if (isLast) {
       if (isEditMode) {
         void finishEdit();
@@ -214,7 +180,8 @@ export default function HoleEntry() {
     }
   };
 
-  const advance = () => {
+  const advance = async () => {
+    if (!(await editor.save())) return;
     if (isEditMode) {
       advanceToNext();
       return;
@@ -231,7 +198,8 @@ export default function HoleEntry() {
     advanceToNext();
   };
 
-  const exitRound = () => {
+  const exitRound = async () => {
+    if (!(await editor.save(false))) return;
     router.replace('/(app)/(tabs)');
   };
 
@@ -240,8 +208,53 @@ export default function HoleEntry() {
 
   const yardage = courseHole?.yardage ?? null;
 
+  if (!editor.value) {
+    const failed =
+      editor.recoveryError || roundQ.isError || courseHolesQ.isError || roundHolesQ.isError;
+    return (
+      <ScreenContainer>
+        <View style={{ flex: 1, justifyContent: 'center', gap: 20 }}>
+          {failed ? (
+            <Pressable
+              onPress={() => {
+                editor.retryRecovery();
+                void roundQ.refetch();
+                void courseHolesQ.refetch();
+                void roundHolesQ.refetch();
+              }}
+            >
+              <Text style={{ color: palette.bone, fontSize: 18 }}>
+                Could not load your score. Tap to retry.
+              </Text>
+            </Pressable>
+          ) : (
+            <ActivityIndicator color={palette.sage} accessibilityLabel="Loading your score" />
+          )}
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer>
+      <Pressable
+        onPress={() => void editor.save(false)}
+        accessibilityRole="button"
+        style={{ minHeight: 44, justifyContent: 'center' }}
+      >
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{ color: editor.status === 'error' ? palette.clay : palette.bone, fontSize: 16 }}
+        >
+          {editor.status === 'error'
+            ? 'Not saved · Tap to retry'
+            : editor.status === 'saving' || editor.status === 'unsaved'
+              ? 'Saving score…'
+              : editor.status === 'saved'
+                ? 'Score saved'
+                : 'Enter your score, then continue'}
+        </Text>
+      </Pressable>
       <View
         pointerEvents="none"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.18 }}
@@ -315,7 +328,9 @@ export default function HoleEntry() {
               return (
                 <Pressable
                   key={h}
-                  onPress={() => router.setParams({ hole: String(h) })}
+                  onPress={async () => {
+                    if (await editor.save(false)) router.setParams({ hole: String(h) });
+                  }}
                   style={{
                     width: 32,
                     height: 32,
@@ -443,6 +458,8 @@ export default function HoleEntry() {
             }}
           >
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Subtract one stroke"
               onPress={() => setScore((s) => Math.max(1, s - 1))}
               style={{
                 width: 56,
@@ -460,6 +477,8 @@ export default function HoleEntry() {
             </Pressable>
             <ScoreNumeral value={score} size={120} color={palette.bone} />
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add one stroke"
               onPress={() => setScore((s) => Math.min(20, s + 1))}
               style={{
                 width: 56,
@@ -510,7 +529,11 @@ export default function HoleEntry() {
               textTransform: 'uppercase',
             }}
           >
-            {isLast ? (isEditMode ? 'DONE →' : 'FINISH ROUND →') : `HOLE ${nextHole} · PAR ${nextPar} →`}
+            {isLast
+              ? isEditMode
+                ? 'DONE →'
+                : 'FINISH ROUND →'
+              : `HOLE ${nextHole} · PAR ${nextPar} →`}
           </Text>
         </Pressable>
 

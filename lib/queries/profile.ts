@@ -90,7 +90,6 @@ export function useCompleteOnboarding() {
     },
     onSuccess: (_d, userId) => {
       void qc.invalidateQueries({ queryKey: ['profile', userId] });
-      void qc.invalidateQueries({ queryKey: ['myProfile'] });
     },
   });
 }

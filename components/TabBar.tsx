@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import Svg, { Circle, Line } from 'react-native-svg';
 
 import { PlayModeSheet } from '@/components/PlayModeSheet';
@@ -20,9 +19,12 @@ const ITEMS: TabItem[] = [
   { name: 'profile', label: 'Me' },
 ];
 
-type Props = { active: TabName | 'start' };
+type Props = {
+  active: TabName | 'start';
+  onSelect: (name: TabName) => void;
+};
 
-export function TabBar({ active }: Props) {
+export function TabBar({ active, onSelect }: Props) {
   return (
     <View
       style={{
@@ -42,7 +44,7 @@ export function TabBar({ active }: Props) {
     >
       {ITEMS.slice(0, 2).map((it) => (
         <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
-          <TabCell item={it} active={active === it.name} />
+          <TabCell item={it} active={active === it.name} onSelect={onSelect} />
         </View>
       ))}
       <View style={{ flex: 1, alignItems: 'center' }}>
@@ -50,23 +52,26 @@ export function TabBar({ active }: Props) {
       </View>
       {ITEMS.slice(2).map((it) => (
         <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
-          <TabCell item={it} active={active === it.name} />
+          <TabCell item={it} active={active === it.name} onSelect={onSelect} />
         </View>
       ))}
     </View>
   );
 }
 
-function TabCell({ item, active }: { item: TabItem; active: boolean }) {
-  const onPress = () => {
-    if (item.name === 'index') router.replace('/(app)/(tabs)');
-    else if (item.name === 'feed') router.replace('/(app)/(tabs)/feed');
-    else if (item.name === 'profile') router.replace('/(app)/(tabs)/profile');
-    else if (item.name === 'search') router.replace('/(app)/(tabs)/search');
-  };
+function TabCell({
+  item,
+  active,
+  onSelect,
+}: {
+  item: TabItem;
+  active: boolean;
+  onSelect: (name: TabName) => void;
+}) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onSelect(item.name)}
+      hitSlop={8}
       style={{ alignItems: 'center', gap: 4, opacity: active ? 1 : 0.4 }}
     >
       <View

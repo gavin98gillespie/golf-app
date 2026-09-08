@@ -107,6 +107,18 @@ export function useGroupRound(roundId: string | undefined) {
         {
           event: '*',
           schema: 'public',
+          table: 'rounds',
+          filter: `id=eq.${roundId}`,
+        },
+        () => {
+          void qc.invalidateQueries({ queryKey: ['groupRound', roundId] });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
           table: 'round_players',
           filter: `round_id=eq.${roundId}`,
         },
@@ -126,7 +138,10 @@ export function useGroupRound(roundId: string | undefined) {
           void qc.invalidateQueries({ queryKey: ['groupRound', roundId] });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED')
+          void qc.invalidateQueries({ queryKey: ['groupRound', roundId] });
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
