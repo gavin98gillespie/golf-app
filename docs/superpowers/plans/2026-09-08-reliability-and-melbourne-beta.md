@@ -90,3 +90,9 @@ Owner testing reached solo setup but starting a round failed. Restored the origi
 Reproduced SQLSTATE 42501 in a new regression test for authenticated INSERT ... RETURNING followed by host membership insertion. The STABLE can_read_round helper cannot see the newly inserted row through its table lookup during RETURNING's SELECT-policy check. Migration 20260908000004_round_creation_visibility checks the new row's user_id directly for ownership and preserves the helper for spectator access. The test failed before this fix and passed afterward; all 23 tests pass.
 
 Rehearsed separate round and membership requests against the hosted database in a rolled-back transaction and applied the migration. No persistent test rounds were created. Physical-device retry remains the final acceptance check.
+
+## First successful iPhone round and scoring scroll fix
+
+The owner confirmed completing and submitting a nine-hole solo round on iPhone. They reported that the notes section was partly clipped and vertical scrolling was unavailable. Replaced the solo scoring body's fixed View with a bounded vertical ScrollView and bottom padding; retained the existing layout, fixed save status and keyboard-aware notes modal. The edit-mode horizontal hole selector does not grow vertically. Group scoring already uses a vertical ScrollView.
+
+Typecheck, targeted lint and the live iOS bundle compile pass. The owner still needs to confirm notes are fully reachable on the physical screen.

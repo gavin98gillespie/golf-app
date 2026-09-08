@@ -267,7 +267,11 @@ export default function HoleEntry() {
         />
       </View>
 
-      <View style={{ flex: 1, paddingTop: 8 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Top row */}
         <View
           style={{
@@ -321,7 +325,7 @@ export default function HoleEntry() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 6, paddingVertical: 4 }}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 16, flexGrow: 0 }}
           >
             {Array.from({ length: totalHoles }, (_, i) => i + 1).map((h) => {
               const active = h === hole;
@@ -612,7 +616,7 @@ export default function HoleEntry() {
             surface="ink"
           />
         </View>
-      </View>
+      </ScrollView>
 
       {eagleData ? (
         <EagleCelebration
