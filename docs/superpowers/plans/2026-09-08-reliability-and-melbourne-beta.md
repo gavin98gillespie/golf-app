@@ -96,3 +96,17 @@ Rehearsed separate round and membership requests against the hosted database in 
 The owner confirmed completing and submitting a nine-hole solo round on iPhone. They reported that the notes section was partly clipped and vertical scrolling was unavailable. Replaced the solo scoring body's fixed View with a bounded vertical ScrollView and bottom padding; retained the existing layout, fixed save status and keyboard-aware notes modal. The edit-mode horizontal hole selector does not grow vertically. Group scoring already uses a vertical ScrollView.
 
 Typecheck, targeted lint and the live iOS bundle compile pass. The owner still needs to confirm notes are fully reachable on the physical screen.
+
+## Onboarding and password recovery
+
+Owner testing identified a repeat-onboarding redirect, clipped home-course list/skip footer, awkward friend-search keyboard interaction and missing password recovery.
+
+Completion now cancels stale profile reads, awaits a returned confirmed profile, and publishes it to the query cache before navigation. Failures keep the user on the final step with retry feedback. Regression tests verify that stale reads cannot undo completion and failed writes cannot mark a profile complete.
+
+CoursePicker now scrolls all sections, including nearby courses, inside a bounded keyboard-aware area. The onboarding skip footer is within the safe area and outside the scrolling list; its colors match the ink screen. Repeated course taps are guarded during saves. Friend search has a bounded keyboard-aware scroll area, a correctly sized field, keyboard Done action and explicit dismissal control. ScreenContainer uses explicit flex/safe-area styling and appropriate status-bar contrast on light/dark surfaces.
+
+Sign in now includes Forgot password. The recovery screen requests an email code, verifies it with type recovery using an isolated non-persisted auth client, and only then permits a password update. Verification does not log the user into the main app. The user returns to sign in afterward. Error/retry, code resend, password confirmation and expired-code handling are included. The hosted recovery email template was changed to include the OTP, and the same template is tracked for local Supabase. No recovery emails were sent during implementation and no existing account passwords were changed.
+
+Hosted settings currently use eight-digit codes expiring in one hour and have no custom SMTP sender. The owner explicitly deferred domain/email-service setup until launch preparation. Supabase's default sender only supports project-team addresses with restrictive delivery limits; general tester recovery delivery remains blocked until custom SMTP is configured. See https://supabase.com/docs/guides/auth/auth-smtp.
+
+Validation: all 27 tests pass, typecheck and ESLint error checks pass, and iOS/Android Hermes exports succeed. Physical iPhone acceptance and actual recovery-email delivery remain to be tested by the owner.

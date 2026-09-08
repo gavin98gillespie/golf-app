@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { completeOnboarding } from '@/lib/completeOnboarding';
+
 import { supabase, type Tables, type Inserts } from '@/lib/supabase';
 
 export function useMyProfile(userId: string | undefined) {
@@ -81,15 +83,16 @@ export function useUpdateHomeCourse() {
 export function useCompleteOnboarding() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', userId);
-      if (error) throw error;
-    },
-    onSuccess: (_d, userId) => {
-      void qc.invalidateQueries({ queryKey: ['profile', userId] });
-    },
+    mutationFn: (userId: string) =>
+      completeOnboarding(qc, userId, async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', userId)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }),
   });
 }

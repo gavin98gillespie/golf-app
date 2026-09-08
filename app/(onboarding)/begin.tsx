@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -16,8 +16,12 @@ export default function OnboardingBegin() {
 
   const finish = async () => {
     if (!session?.user.id) return;
-    await complete.mutateAsync(session.user.id);
-    router.replace('/(app)/(tabs)');
+    try {
+      await complete.mutateAsync(session.user.id);
+      router.replace('/(app)/(tabs)');
+    } catch {
+      Alert.alert('Could not finish setup', 'Your choices are saved. Please try Continue again.');
+    }
   };
 
   const datum = (label: string, value: string) => (

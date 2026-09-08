@@ -12,19 +12,17 @@ export default function OnboardingHomeCourse() {
   const advance = () => router.push('/(onboarding)/regulars');
 
   return (
-    <>
-      <CoursePicker
-        headline="Where do you play most?"
-        hideHomeCourseRow
-        hideCancel
-        onPick={async (courseId) => {
-          if (!session?.user.id) return true;
-          await updateHome.mutateAsync({ userId: session.user.id, courseId });
-          advance();
-          return true;
-        }}
-      />
-      <OnboardingFooter onSkip={advance} />
-    </>
+    <CoursePicker
+      headline="Where do you play most?"
+      hideHomeCourseRow
+      hideCancel
+      footer={<OnboardingFooter onSkip={advance} surface="ink" disabled={updateHome.isPending} />}
+      onPick={async (courseId) => {
+        if (!session?.user.id) return true;
+        await updateHome.mutateAsync({ userId: session.user.id, courseId });
+        advance();
+        return true;
+      }}
+    />
   );
 }
