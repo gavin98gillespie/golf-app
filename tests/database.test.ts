@@ -155,6 +155,26 @@ test('database migrations enforce round authorization and atomic completion', as
     assert.equal(await count('rounds', `id='${live}'`), 1);
   });
   await t.test(
+    'one-way follower can read a finished guest result without following the host',
+    async () => {
+      await asUser(spectator);
+      await db.query('DELETE FROM follows WHERE follower_id=$1 AND following_id=$2', [
+        spectator,
+        host,
+      ]);
+      const result = await db.query<{ total_score: number }>(
+        "SELECT total_score FROM user_round_summaries WHERE round_id=$1 AND user_id=$2 AND player_status='finished'",
+        [live, guest],
+      );
+      assert.equal(result.rows.length, 1);
+      assert.equal(result.rows[0]!.total_score, 6);
+      assert.equal(
+        await count('follows', `follower_id='${guest}' AND following_id='${spectator}'`),
+        0,
+      );
+    },
+  );
+  await t.test(
     'incomplete solo completion rolls back, then derives correct totals atomically',
     async () => {
       await asUser(host);

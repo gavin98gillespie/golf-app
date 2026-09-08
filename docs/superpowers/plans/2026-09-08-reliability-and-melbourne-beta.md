@@ -118,3 +118,11 @@ The owner reported unchanged onboarding behavior and confirmed Forgot password w
 Enabled NativeWind's forceWriteFileSystem option instead of patching dependencies. Restarted Metro with a cleared cache on port 8082 to distinguish the fresh connection from the old 8081 session. Verified the served iOS development bundle includes the new onboarding-completion helper, Forgot password and keyboard controls. File-based style generation may require reload/restart to see styling edits; do not assume hot style refresh proves delivery.
 
 Added a shared SearchField with an always-visible Done control beside the input, explicitly blurring the field and dismissing the keyboard. Used it for course search, onboarding friends and the Search tab. This avoids relying on an iOS accessory toolbar. The existing onboarding fix still needs acceptance on the current physical-device bundle; earlier reports from the outdated bundle do not establish whether it resolves the redirect.
+
+## Three-player group visibility acceptance
+
+Owner confirmed a three-player group with two finished scorecards and one unfinished participant; scores look correct to participants. Read-only hosted inspection confirmed live_visible=false, is_draft=false, visibility=mutuals, two finished and one joined. The spectator rule intentionally withholds the entire non-live round until all active participants finish or withdraw. The legacy mutuals enum currently uses one-way following; reciprocal following is not required.
+
+Found and fixed a separate other-profile defect: recent rounds and counts queried rounds.user_id, excluding rounds the profile owner joined as a guest. They now query the security-invoker user_round_summaries view, filter joined/finished membership, and display that participant's totals. Cache keys include viewer identity and pull-to-refresh updates the list/count. No database visibility rule or existing round setting was changed.
+
+Added a regression for a follower of a finished guest, without following the host or any follow-back, reading the guest's correct score after group completion. All 28 tests pass, typecheck and targeted lint pass. Phone acceptance should finish the remaining participant and refresh the outside follower's feed/profile.

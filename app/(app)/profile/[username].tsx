@@ -18,7 +18,7 @@ import { supabase, type Tables } from '@/lib/supabase';
 import { parseLocalDate } from '@/lib/date';
 import { palette, fontFamily } from '@/theme/linksman';
 
-type RoundWithCourse = Tables<'rounds'> & {
+type RoundWithCourse = Pick<Tables<'rounds'>, 'id' | 'played_at' | 'total_score' | 'total_par'> & {
   courses: Pick<Tables<'courses'>, 'name' | 'hole_count'> | null;
 };
 
@@ -90,13 +90,14 @@ export default function OtherProfile() {
   };
 
   const roundsCountQ = useQuery({
-    queryKey: ['profile_rounds_count', profile?.id],
+    queryKey: ['profile_rounds_count', profile?.id, viewerId],
     queryFn: async () => {
       if (!profile?.id) return 0;
       const { count, error } = await supabase
-        .from('rounds')
-        .select('id', { count: 'exact', head: true })
+        .from('user_round_summaries')
+        .select('round_id', { count: 'exact', head: true })
         .eq('user_id', profile.id)
+        .in('player_status', ['joined', 'finished'])
         .eq('is_draft', false);
       if (error) throw error;
       return count ?? 0;
@@ -105,19 +106,32 @@ export default function OtherProfile() {
   });
 
   const recentRoundsQ = useQuery({
-    queryKey: ['user_recent_rounds', profile?.id],
+    queryKey: ['user_recent_rounds', profile?.id, viewerId],
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase
-        .from('rounds')
-        .select('*, courses(name, hole_count)')
+        .from('user_round_summaries')
+        .select('round_id, played_at, total_score, total_par, courses(name, hole_count)')
         .eq('user_id', profile.id)
+        .in('player_status', ['joined', 'finished'])
         .eq('is_draft', false)
         .order('played_at', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(10);
       if (error) throw error;
-      return (data ?? []) as RoundWithCourse[];
+      return (data ?? []).flatMap((row): RoundWithCourse[] =>
+        row.round_id && row.played_at
+          ? [
+              {
+                id: row.round_id,
+                played_at: row.played_at,
+                total_score: row.total_score ?? 0,
+                total_par: row.total_par ?? 0,
+                courses: row.courses,
+              },
+            ]
+          : [],
+      );
     },
     enabled: !!profile?.id && (isFollowingQ.data ?? false),
   });
@@ -155,6 +169,11 @@ export default function OtherProfile() {
       <FlatList
         data={isFollowing ? (recentRoundsQ.data ?? []) : []}
         keyExtractor={(r) => r.id}
+        refreshing={recentRoundsQ.isRefetching || roundsCountQ.isRefetching}
+        onRefresh={() => {
+          void recentRoundsQ.refetch();
+          void roundsCountQ.refetch();
+        }}
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -331,7 +350,7 @@ export default function OtherProfile() {
                   marginTop: 8,
                 }}
               >
-                No rounds yet.
+                No shared rounds to show yet.
               </Text>
             ) : null}
           </View>
