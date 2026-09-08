@@ -64,6 +64,20 @@ test('database migrations enforce round authorization and atomic completion', as
     return result.rows[0]!.n;
   };
 
+  await t.test('host can create a draft and return it before adding membership', async () => {
+    await asUser(host);
+    const result = await db.query<{ id: string }>(
+      'INSERT INTO rounds(user_id,course_id,is_draft,hole_count,total_score,total_par) VALUES ($1,$2,true,9,0,0) RETURNING id',
+      [host, course],
+    );
+    const id = result.rows[0]!.id;
+    await db.query(
+      "INSERT INTO round_players(round_id,user_id,tee_box,status) VALUES ($1,$2,'default','joined')",
+      [id, host],
+    );
+    assert.equal(await count('round_players', `round_id='${id}'`), 1);
+    await db.query('DELETE FROM rounds WHERE id=$1', [id]);
+  });
   await t.test('anonymous and null-auth callers cannot force-end', async () => {
     await asUser(null, 'anon');
     await assert.rejects(db.query('SELECT force_end_round($1)', [live]), /permission denied/);

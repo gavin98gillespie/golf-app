@@ -82,3 +82,11 @@ The owner's iPhone reported Expo Go SDK 57 and rejected the SDK 54 project. The 
 Upgraded Expo to SDK 57 with React Native 0.86.3 and React 19.2.3, aligning Expo modules, animations, router and tooling. Migrated the score navigation guard to Expo Router's own navigation context, removed the external React Navigation dependency, moved splash configuration into its plugin, removed obsolete configuration fields and added the stylesheet declaration required by TypeScript 6. Updated hook memoization to pass the newer React lint checks.
 
 Validation: 22 tests passed; typecheck and ESLint error checks passed (existing formatting warnings remain); Expo Doctor passed all 21 checks; iOS and Android Hermes exports succeeded. The LAN server's iOS manifest reports SDK 57.0.0. Physical iPhone launch and scoring acceptance still require the owner to retry. Dependency audit remediation remains a separate launch-readiness task.
+
+## Round creation regression and layout rollback
+
+Owner testing reached solo setup but starting a round failed. Restored the original setup layout at the owner's request. Kept only an alert for a failed creation request, without asserting a network cause.
+
+Reproduced SQLSTATE 42501 in a new regression test for authenticated INSERT ... RETURNING followed by host membership insertion. The STABLE can_read_round helper cannot see the newly inserted row through its table lookup during RETURNING's SELECT-policy check. Migration 20260908000004_round_creation_visibility checks the new row's user_id directly for ownership and preserves the helper for spectator access. The test failed before this fix and passed afterward; all 23 tests pass.
+
+Rehearsed separate round and membership requests against the hosted database in a rolled-back transaction and applied the migration. No persistent test rounds were created. Physical-device retry remains the final acceptance check.
