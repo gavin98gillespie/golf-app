@@ -1,5 +1,7 @@
 # Linksman — Project Handoff
 
+> **September 13 update:** The sections below are the original September 7 snapshot. Current work is on `codex/reliability-and-score-recovery`, running Expo SDK 57. The first playable skins game and persistent Brass ledger are now implemented; the Supabase migration is deployed. See [current implementation and phone test](2026-09-13-skins-testing.md) and [revised product direction](superpowers/specs/2026-09-13-rivalry-games-first-release.md). This is a test release, not an App Store release.
+
 **Written:** 2026-09-07 · **Repo:** `/Users/gavingillespie/Desktop/Golf App` · **Branch:** `main` @ `1580c55`
 
 You have filesystem access to this repo. This document gives you the context the code cannot: why the product changed direction, which decisions are locked, what was just fixed, and what to do next. Read it before touching anything.

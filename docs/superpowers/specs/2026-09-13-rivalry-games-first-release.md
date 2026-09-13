@@ -1,7 +1,7 @@
 # Linksman: games that build a rivalry
 
 Date: September 13, 2026.
-Status: product direction and proposed release contract, with the skins calculator implemented locally. The user confirmed Brass points only for this version. No live games or persistent Brass ledger have shipped.
+Status: the first playable skins/Brass slice is implemented and its database migration is deployed for Expo testing. The broader release contract below still includes future work. The user confirmed Brass points only. See [implementation and phone test](../../2026-09-13-skins-testing.md).
 
 This refines the September 7 rivalry design and September 8 review. It supersedes the assumptions that no competitor offers a ledger, that a proprietary handicap must precede games, that a broad game catalog is the first release, and that GPS/maps must come before the rivalry experience. Other recommendations below remain product hypotheses, not user research findings.
 

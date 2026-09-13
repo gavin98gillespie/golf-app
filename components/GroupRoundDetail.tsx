@@ -1,16 +1,10 @@
 import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SkinsGamePanel } from '@/components/SkinsGamePanel';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleGrid } from '@/components/HoleGrid';
 import { Topo } from '@/components/Topo';
@@ -253,6 +247,8 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
               {format(parseLocalDate(round.played_at), 'MMM d, yyyy').toUpperCase()}
             </Text>
           </View>
+
+          <SkinsGamePanel roundId={roundId} compact />
 
           {/* Per-player slices */}
           {visiblePlayers.map((p) => {

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { SkinsGamePanel } from '@/components/SkinsGamePanel';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useActionSheet } from '@/components/ActionSheet';
 import { ScoreNumeral } from '@/components/ScoreNumeral';
@@ -490,6 +491,7 @@ export default function GroupScore() {
             surface="ink"
           />
         </View>
+        <SkinsGamePanel roundId={id} compact />
       </ScrollView>
     </ScreenContainer>
   );

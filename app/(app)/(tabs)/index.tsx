@@ -68,11 +68,23 @@ export default function Today() {
         </View>
 
         <HomeCourseCard course={homeCourseQ.data ?? null} />
-        <LedgerCard
-          best={bestQ.data}
-          latest={latestQ.data}
-          achievementsCount={trophyCount}
-        />
+        <LedgerCard best={bestQ.data} latest={latestQ.data} achievementsCount={trophyCount} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/ledger')}
+          style={{
+            paddingVertical: 20,
+            borderBottomWidth: 0.5,
+            borderBottomColor: palette.ink + '33',
+          }}
+        >
+          <Text style={{ fontFamily: fontFamily.display, fontSize: 26, color: palette.ink }}>
+            Rivalry ledger →
+          </Text>
+          <Text style={{ fontSize: 16, color: palette.fairway, marginTop: 6 }}>
+            Your confirmed Brass, friend by friend
+          </Text>
+        </Pressable>
         <RegularsPulseCard pulse={pulseQ.data} />
 
         <Pressable

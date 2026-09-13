@@ -72,6 +72,53 @@ export type Database = {
           },
         ]
       }
+      brass_entries: {
+        Row: {
+          award_key: string
+          brass: number
+          created_at: string
+          from_user: string
+          hole: number
+          id: string
+          kind: string
+          revision: number
+          round_id: string
+          to_user: string
+        }
+        Insert: {
+          award_key: string
+          brass: number
+          created_at?: string
+          from_user: string
+          hole: number
+          id?: string
+          kind: string
+          revision: number
+          round_id: string
+          to_user: string
+        }
+        Update: {
+          award_key?: string
+          brass?: number
+          created_at?: string
+          from_user?: string
+          hole?: number
+          id?: string
+          kind?: string
+          revision?: number
+          round_id?: string
+          to_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brass_entries_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "round_games"
+            referencedColumns: ["round_id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           body: string
@@ -380,6 +427,80 @@ export type Database = {
           },
         ]
       }
+      round_game_players: {
+        Row: {
+          accepted: boolean
+          confirmed_revision: number | null
+          round_id: string
+          strokes: number
+          user_id: string
+        }
+        Insert: {
+          accepted?: boolean
+          confirmed_revision?: number | null
+          round_id: string
+          strokes: number
+          user_id: string
+        }
+        Update: {
+          accepted?: boolean
+          confirmed_revision?: number | null
+          round_id?: string
+          strokes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_game_players_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "round_games"
+            referencedColumns: ["round_id"]
+          },
+        ]
+      }
+      round_games: {
+        Row: {
+          course_name: string
+          created_at: string
+          hole_count: number
+          host_id: string
+          mode: string
+          result: Json | null
+          revision: number
+          round_id: string
+          settled_at: string | null
+          state: string
+          stroke_order: number[]
+        }
+        Insert: {
+          course_name: string
+          created_at?: string
+          hole_count: number
+          host_id: string
+          mode: string
+          result?: Json | null
+          revision?: number
+          round_id: string
+          settled_at?: string | null
+          state?: string
+          stroke_order: number[]
+        }
+        Update: {
+          course_name?: string
+          created_at?: string
+          hole_count?: number
+          host_id?: string
+          mode?: string
+          result?: Json | null
+          revision?: number
+          round_id?: string
+          settled_at?: string | null
+          state?: string
+          stroke_order?: number[]
+        }
+        Relationships: []
+      }
       round_holes: {
         Row: {
           fairway_hit: boolean | null
@@ -646,11 +767,35 @@ export type Database = {
       }
     }
     Functions: {
+      accept_skins: {
+        Args: { p_revision: number; p_round: string }
+        Returns: undefined
+      }
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }
+      calculate_skins_result: { Args: { p_round: string }; Returns: Json }
       can_read_round: { Args: { p_round_id: string }; Returns: boolean }
+      configure_skins: {
+        Args: {
+          p_allowances: Json
+          p_mode: string
+          p_order: number[]
+          p_round: string
+        }
+        Returns: undefined
+      }
+      confirm_skins: {
+        Args: { p_revision: number; p_round: string }
+        Returns: undefined
+      }
       contains_blocked_word: { Args: { input: string }; Returns: boolean }
       force_end_round: { Args: { p_round_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
+      get_my_brass_ledger: { Args: never; Returns: Json }
+      get_skins_game: { Args: { p_round: string }; Returns: Json }
+      invalidate_skins: {
+        Args: { p_round: string; p_void: boolean }
+        Returns: undefined
+      }
       is_blocked: { Args: { a: string; b: string }; Returns: boolean }
       is_following: {
         Args: { p_target: string; p_viewer: string }
@@ -668,6 +813,7 @@ export type Database = {
         Args: { p_round_id: string; p_viewer: string }
         Returns: boolean
       }
+      is_skins_member: { Args: { p_round: string }; Returns: boolean }
       is_username_available: {
         Args: { check_username: string }
         Returns: boolean
@@ -676,6 +822,7 @@ export type Database = {
         Args: { p_code: string; p_tee_box: string }
         Returns: string
       }
+      remove_or_void_skins: { Args: { p_round: string }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 
+import { SkinsGamePanel } from '@/components/SkinsGamePanel';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useActionSheet } from '@/components/ActionSheet';
 import { Wordmark } from '@/components/Wordmark';
@@ -54,7 +55,14 @@ export default function Lobby() {
 
   const onStart = async () => {
     if (!round) return;
-    await start.mutateAsync({ roundId: round.id });
+    try {
+      await start.mutateAsync({ roundId: round.id });
+    } catch (error) {
+      Alert.alert(
+        'Could not start round',
+        (error as { message?: string }).message ?? 'Please try again.',
+      );
+    }
   };
 
   const onLeave = () => {
@@ -86,7 +94,12 @@ export default function Lobby() {
 
   return (
     <ScreenContainer surface="bone">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         <View
           style={{
             paddingTop: 8,
@@ -199,6 +212,11 @@ export default function Lobby() {
             />
           </View>
         ))}
+
+        <SkinsGamePanel
+          roundId={id}
+          setup={{ isHost, holeCount: round.hole_count ?? 18, players }}
+        />
 
         {isHost ? (
           <>
