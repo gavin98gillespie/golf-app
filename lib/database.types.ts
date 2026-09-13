@@ -292,6 +292,35 @@ export type Database = {
           },
         ]
       }
+      guest_players: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_players_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       likes: {
         Row: {
           created_at: string
@@ -470,6 +499,7 @@ export type Database = {
           revision: number
           round_id: string
           settled_at: string | null
+          stake: number
           state: string
           stroke_order: number[]
         }
@@ -483,6 +513,7 @@ export type Database = {
           revision?: number
           round_id: string
           settled_at?: string | null
+          stake?: number
           state?: string
           stroke_order: number[]
         }
@@ -496,6 +527,7 @@ export type Database = {
           revision?: number
           round_id?: string
           settled_at?: string | null
+          stake?: number
           state?: string
           stroke_order?: number[]
         }
@@ -503,6 +535,8 @@ export type Database = {
       }
       round_holes: {
         Row: {
+          edited_at: string | null
+          edited_by: string | null
           fairway_hit: boolean | null
           gir: boolean | null
           hole_number: number
@@ -514,6 +548,8 @@ export type Database = {
           score: number
         }
         Insert: {
+          edited_at?: string | null
+          edited_by?: string | null
           fairway_hit?: boolean | null
           gir?: boolean | null
           hole_number: number
@@ -525,6 +561,8 @@ export type Database = {
           score: number
         }
         Update: {
+          edited_at?: string | null
+          edited_by?: string | null
           fairway_hit?: boolean | null
           gir?: boolean | null
           hole_number?: number
@@ -537,11 +575,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "round_holes_player_id_fkey"
-            columns: ["player_id"]
+            foreignKeyName: "round_holes_edited_by_fkey"
+            columns: ["edited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_holes_participant_fkey"
+            columns: ["round_id", "player_id"]
+            isOneToOne: false
+            referencedRelation: "round_players"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_holes_participant_fkey"
+            columns: ["round_id", "player_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id", "user_id"]
           },
           {
             foreignKeyName: "round_holes_round_id_fkey"
@@ -563,9 +615,11 @@ export type Database = {
         Row: {
           created_at: string
           finished_at: string | null
+          guest_id: string | null
           invited_by: string | null
           joined_at: string | null
           notes: string | null
+          profile_id: string | null
           round_id: string
           status: string
           tee_box: string
@@ -574,9 +628,11 @@ export type Database = {
         Insert: {
           created_at?: string
           finished_at?: string | null
+          guest_id?: string | null
           invited_by?: string | null
           joined_at?: string | null
           notes?: string | null
+          profile_id?: string | null
           round_id: string
           status: string
           tee_box: string
@@ -585,9 +641,11 @@ export type Database = {
         Update: {
           created_at?: string
           finished_at?: string | null
+          guest_id?: string | null
           invited_by?: string | null
           joined_at?: string | null
           notes?: string | null
+          profile_id?: string | null
           round_id?: string
           status?: string
           tee_box?: string
@@ -595,8 +653,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "round_players_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guest_players"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "round_players_invited_by_fkey"
             columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -615,12 +687,91 @@ export type Database = {
             referencedRelation: "user_round_summaries"
             referencedColumns: ["round_id_dup"]
           },
+        ]
+      }
+      round_side_games: {
+        Row: {
+          amount: number
+          edited_at: string
+          edited_by: string | null
+          from_player: string
+          hole: number
+          id: string
+          label: string
+          round_id: string
+          to_player: string
+        }
+        Insert: {
+          amount: number
+          edited_at?: string
+          edited_by?: string | null
+          from_player: string
+          hole: number
+          id?: string
+          label: string
+          round_id: string
+          to_player: string
+        }
+        Update: {
+          amount?: number
+          edited_at?: string
+          edited_by?: string | null
+          from_player?: string
+          hole?: number
+          id?: string
+          label?: string
+          round_id?: string
+          to_player?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "round_players_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "round_side_games_edited_by_fkey"
+            columns: ["edited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_from_player_fkey"
+            columns: ["round_id", "from_player"]
+            isOneToOne: false
+            referencedRelation: "round_players"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_from_player_fkey"
+            columns: ["round_id", "from_player"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_to_player_fkey"
+            columns: ["round_id", "to_player"]
+            isOneToOne: false
+            referencedRelation: "round_players"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_side_games_round_id_to_player_fkey"
+            columns: ["round_id", "to_player"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id", "user_id"]
           },
         ]
       }
@@ -743,13 +894,6 @@ export type Database = {
             referencedColumns: ["round_id_dup"]
           },
           {
-            foreignKeyName: "round_players_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "rounds_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
@@ -771,9 +915,15 @@ export type Database = {
         Args: { p_revision: number; p_round: string }
         Returns: undefined
       }
+      add_round_player: {
+        Args: { p_guest_name?: string; p_round: string; p_user?: string }
+        Returns: string
+      }
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }
       calculate_skins_result: { Args: { p_round: string }; Returns: Json }
+      calculate_skins_units: { Args: { p_round: string }; Returns: Json }
       can_read_round: { Args: { p_round_id: string }; Returns: boolean }
+      can_score_group: { Args: { p_round: string }; Returns: boolean }
       configure_skins: {
         Args: {
           p_allowances: Json
@@ -788,6 +938,8 @@ export type Database = {
         Returns: undefined
       }
       contains_blocked_word: { Args: { input: string }; Returns: boolean }
+      delete_side_game: { Args: { p_id: string }; Returns: undefined }
+      finish_group_round: { Args: { p_round: string }; Returns: undefined }
       force_end_round: { Args: { p_round_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
       get_my_brass_ledger: { Args: never; Returns: Json }
@@ -822,7 +974,30 @@ export type Database = {
         Args: { p_code: string; p_tee_box: string }
         Returns: string
       }
+      refresh_honor_skins: { Args: { p_round: string }; Returns: undefined }
       remove_or_void_skins: { Args: { p_round: string }; Returns: undefined }
+      save_side_game: {
+        Args: {
+          p_amount: number
+          p_from: string
+          p_hole: number
+          p_id?: string
+          p_label: string
+          p_round: string
+          p_to: string
+        }
+        Returns: string
+      }
+      save_skins_game: {
+        Args: {
+          p_allowances: Json
+          p_mode: string
+          p_order: number[]
+          p_round: string
+          p_stake: number
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }

@@ -1,5 +1,7 @@
 # Linksman — Project Handoff
 
+> **Latest direction — September 13:** One person now scores the whole group, adds accounts or guests directly, and edits Brass on an honor system. Individual Skins acceptance/confirmation is superseded. Read [honor-system implementation](2026-09-13-honor-scorekeeping.md) before the historical sections below.
+
 > **September 13 update:** The sections below are the original September 7 snapshot. Current work is on `codex/reliability-and-score-recovery`, running Expo SDK 57. The first playable skins game and persistent Brass ledger are now implemented; the Supabase migration is deployed. See [current implementation and phone test](2026-09-13-skins-testing.md) and [revised product direction](superpowers/specs/2026-09-13-rivalry-games-first-release.md). This is a test release, not an App Store release.
 
 **Written:** 2026-09-07 · **Repo:** `/Users/gavingillespie/Desktop/Golf App` · **Branch:** `main` @ `1580c55`

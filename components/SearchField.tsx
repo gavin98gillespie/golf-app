@@ -17,6 +17,7 @@ export function SearchField({
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
       <TextInput
+        placeholderTextColor={surface === 'ink' ? palette.sage : palette.ink + '88'}
         {...props}
         ref={input}
         onFocus={(event) => {

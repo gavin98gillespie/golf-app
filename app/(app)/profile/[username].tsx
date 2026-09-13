@@ -23,6 +23,7 @@ type RoundWithCourse = Pick<Tables<'rounds'>, 'id' | 'played_at' | 'total_score'
 };
 
 export default function OtherProfile() {
+  const [refreshing, setRefreshing] = useState(false);
   const { username } = useLocalSearchParams<{ username: string }>();
   const { session } = useSession();
   const viewerId = session?.user.id;
@@ -169,10 +170,14 @@ export default function OtherProfile() {
       <FlatList
         data={isFollowing ? (recentRoundsQ.data ?? []) : []}
         keyExtractor={(r) => r.id}
-        refreshing={recentRoundsQ.isRefetching || roundsCountQ.isRefetching}
-        onRefresh={() => {
-          void recentRoundsQ.refetch();
-          void roundsCountQ.refetch();
+        refreshing={refreshing}
+        onRefresh={async () => {
+          setRefreshing(true);
+          try {
+            await Promise.all([recentRoundsQ.refetch(), roundsCountQ.refetch()]);
+          } finally {
+            setRefreshing(false);
+          }
         }}
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}

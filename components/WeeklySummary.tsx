@@ -21,10 +21,12 @@ export function WeeklySummary({ userId }: Props) {
     queryKey: ['weekly_summary', userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('rounds')
+        .from('user_round_summaries')
         .select('total_score, total_par, played_at')
         .eq('user_id', userId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
+        .gt('holes_played', 0)
         .gte('played_at', lastStart)
         .order('played_at', { ascending: false });
       if (error) throw error;

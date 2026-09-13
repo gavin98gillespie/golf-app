@@ -5,8 +5,10 @@ import { createClient } from '@supabase/supabase-js';
 
 import { env } from './env';
 import type { Database } from './database.types';
+import { createFetchWithTimeout } from './fetchWithTimeout';
 
 export const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  global: { fetch: createFetchWithTimeout(fetch) },
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

@@ -130,10 +130,17 @@ export default function HoleEntry() {
     const totalPar = priorPar + par;
     const diff = totalScore - totalPar;
     const vsPar = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-    const totalCoursePar = (courseHolesQ.data ?? []).reduce((a, h) => a + h.par, 0) || 72;
+    const totalCoursePar = Array.from({ length: totalHoles }, (_, index) => {
+      const number = index + 1;
+      return number === hole
+        ? par
+        : (scored.find((h) => h.hole_number === number)?.par ??
+            courseHolesQ.data?.find((h) => h.hole_number === number)?.par ??
+            4);
+    }).reduce((sum, value) => sum + value, 0);
     const projected = totalCoursePar + diff;
     return { thru: hole, totalScore, vsPar, projected };
-  }, [roundHolesQ.data, courseHolesQ.data, hole, score, par]);
+  }, [roundHolesQ.data, courseHolesQ.data, hole, score, par, totalHoles]);
 
   const isLast = hole >= totalHoles;
   const nextHole = hole + 1;

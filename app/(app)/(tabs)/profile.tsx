@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
@@ -30,6 +31,7 @@ export default function Profile() {
   const { session } = useSession();
   const viewerId = session?.user.id;
   const profileQ = useMyProfile(viewerId);
+  const [refreshing, setRefreshing] = useState(false);
   const roundsQ = useUserRounds(viewerId);
   const statsQ = useUserSummaryStats(viewerId);
   const followersQ = useFollowerCount(viewerId);
@@ -53,8 +55,15 @@ export default function Profile() {
         keyExtractor={(r) => r.round_id ?? ''}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshing={roundsQ.isFetching}
-        onRefresh={() => roundsQ.refetch()}
+        refreshing={refreshing}
+        onRefresh={async () => {
+          setRefreshing(true);
+          try {
+            await roundsQ.refetch();
+          } finally {
+            setRefreshing(false);
+          }
+        }}
         ListHeaderComponent={
           <View>
             {/* Top bar */}
@@ -70,6 +79,8 @@ export default function Profile() {
               <Wordmark size={20} color={palette.ink} />
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Invitations"
                   onPress={() => router.push('/(app)/invites')}
                   hitSlop={10}
                   style={{ padding: 4 }}
@@ -108,6 +119,8 @@ export default function Profile() {
                   ) : null}
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Settings"
                   onPress={() => router.push('/(app)/settings')}
                   hitSlop={10}
                   style={{ padding: 4 }}
@@ -222,6 +235,14 @@ export default function Profile() {
               </Text>
             </View>
 
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(app)/stats')}
+              style={{ minHeight: 48, justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 16, color: palette.fairway }}>View detailed stats →</Text>
+            </Pressable>
+
             {/* Stat row */}
             <View
               style={{
@@ -297,7 +318,14 @@ export default function Profile() {
               >
                 TROPHY CASE
               </Text>
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 13, color: palette.ink, opacity: 0.4 }}>
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 13,
+                  color: palette.ink,
+                  opacity: 0.4,
+                }}
+              >
                 →
               </Text>
             </Pressable>
@@ -333,24 +361,6 @@ export default function Profile() {
             No rounds yet. Hit the Play tab to score your first.
           </Text>
         }
-        ListFooterComponent={
-          <Pressable
-            onPress={() => router.push('/(app)/stats')}
-            style={{ marginTop: 24, paddingVertical: 12, alignItems: 'center' }}
-          >
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 11,
-                letterSpacing: 11 * 0.18,
-                color: palette.fairway,
-                textTransform: 'uppercase',
-              }}
-            >
-              VIEW DETAILED STATS →
-            </Text>
-          </Pressable>
-        }
       />
     </ScreenContainer>
   );
@@ -363,9 +373,7 @@ function ProfileRoundRow({ round }: { round: ProfileRound }) {
   const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
   return (
     <Pressable
-      onPress={() =>
-        router.push({ pathname: '/round/[id]', params: { id: round.round_id ?? '' } })
-      }
+      onPress={() => router.push({ pathname: '/round/[id]', params: { id: round.round_id ?? '' } })}
       style={{
         flexDirection: 'row',
         paddingVertical: 14,
@@ -407,9 +415,7 @@ function ProfileRoundRow({ round }: { round: ProfileRound }) {
           {format(parseLocalDate(round.played_at ?? ''), 'MMM d, yyyy').toUpperCase()}
         </Text>
       </View>
-      <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.ink }}>
-        {ts}
-      </Text>
+      <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.ink }}>{ts}</Text>
       <Text
         style={{
           fontFamily: fontFamily.mono,

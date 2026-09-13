@@ -1,10 +1,19 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { palette, fontFamily } from '@/theme/linksman';
 
 type Props = {
   value: string;
-  onChange: (next: string) => void;
+  onChange: (next: string) => void | Promise<void>;
   onCommit?: (next: string) => void;
   surface?: 'ink' | 'bone';
 };
@@ -16,11 +25,20 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
   const [draft, setDraft] = useState(value);
   const fg = surface === 'ink' ? palette.bone : palette.ink;
 
-  const save = () => {
-    const trimmed = draft.slice(0, MAX);
-    onChange(trimmed);
-    onCommit?.(trimmed);
-    setOpen(false);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const trimmed = draft.slice(0, MAX);
+      await onChange(trimmed);
+      onCommit?.(trimmed);
+      setOpen(false);
+    } catch (e) {
+      Alert.alert('Note not saved', (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const close = () => setOpen(false);
@@ -64,11 +82,15 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
         >
-          <Pressable
-            onPress={close}
-            style={{ flex: 1, backgroundColor: palette.ink + 'EE' }}
-          />
-          <View style={{ backgroundColor: palette.bone, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24 }}>
+          <Pressable onPress={close} style={{ flex: 1, backgroundColor: palette.ink + 'EE' }} />
+          <View
+            style={{
+              backgroundColor: palette.bone,
+              paddingHorizontal: 24,
+              paddingTop: 16,
+              paddingBottom: 24,
+            }}
+          >
             {/* Action bar at TOP so it stays visible above the keyboard */}
             <View
               style={{
@@ -106,7 +128,7 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
               >
                 ROUND NOTE
               </Text>
-              <Pressable onPress={save} hitSlop={8}>
+              <Pressable onPress={() => void save()} disabled={saving} hitSlop={8}>
                 <Text
                   style={{
                     fontFamily: fontFamily.mono,
@@ -116,7 +138,7 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
                     textTransform: 'uppercase',
                   }}
                 >
-                  SAVE
+                  {saving ? 'SAVING…' : 'SAVE'}
                 </Text>
               </Pressable>
             </View>

@@ -79,10 +79,12 @@ export function useRecentCourses(userId: string | undefined, limit = 5) {
       if (!userId) return [];
       // Get the user's most recent N rounds with their course joined.
       const { data, error } = await supabase
-        .from('rounds')
+        .from('user_round_summaries')
         .select('course_id, played_at, courses(*)')
         .eq('user_id', userId)
         .eq('is_draft', false)
+        .in('player_status', ['joined', 'finished'])
+        .gt('holes_played', 0)
         .order('played_at', { ascending: false })
         .limit(limit * 3); // fetch extra so we have headroom after dedupe
       if (error) throw error;

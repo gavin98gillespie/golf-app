@@ -39,7 +39,8 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
   );
 
   const me = players.find((p) => p.user_id === viewerId);
-  const canEditOrDelete = !!me && (me.status === 'joined' || me.status === 'finished');
+  const canEditOrDelete =
+    round?.user_id === viewerId || (!!me && (me.status === 'joined' || me.status === 'finished'));
 
   const onTapMore = () => {
     if (!viewerId) return;
@@ -50,11 +51,19 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
         ...(canEditOrDelete
           ? [
               {
-                label: 'Edit my round',
+                label: 'Edit group scores',
                 onPress: () =>
                   router.push({
                     pathname: '/round/group/[id]/score',
                     params: { id: roundId, hole: '1' },
+                  }),
+              },
+              {
+                label: 'Manage players',
+                onPress: () =>
+                  router.push({
+                    pathname: '/round/group/[id]/lobby',
+                    params: { id: roundId, manage: '1' },
                   }),
               },
               {
@@ -250,6 +259,31 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
 
           <SkinsGamePanel roundId={roundId} compact />
 
+          {canEditOrDelete && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({
+                  pathname: '/round/group/[id]/score',
+                  params: { id: roundId, hole: '1' },
+                })
+              }
+              style={{ minHeight: 48, justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 17, color: palette.bone }}>Edit group scores →</Text>
+            </Pressable>
+          )}
+          {canEditOrDelete && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({ pathname: '/round/group/[id]/game', params: { id: roundId } })
+              }
+              style={{ minHeight: 48, justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 17, color: palette.bone }}>Games & Brass →</Text>
+            </Pressable>
+          )}
           {/* Per-player slices */}
           {visiblePlayers.map((p) => {
             const playerHoles = holes

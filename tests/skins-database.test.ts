@@ -11,7 +11,7 @@ const a = uid(1),
   outsider = uid(3),
   round = uid(100),
   course = uid(200);
-test('skins consent, authoritative awards, revisions and private ledger', async (t) => {
+test('legacy skins migration: consent, awards and revisions before the honor-system upgrade', async (t) => {
   const db = new PGlite({ extensions: { pg_trgm, pgcrypto } });
   t.after(() => db.close());
   await db.exec(`CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);
@@ -19,7 +19,9 @@ test('skins consent, authoritative awards, revisions and private ledger', async 
  GRANT USAGE ON SCHEMA public,auth TO anon,authenticated; GRANT EXECUTE ON FUNCTION auth.uid() TO anon,authenticated;
  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated;`);
   const path = new URL('../supabase/migrations/', import.meta.url);
-  for (const f of (await readdir(path)).filter((f) => f.endsWith('.sql')).sort())
+  for (const f of (await readdir(path))
+    .filter((f) => f.endsWith('.sql') && f < '20260914000001')
+    .sort())
     await db.exec(await readFile(new URL(f, path), 'utf8'));
   await db.exec(`INSERT INTO auth.users VALUES('${a}'),('${b}'),('${outsider}'); INSERT INTO profiles(id,username,display_name) VALUES('${a}','player_a','A'),('${b}','player_b','B'),('${outsider}','player_c','C');
  INSERT INTO courses(id,name,source,hole_count) VALUES('${course}','Test','osm',9);

@@ -1,498 +1,506 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-
-import { SkinsGamePanel } from '@/components/SkinsGamePanel';
-import { ScreenContainer } from '@/components/ScreenContainer';
-import { useActionSheet } from '@/components/ActionSheet';
-import { ScoreNumeral } from '@/components/ScoreNumeral';
-import { Topo } from '@/components/Topo';
-import { Datum } from '@/components/Datum';
-import { NotesField } from '@/components/NotesField';
-import { PlayerProgressStrip } from '@/components/PlayerProgressStrip';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  useGroupRound,
-  useFinishMySlice,
-  useForceEndRound,
-  useWithdrawFromRound,
-} from '@/lib/queries/groupRounds';
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ScreenContainer } from '@/components/ScreenContainer';
+import { NotesField } from '@/components/NotesField';
+import { useGroupRound, type GroupRoundPlayer } from '@/lib/queries/groupRounds';
 import { useScoreDraft } from '@/lib/hooks/useScoreDraft';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
-import { palette, fontFamily, deltaLabel } from '@/theme/linksman';
+import { fontFamily, palette } from '@/theme/linksman';
 
+type Save = (confirm?: boolean) => Promise<boolean>;
 export default function GroupScore() {
-  const { id, hole: holeParam } = useLocalSearchParams<{ id: string; hole: string }>();
-  const hole = parseInt(holeParam ?? '1', 10);
+  const { id, hole: holeParam } = useLocalSearchParams<{ id: string; hole?: string }>();
+  const hole = Math.max(1, Number(holeParam) || 1);
+  const group = useGroupRound(id);
   const { session } = useSession();
-  const meId = session?.user.id;
-
-  const groupQ = useGroupRound(id);
-  const finishMine = useFinishMySlice();
-  const forceEnd = useForceEndRound();
-  const withdraw = useWithdrawFromRound();
-  const sheet = useActionSheet();
-
-  const round = groupQ.data?.round;
-  const players = groupQ.data?.players ?? [];
-  const holes = useMemo(() => groupQ.data?.holes ?? [], [groupQ.data?.holes]);
-  const me = players.find((p) => p.user_id === meId);
-  const isHost = round?.user_id === meId;
-  const totalHoles = round?.hole_count ?? 18;
-
-  const courseHolesQ = useQuery({
-    queryKey: ['course_holes', round?.course_id, me?.tee_box],
-    enabled: !!round?.course_id && !!me?.tee_box,
+  const qc = useQueryClient();
+  const [saves] = useState(() => new Map<string, Save>());
+  const scroll = useRef<ScrollView>(null);
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [hole]);
+  const [busy, setBusy] = useState(false);
+  const [reset, setReset] = useState(0);
+  const round = group.data?.round;
+  const players = useMemo(
+    () => group.data?.players.filter((p) => p.status === 'joined' || p.status === 'finished') ?? [],
+    [group.data],
+  );
+  const total = round?.hole_count ?? 18;
+  const courseHoles = useQuery({
+    queryKey: ['course_holes_group', round?.course_id],
+    enabled: !!round?.course_id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('course_holes')
         .select('*')
-        .eq('course_id', round!.course_id)
-        .eq('tee_box', me!.tee_box);
+        .eq('course_id', round!.course_id);
       if (error) throw error;
-      return (data ?? []) as Tables<'course_holes'>[];
+      return data ?? [];
     },
   });
-  const courseHoles = useMemo(() => courseHolesQ.data ?? [], [courseHolesQ.data]);
-  const myHoles = useMemo(() => holes.filter((h) => h.player_id === meId), [holes, meId]);
-  const courseHole = courseHoles.find((h) => h.hole_number === hole);
-  const existing = myHoles.find((h) => h.hole_number === hole);
-  const yardage = courseHole?.yardage ?? null;
-  const editor = useScoreDraft({
-    roundId: id,
-    playerId: meId,
-    hole,
-    ready: groupQ.isSuccess && courseHolesQ.isSuccess,
-    existing,
-    coursePar: courseHole?.par,
-  });
-  const { setPar, setScore, setFairwayCategory, setGir } = editor;
-  const { par = 4, score = 4, fairwayCategory = null, gir = null } = editor.value ?? {};
-
-  const telemetry = useMemo(() => {
-    const completed = myHoles.filter((h) => h.hole_number !== hole);
-    const totalScore = completed.reduce((s, h) => s + h.score, 0) + score;
-    const totalPar = completed.reduce((s, h) => s + h.par, 0) + par;
-    const diff = totalScore - totalPar;
-    const vsPar = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-    const totalCoursePar = (courseHoles ?? []).reduce((a, h) => a + h.par, 0) || 72;
-    const projected = totalCoursePar + diff;
-    return { thru: hole, totalScore, vsPar, projected };
-  }, [myHoles, courseHoles, hole, score, par]);
-
-  const isEditMode = me?.status === 'finished';
-
-  const onAdvance = async () => {
-    if (!id || !(await editor.save())) return;
-    if (hole >= totalHoles) {
-      if (isEditMode) {
-        router.replace({ pathname: '/round/[id]', params: { id } });
-      } else {
-        onFinishMine();
-      }
-    } else {
-      router.setParams({ hole: String(hole + 1) });
+  const canEdit =
+    round?.user_id === session?.user.id || players.some((p) => p.user_id === session?.user.id);
+  const flush = async (confirm = false) => {
+    if (saves.size !== players.length) return false;
+    const results = await Promise.all(Array.from(saves.values()).map((save) => save(confirm)));
+    return results.every(Boolean);
+  };
+  const refreshSummaries = () => {
+    for (const key of [
+      'round',
+      'rounds',
+      'today',
+      'feed',
+      'stats',
+      'weekly_summary',
+      'achievements',
+      'user_recent_rounds',
+      'profile_rounds_count',
+      'skins',
+      'brassLedger',
+    ]) {
+      void qc.invalidateQueries({ queryKey: [key] });
     }
   };
-
-  const onFinishMine = () => {
-    if (!id || !meId) return;
-    sheet.show({
-      title: 'Finish your round?',
-      subtitle: 'Save your result. You can review and edit it afterward.',
-      cancelLabel: 'Keep playing',
-      actions: [
-        {
-          label: 'Finish',
-          tone: 'sage',
-          onPress: async () => {
-            if (!(await editor.save())) return;
-            await finishMine.mutateAsync({ roundId: id, userId: meId });
-            router.replace({ pathname: '/round/[id]', params: { id } });
-          },
-        },
-      ],
-    });
+  const go = async (next: number) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (await flush()) router.setParams({ hole: String(next) });
+    } finally {
+      setBusy(false);
+    }
   };
-
-  const onMore = () => {
-    if (!id || !meId) return;
-    sheet.show({
-      eyebrow: 'OPTIONS',
-      title: 'Round options',
-      actions: [
-        ...(isHost
-          ? [
-              {
-                label: 'End round for everyone',
-                tone: 'destructive' as const,
-                onPress: async () => {
-                  if (!(await editor.save())) return;
-                  await forceEnd.mutateAsync({ roundId: id });
-                  router.replace({ pathname: '/round/[id]', params: { id } });
-                },
-              },
-            ]
-          : []),
-        {
-          label: 'Withdraw',
-          tone: 'destructive' as const,
-          onPress: async () => {
-            if (!(await editor.save(false))) return;
-            await withdraw.mutateAsync({ roundId: id, userId: meId });
-            router.replace('/(app)/(tabs)');
-          },
-        },
-      ],
-    });
+  const next = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (!(await flush(true))) return;
+      if (hole < total) {
+        router.setParams({ hole: String(hole + 1) });
+        return;
+      }
+      const { error } = await supabase.rpc('finish_group_round', { p_round: id });
+      if (error) throw error;
+      await Promise.all(
+        [
+          'groupRound',
+          'round',
+          'rounds',
+          'feed',
+          'today',
+          'stats',
+          'achievements',
+          'weekly_summary',
+          'user_recent_rounds',
+          'profile_rounds_count',
+          'skins',
+          'brassLedger',
+        ].map((key) => qc.invalidateQueries({ queryKey: [key] })),
+      );
+      router.dismissTo({ pathname: '/round/[id]', params: { id } });
+    } catch (e) {
+      Alert.alert(
+        'Could not finish the group round',
+        (e as { message?: string }).message ?? 'Please try again.',
+      );
+    } finally {
+      setBusy(false);
+    }
   };
-
-  if (!round || !me || !editor.value) {
-    const failed =
-      editor.recoveryError || groupQ.isError || courseHolesQ.isError || (groupQ.isSuccess && !me);
-    return (
-      <ScreenContainer>
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          {failed ? (
-            <Pressable
-              onPress={() => {
-                editor.retryRecovery();
-                void groupQ.refetch();
-                void courseHolesQ.refetch();
-              }}
-            >
-              <Text style={{ color: palette.bone, fontSize: 18 }}>
-                Could not load your score. Tap to retry.
-              </Text>
-            </Pressable>
-          ) : (
-            <ActivityIndicator color={palette.sage} accessibilityLabel="Loading your score" />
-          )}
-        </View>
-      </ScreenContainer>
-    );
-  }
-
-  const padded = String(hole).padStart(2, '0');
-  const totalPadded = String(totalHoles).padStart(2, '0');
-  const delta = score - par;
-  const deltaTextColor = delta < 0 ? palette.sage : delta > 1 ? palette.clay : palette.bone + '99';
-  const isLast = hole >= totalHoles;
-  const nextHole = hole + 1;
-  const nextHoleData = courseHoles.find((h) => h.hole_number === nextHole);
-  const nextPar = nextHoleData?.par ?? 4;
-
+  const clear = async (player: string) => {
+    if (!(await flush())) return;
+    const { error } = await supabase
+      .from('round_holes')
+      .delete()
+      .eq('round_id', id)
+      .eq('player_id', player)
+      .eq('hole_number', hole);
+    if (error) {
+      Alert.alert('Could not clear score', error.message);
+      return;
+    }
+    await group.refetch();
+    setReset((n) => n + 1);
+  };
   return (
     <ScreenContainer>
-      <Pressable
-        onPress={() => void editor.save(false)}
-        accessibilityRole="button"
-        style={{ minHeight: 44, justifyContent: 'center' }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{ color: editor.status === 'error' ? palette.clay : palette.bone, fontSize: 16 }}
+        <ScrollView
+          ref={scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
-          {editor.status === 'error'
-            ? 'Not saved · Tap to retry'
-            : editor.status === 'saving' || editor.status === 'unsaved'
-              ? 'Saving score…'
-              : editor.status === 'saved'
-                ? 'Score saved'
-                : 'Enter your score, then continue'}
-        </Text>
-      </Pressable>
-      <View
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.18 }}
-      >
-        <Topo seed={`${id}-h${hole}`} width={400} height={900} stroke={palette.bone + '22'} />
-      </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 80, paddingTop: 8 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
-        >
-          <Pressable onPress={onMore} hitSlop={8}>
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 18,
-                color: palette.bone,
-                opacity: 0.8,
-              }}
-            >
-              ⋯
-            </Text>
+          <Pressable
+            accessibilityRole="button"
+            style={s.button}
+            onPress={async () => {
+              if (group.isError || courseHoles.isError || (await flush())) {
+                refreshSummaries();
+                router.dismissTo({ pathname: '/round/[id]', params: { id } });
+              }
+            }}
+          >
+            <Text style={s.link}>← Round overview</Text>
           </Pressable>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 9,
-                letterSpacing: 9 * 0.18,
-                color: palette.bone,
-                opacity: 0.5,
-                textTransform: 'uppercase',
-              }}
-            >
-              GROUP ROUND
-            </Text>
-            <Text style={{ fontFamily: fontFamily.display, fontSize: 18, color: palette.bone }}>
-              {padded}/{totalPadded}
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ marginTop: 16 }}>
-          <PlayerProgressStrip players={players} holes={holes} meId={meId} />
-        </View>
-
-        <Text
-          style={{
-            fontFamily: fontFamily.mono,
-            fontSize: 11,
-            letterSpacing: 11 * 0.18,
-            color: palette.bone,
-            opacity: 0.7,
-            textTransform: 'uppercase',
-            marginTop: 32,
-          }}
-        >
-          HOLE {padded}
-          {yardage ? ` · ${yardage} Y` : ''}
-        </Text>
-
-        <Text
-          style={{
-            fontFamily: fontFamily.display,
-            fontSize: 80,
-            letterSpacing: -80 * 0.04,
-            color: palette.bone,
-            marginTop: 4,
-            lineHeight: 80 * 0.95,
-          }}
-        >
-          PAR {par}
-        </Text>
-
-        {!courseHole ? (
-          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-            {[3, 4, 5].map((p) => {
-              const active = par === p;
-              return (
-                <Pressable
-                  key={p}
-                  onPress={() => setPar(p)}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 14,
-                    borderWidth: active ? 1 : 0.5,
-                    borderColor: active ? palette.bone : palette.bone + '40',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.bone,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    PAR {p}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 28 }}>
-          <Datum label="THRU" value={telemetry.thru} color={palette.bone} />
-          <Datum label="STROKES" value={telemetry.totalScore} color={palette.bone} />
-          <Datum label="VS PAR" value={telemetry.vsPar} color={palette.bone} />
-          <Datum label="PROJ" value={telemetry.projected} color={palette.bone} align="right" />
-        </View>
-
-        <View style={{ marginTop: 40, alignItems: 'center' }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.18,
-              color: palette.bone,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
-          >
-            STROKES THIS HOLE
+          <Text style={s.title}>
+            Hole {hole} <Text style={{ fontSize: 20 }}>of {total}</Text>
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 32, marginTop: 18 }}>
+          <Text style={s.copy}>One scorekeeper. Everyone’s round.</Text>
+          {group.isError || courseHoles.isError ? (
             <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Subtract one stroke"
-              onPress={() => setScore((s) => Math.max(1, s - 1))}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                borderWidth: 0.5,
-                borderColor: palette.bone + '40',
-                alignItems: 'center',
-                justifyContent: 'center',
+              onPress={() => {
+                void group.refetch();
+                void courseHoles.refetch();
               }}
+              style={s.button}
             >
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 24, color: palette.bone }}>
-                −
-              </Text>
+              <Text style={s.link}>Could not load round. Tap to retry.</Text>
             </Pressable>
-            <ScoreNumeral value={score} size={120} color={palette.bone} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add one stroke"
-              onPress={() => setScore((s) => Math.min(20, s + 1))}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                borderWidth: 0.5,
-                borderColor: palette.bone + '40',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 24, color: palette.bone }}>
-                +
-              </Text>
-            </Pressable>
-          </View>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.18,
-              color: deltaTextColor,
-              marginTop: 12,
-              textTransform: 'uppercase',
-            }}
-          >
-            {deltaLabel(delta, par, score)}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={onAdvance}
-          style={{
-            marginTop: 28,
-            backgroundColor: palette.sage,
-            paddingVertical: 16,
-            alignItems: 'center',
-            borderRadius: 4,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 13,
-              letterSpacing: 13 * 0.18,
-              color: palette.ink,
-              textTransform: 'uppercase',
-            }}
-          >
-            {isLast
-              ? isEditMode
-                ? 'DONE EDITING →'
-                : 'FINISH MY ROUND →'
-              : `HOLE ${nextHole} · PAR ${nextPar} →`}
-          </Text>
-        </Pressable>
-
-        <View style={{ marginTop: 24 }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.18,
-              color: palette.bone,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-              marginBottom: 6,
-            }}
-          >
-            DRIVE LANDED IN · OPTIONAL
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(['fairway', 'rough', 'sand', 'water'] as const).map((cat) => {
-              const active = fairwayCategory === cat;
-              return (
-                <Pressable
-                  key={cat}
-                  onPress={() => setFairwayCategory((prev) => (prev === cat ? null : cat))}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderWidth: active ? 1 : 0.5,
-                    borderColor: active ? palette.bone : palette.bone + '40',
-                    backgroundColor: active ? palette.bone + '10' : 'transparent',
-                    alignItems: 'center',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.bone,
-                      textTransform: 'uppercase',
-                    }}
+          ) : group.isPending ? (
+            <Text style={s.copy}>Loading players…</Text>
+          ) : !canEdit ? (
+            <Text style={s.copy}>This round is read only.</Text>
+          ) : (
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 6, marginVertical: 16 }}
+              >
+                {Array.from({ length: total }, (_, i) => (
+                  <Pressable
+                    key={i}
+                    accessibilityLabel={`Go to hole ${i + 1}`}
+                    accessibilityRole="button"
+                    disabled={busy}
+                    style={[
+                      s.hole,
+                      { backgroundColor: hole === i + 1 ? palette.fairway : palette.graphite },
+                    ]}
+                    onPress={() => void go(i + 1)}
                   >
-                    {cat}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={{ marginTop: 16, flexDirection: 'row', justifyContent: 'flex-end' }}>
-          <Pressable onPress={() => setGir((g) => (g == null ? true : g ? false : null))}>
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 11,
-                letterSpacing: 11 * 0.16,
-                color: gir === true ? palette.sage : palette.bone,
-                textTransform: 'uppercase',
-              }}
-            >
-              GIR · {gir == null ? '—' : gir ? 'YES' : 'NO'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={{ marginTop: 24, borderTopWidth: 0.5, borderTopColor: palette.bone + '22' }}>
-          <NotesField
-            value={me.notes ?? ''}
-            onChange={(t) => {
-              if (!id || !meId) return;
-              void supabase
-                .from('round_players')
-                .update({ notes: t || null })
-                .eq('round_id', id)
-                .eq('user_id', meId);
-            }}
-            surface="ink"
-          />
-        </View>
-        <SkinsGamePanel roundId={id} compact />
-      </ScrollView>
+                    <Text style={s.link}>{i + 1}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              {players.map((p) => (
+                <PlayerScore
+                  key={`${p.user_id}:${hole}:${reset}`}
+                  player={p}
+                  roundId={id}
+                  hole={hole}
+                  ready={courseHoles.isSuccess}
+                  coursePar={
+                    courseHoles.data?.find((h) => h.hole_number === hole && h.tee_box === p.tee_box)
+                      ?.par
+                  }
+                  existing={group.data?.holes.find(
+                    (h) => h.player_id === p.user_id && h.hole_number === hole,
+                  )}
+                  editorName={
+                    group.data?.players.find(
+                      (v) =>
+                        v.user_id ===
+                        group.data?.holes.find(
+                          (h) => h.player_id === p.user_id && h.hole_number === hole,
+                        )?.edited_by,
+                    )?.profile?.display_name ?? null
+                  }
+                  register={saves}
+                  clear={() => void clear(p.user_id)}
+                />
+              ))}
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || players.length === 0}
+                style={[s.primary, { opacity: busy ? 0.5 : 1 }]}
+                onPress={() => void next()}
+              >
+                <Text style={s.link}>
+                  {busy
+                    ? 'Saving…'
+                    : hole === total
+                      ? 'Finish group round'
+                      : 'Save hole & continue →'}
+                </Text>
+              </Pressable>
+              <Text style={s.small}>
+                Saving this hole records the displayed scores for everyone. You can edit them
+                anytime.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                style={s.button}
+                onPress={async () => {
+                  if (await flush()) {
+                    refreshSummaries();
+                    router.push({ pathname: '/round/group/[id]/game', params: { id } });
+                  }
+                }}
+              >
+                <Text style={s.link}>Games & Brass →</Text>
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
+function PlayerScore({
+  player,
+  roundId,
+  hole,
+  ready,
+  coursePar,
+  existing,
+  editorName,
+  register,
+  clear,
+}: {
+  player: GroupRoundPlayer;
+  roundId: string;
+  hole: number;
+  ready: boolean;
+  coursePar: number | undefined;
+  existing: Tables<'round_holes'> | undefined;
+  editorName: string | null;
+  register: Map<string, Save>;
+  clear: () => void;
+}) {
+  const editor = useScoreDraft({
+    roundId,
+    playerId: player.user_id,
+    hole,
+    ready,
+    existing,
+    coursePar,
+  });
+  const [details, setDetails] = useState(false);
+  const [notes, setNotes] = useState(player.notes ?? '');
+  const notesRef = useRef(notes);
+  const savedNotes = useRef(player.notes ?? '');
+  const saveDraft = editor.save;
+  const save = useCallback<Save>(
+    async (confirm = false) => {
+      if (!(await saveDraft(confirm))) return false;
+      if (notesRef.current !== savedNotes.current) {
+        const { error } = await supabase
+          .from('round_players')
+          .update({ notes: notesRef.current || null })
+          .eq('round_id', roundId)
+          .eq('user_id', player.user_id);
+        if (error) {
+          Alert.alert('Notes not saved', error.message);
+          return false;
+        }
+        savedNotes.current = notesRef.current;
+      }
+      return true;
+    },
+    [saveDraft, roundId, player.user_id],
+  );
+  useLayoutEffect(() => {
+    register.set(player.user_id, save);
+    return () => {
+      register.delete(player.user_id);
+    };
+  }, [register, player.user_id, save]);
+  const v = editor.value;
+  if (!v)
+    return (
+      <View style={s.player}>
+        <Text style={s.copy}>{player.profile?.display_name ?? 'Player'}</Text>
+        <Pressable onPress={editor.retryRecovery} style={s.button}>
+          <Text style={s.small}>
+            {editor.recoveryError ? 'Could not restore score. Tap to retry.' : 'Loading score…'}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  const step = (label: string, value: number, down: () => void, up: () => void) => (
+    <View style={s.controls}>
+      <Text style={[s.copy, { flex: 1 }]}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${player.profile?.display_name} decrease ${label}`}
+        style={s.step}
+        onPress={down}
+      >
+        <Text style={s.number}>−</Text>
+      </Pressable>
+      <Text accessibilityLabel={`${label}: ${value}`} style={s.number}>
+        {value}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${player.profile?.display_name} increase ${label}`}
+        style={s.step}
+        onPress={up}
+      >
+        <Text style={s.number}>+</Text>
+      </Pressable>
+    </View>
+  );
+  return (
+    <View style={s.player}>
+      <Text style={s.name}>
+        {player.profile?.display_name ?? 'Player'}
+        {player.guest_id ? ' · Guest' : ''}
+      </Text>
+      {step(
+        'Strokes',
+        v.score,
+        () => editor.setScore((n) => Math.max(1, n - 1)),
+        () => editor.setScore((n) => Math.min(20, n + 1)),
+      )}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => void editor.save(false)}
+        style={{ minHeight: 28, justifyContent: 'center' }}
+      >
+        <Text style={s.small}>
+          {editor.status === 'error'
+            ? 'Not saved · tap to retry'
+            : editor.status === 'saving' || editor.status === 'unsaved'
+              ? 'Saving…'
+              : existing
+                ? `Saved${editorName ? ` · edited by ${editorName}` : ''}`
+                : 'Not recorded yet'}
+        </Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => setDetails((v) => !v)} style={s.button}>
+        <Text style={s.link}>
+          {details ? 'Hide stats & notes' : `Par ${v.par} · Stats & notes`}
+        </Text>
+      </Pressable>
+      {details && (
+        <>
+          {step(
+            'Par',
+            v.par,
+            () => editor.setPar((n) => Math.max(3, n - 1)),
+            () => editor.setPar((n) => Math.min(6, n + 1)),
+          )}
+          {v.putts === null ? (
+            <Pressable style={s.button} onPress={() => editor.setPutts(2)}>
+              <Text style={s.link}>Track putts</Text>
+            </Pressable>
+          ) : (
+            <>
+              {step(
+                'Putts',
+                v.putts,
+                () => editor.setPutts((n) => Math.max(0, (n ?? 0) - 1)),
+                () => editor.setPutts((n) => Math.min(20, (n ?? 0) + 1)),
+              )}
+              <Pressable style={s.button} onPress={() => editor.setPutts(null)}>
+                <Text style={s.small}>Clear putts</Text>
+              </Pressable>
+            </>
+          )}
+          <Text style={s.copy}>Fairway</Text>
+          <View style={s.options}>
+            {(
+              [
+                ['Not tracked', null],
+                ['Hit', 'fairway'],
+                ['Missed', 'rough'],
+              ] as const
+            ).map(([label, value]) => (
+              <Pressable
+                key={label}
+                accessibilityRole="button"
+                onPress={() => editor.setFairwayCategory(value)}
+                style={[s.option, v.fairwayCategory === value && s.selected]}
+              >
+                <Text style={s.link}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={s.copy}>Green in regulation</Text>
+          <View style={s.options}>
+            {(
+              [
+                ['Not tracked', null],
+                ['Yes', true],
+                ['No', false],
+              ] as const
+            ).map(([label, value]) => (
+              <Pressable
+                key={label}
+                accessibilityRole="button"
+                onPress={() => editor.setGir(value)}
+                style={[s.option, v.gir === value && s.selected]}
+              >
+                <Text style={s.link}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <NotesField
+            value={notes}
+            onChange={async (next) => {
+              notesRef.current = next;
+              setNotes(next);
+              if (!(await save(false))) throw new Error('Please try saving the note again.');
+            }}
+          />
+          {existing && (
+            <Pressable accessibilityRole="button" style={s.button} onPress={clear}>
+              <Text style={{ fontSize: 16, color: palette.clay }}>
+                Clear this hole’s score & stats
+              </Text>
+            </Pressable>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+const s = StyleSheet.create({
+  title: { fontFamily: fontFamily.display, fontSize: 36, color: palette.bone },
+  copy: { fontSize: 16, lineHeight: 24, color: palette.bone, marginVertical: 6 },
+  small: { fontSize: 14, lineHeight: 21, color: palette.sage, marginVertical: 6 },
+  link: { fontSize: 16, color: palette.bone },
+  button: { minHeight: 48, justifyContent: 'center', paddingVertical: 8 },
+  primary: {
+    minHeight: 52,
+    backgroundColor: palette.fairway,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 16,
+  },
+  hole: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  player: { borderBottomWidth: 1, borderBottomColor: palette.bone + '33', paddingVertical: 18 },
+  name: { fontFamily: fontFamily.display, fontSize: 24, color: palette.bone },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 },
+  step: {
+    width: 48,
+    height: 48,
+    backgroundColor: palette.graphite,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  number: { fontSize: 28, minWidth: 36, textAlign: 'center', color: palette.bone },
+  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 8 },
+  option: { minHeight: 44, padding: 12, backgroundColor: palette.graphite },
+  selected: { backgroundColor: palette.fairway },
+});

@@ -143,6 +143,7 @@ export function useScoreDraft(input: {
     retryRecovery: () => setRetry((value) => value + 1),
     save,
     setPar: edit('par'),
+    setPutts: edit('putts'),
     setScore: edit('score'),
     setFairwayCategory: edit('fairwayCategory'),
     setGir: edit('gir'),

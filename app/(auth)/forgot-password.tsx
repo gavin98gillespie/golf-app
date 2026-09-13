@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { KeyboardToolbar } from '@/components/KeyboardToolbar';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { PasswordRecovery } from '@/lib/passwordRecovery';
 import { env } from '@/lib/env';
@@ -130,6 +131,7 @@ export default function ForgotPassword() {
           </Text>
           {step === 'email' && (
             <TextInput
+              inputAccessoryViewID="recovery-inputs"
               accessibilityLabel="Account email"
               placeholder="Email address"
               placeholderTextColor={palette.ink + '77'}
@@ -141,12 +143,13 @@ export default function ForgotPassword() {
               keyboardType="email-address"
               autoComplete="email"
               returnKeyType="done"
-              onSubmitEditing={() => void submit()}
+              onSubmitEditing={Keyboard.dismiss}
               style={inputStyle}
             />
           )}
           {step === 'code' && (
             <TextInput
+              inputAccessoryViewID="recovery-inputs"
               accessibilityLabel="Recovery code"
               placeholder="Recovery code"
               placeholderTextColor={palette.ink + '77'}
@@ -163,6 +166,7 @@ export default function ForgotPassword() {
           {step === 'password' && (
             <>
               <TextInput
+                inputAccessoryViewID="recovery-inputs"
                 accessibilityLabel="New password"
                 placeholder="New password"
                 placeholderTextColor={palette.ink + '77'}
@@ -176,6 +180,7 @@ export default function ForgotPassword() {
                 style={inputStyle}
               />
               <TextInput
+                inputAccessoryViewID="recovery-inputs"
                 accessibilityLabel="Confirm new password"
                 placeholder="Confirm new password"
                 placeholderTextColor={palette.ink + '77'}
@@ -187,7 +192,7 @@ export default function ForgotPassword() {
                 autoCorrect={false}
                 textContentType="newPassword"
                 returnKeyType="done"
-                onSubmitEditing={() => void submit()}
+                onSubmitEditing={Keyboard.dismiss}
                 style={inputStyle}
               />
             </>
@@ -246,6 +251,7 @@ export default function ForgotPassword() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      <KeyboardToolbar id="recovery-inputs" surface="bone" />
     </ScreenContainer>
   );
 }

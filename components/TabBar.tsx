@@ -70,9 +70,19 @@ function TabCell({
 }) {
   return (
     <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={item.label}
+      accessibilityState={{ selected: active }}
       onPress={() => onSelect(item.name)}
       hitSlop={8}
-      style={{ alignItems: 'center', gap: 4, opacity: active ? 1 : 0.4 }}
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 48,
+        minWidth: 48,
+        gap: 4,
+        opacity: active ? 1 : 0.7,
+      }}
     >
       <View
         style={{
@@ -86,8 +96,8 @@ function TabCell({
       <Text
         style={{
           fontFamily: fontFamily.mono,
-          fontSize: 9,
-          letterSpacing: 9 * 0.16,
+          fontSize: 11,
+          letterSpacing: 11 * 0.08,
           color: palette.bone,
           textTransform: 'uppercase',
         }}
@@ -103,6 +113,8 @@ function PlayButton() {
   return (
     <>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Start a round"
         onPress={() => setOpen(true)}
         style={{
           width: 56,

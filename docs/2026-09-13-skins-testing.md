@@ -1,5 +1,7 @@
 # First playable skins and Brass ledger
 
+> Superseded where it requires invitations, individual scoring or confirmations: see the September 13 honor-scorekeeping implementation in `docs/2026-09-13-honor-scorekeeping.md`. The owner explicitly requested one-person operation.
+
 Implemented September 13, 2026 on `codex/reliability-and-score-recovery`.
 
 ## What is available

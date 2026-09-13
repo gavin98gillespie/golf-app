@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -91,6 +92,8 @@ export default function SignIn() {
             <View className="mb-6">
               <Text style={[monoLabel, { marginBottom: 6 }]}>EMAIL</Text>
               <TextInput
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -107,6 +110,8 @@ export default function SignIn() {
             <View className="mb-6">
               <Text style={[monoLabel, { marginBottom: 6 }]}>PASSWORD</Text>
               <TextInput
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry

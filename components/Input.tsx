@@ -1,4 +1,4 @@
-import { TextInput, View, Text } from 'react-native';
+import { Keyboard, TextInput, View, Text } from 'react-native';
 import type { TextInputProps } from 'react-native';
 
 type Props = TextInputProps & {
@@ -11,6 +11,9 @@ export function Input({ label, error, ...rest }: Props) {
     <View className="mb-4">
       <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">{label}</Text>
       <TextInput
+        accessibilityLabel={label}
+        returnKeyType="done"
+        onSubmitEditing={Keyboard.dismiss}
         placeholderTextColor="#4a5a52"
         {...rest}
         className={`bg-bg-elevated border rounded-xl px-4 py-3 text-text-primary text-base ${

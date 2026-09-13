@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams, usePathname } from 'expo-router';
 
 import { SearchField } from '@/components/SearchField';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -42,6 +42,8 @@ export function CoursePicker({
   footer,
 }: Props) {
   const [query, setQuery] = useState('');
+  const pathname = usePathname();
+  const params = useLocalSearchParams<{ mode?: string; createdCourseId?: string }>();
   const picking = useRef(false);
   const { session } = useSession();
   const recent = useRecentCourses(session?.user.id, 5);
@@ -51,21 +53,29 @@ export function CoursePicker({
   const homeCourseQ = useHomeCourse(profileQ.data?.home_course_id);
 
   const isSearching = query.length >= 2;
-  const handlePick = async (courseId: string) => {
-    if (picking.current) return;
-    picking.current = true;
-    Keyboard.dismiss();
-    try {
-      const keepOpen = await onPick(courseId);
-      if (keepOpen === true) return;
-      if (onCancel) onCancel();
-      else router.back();
-    } catch {
-      Alert.alert('Course not saved', 'Please try selecting your course again.');
-    } finally {
-      picking.current = false;
-    }
-  };
+  const handlePick = useCallback(
+    async (courseId: string) => {
+      if (picking.current) return;
+      picking.current = true;
+      Keyboard.dismiss();
+      try {
+        const keepOpen = await onPick(courseId);
+        if (keepOpen === true) return;
+        if (onCancel) onCancel();
+        else router.back();
+      } catch {
+        Alert.alert('Course not saved', 'Please try selecting your course again.');
+      } finally {
+        picking.current = false;
+      }
+    },
+    [onPick, onCancel],
+  );
+  useEffect(() => {
+    if (!params.createdCourseId) return;
+    router.setParams({ createdCourseId: '' });
+    void handlePick(params.createdCourseId);
+  }, [params.createdCourseId, handlePick]);
 
   const eyebrow = (label: string) => (
     <Text
@@ -193,7 +203,7 @@ export function CoursePicker({
                     marginTop: 4,
                   }}
                 >
-                  {nearbyQ.error ? 'Location unavailable.' : 'No courses found within 25 mi.'}
+                  {nearbyQ.error ? 'Location unavailable.' : 'Search by name to find a course.'}
                 </Text>
               ) : (
                 (nearbyQ.data ?? []).map((c) => (
@@ -223,7 +233,12 @@ export function CoursePicker({
           )}
 
           <Pressable
-            onPress={() => router.push('/round/new/add-course')}
+            onPress={() =>
+              router.push({
+                pathname: '/round/new/add-course',
+                params: { returnTo: pathname, mode: params.mode ?? '' },
+              })
+            }
             style={{
               paddingVertical: 14,
               marginTop: 16,

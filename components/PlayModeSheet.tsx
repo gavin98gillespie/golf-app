@@ -71,7 +71,7 @@ export function PlayModeSheet({ visible, onClose }: Props) {
               marginTop: 4,
             }}
           >
-            Score live with friends.
+            One person can score for everyone.
           </Text>
         </Pressable>
         <Pressable onPress={() => go('/join-round')} style={{ paddingVertical: 18 }}>

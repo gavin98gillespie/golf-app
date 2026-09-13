@@ -1,5 +1,7 @@
 # Linksman: games that build a rivalry
 
+> Superseded where it requires invitations, individual scoring or confirmations: see the September 13 honor-scorekeeping implementation in `docs/2026-09-13-honor-scorekeeping.md`. The owner explicitly requested one-person operation.
+
 Date: September 13, 2026.
 Status: the first playable skins/Brass slice is implemented and its database migration is deployed for Expo testing. The broader release contract below still includes future work. The user confirmed Brass points only. See [implementation and phone test](../../2026-09-13-skins-testing.md).
 

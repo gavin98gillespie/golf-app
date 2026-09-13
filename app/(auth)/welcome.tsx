@@ -1,92 +1,75 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
-
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Wordmark } from '@/components/Wordmark';
 import { fontFamily, palette } from '@/theme/linksman';
-
 export default function Welcome() {
   return (
     <ScreenContainer surface="bone">
-      <View className="flex-1">
-        <View className="mt-24 items-center">
-          <Wordmark size={56} color={palette.ink} tagline />
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'space-between',
+          paddingVertical: 32,
+        }}
+      >
+        <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+          <Wordmark size={44} color={palette.ink} />
         </View>
-
-        <View className="mt-[200px] items-center">
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 0.18 * 11,
-              color: palette.ink,
-              opacity: 0.55,
-            }}
-          >
-            EST. MMXXV · GOLF JOURNAL
-          </Text>
+        <View style={{ marginVertical: 40 }}>
           <Text
             style={{
               fontFamily: fontFamily.display,
-              fontSize: 28,
-              letterSpacing: -28 * 0.02,
-              color: palette.ink,
-              marginTop: 16,
+              fontSize: 34,
+              lineHeight: 42,
               textAlign: 'center',
-              lineHeight: 28 * 1.2,
-              paddingHorizontal: 16,
+              color: palette.ink,
             }}
           >
-            Private scorecards for the people you play with.
+            Your round. Your group.
           </Text>
           <Text
             style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.16,
-              color: palette.ink,
-              opacity: 0.5,
-              marginTop: 12,
-              textTransform: 'uppercase',
+              fontSize: 18,
+              lineHeight: 27,
+              textAlign: 'center',
+              color: palette.fairway,
+              marginTop: 16,
             }}
           >
-            QUIET · PRECISE · EARNED
+            Score together. Keep the rivalry going.
           </Text>
         </View>
-
-        <View className="mt-auto pb-6 gap-3">
+        <View style={{ gap: 12 }}>
           <Pressable
+            accessibilityRole="button"
             onPress={() => router.push('/(auth)/sign-up')}
-            className="bg-ink rounded-full py-4 items-center"
+            style={{
+              backgroundColor: palette.ink,
+              borderRadius: 28,
+              minHeight: 52,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 13,
-                letterSpacing: 0.18 * 13,
-                color: palette.bone,
-              }}
-            >
-              CREATE ACCOUNT
-            </Text>
+            <Text style={{ fontSize: 17, color: palette.bone }}>Create account</Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
             onPress={() => router.push('/(auth)/sign-in')}
-            className="border border-ink/30 rounded-full py-4 items-center"
+            style={{
+              borderWidth: 1,
+              borderColor: palette.ink + '55',
+              borderRadius: 28,
+              minHeight: 52,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 13,
-                letterSpacing: 0.18 * 13,
-                color: palette.ink,
-              }}
-            >
-              SIGN IN
-            </Text>
+            <Text style={{ fontSize: 17, color: palette.ink }}>Sign in</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }

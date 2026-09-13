@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Text, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { Pressable, Text, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { z } from 'zod';
 
+import { palette } from '@/theme/linksman';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -16,6 +17,7 @@ const Schema = z.object({
 });
 
 export default function AddCourse() {
+  const params = useLocalSearchParams<{ returnTo?: string; mode?: string }>();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -43,7 +45,10 @@ export default function AddCourse() {
         country: 'US',
         hole_count: parsed.data.holeCount,
       });
-      router.replace({ pathname: '/round/new/setup', params: { courseId: course.id } });
+      router.dismissTo({
+        pathname: params.returnTo === '/home-course' ? '/home-course' : '/round/new/course',
+        params: { mode: params.mode ?? '', createdCourseId: course.id },
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
     }
@@ -53,13 +58,21 @@ export default function AddCourse() {
     <ScreenContainer>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingTop: 24 }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
         >
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={{ minHeight: 48, justifyContent: 'center' }}
+          >
+            <Text style={{ fontSize: 16, color: palette.bone }}>← Back to courses</Text>
+          </Pressable>
           <Text className="text-text-primary text-3xl font-light tracking-tight mb-2">
             Add a new course
           </Text>

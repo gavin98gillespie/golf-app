@@ -104,7 +104,7 @@ test('database migrations enforce round authorization and atomic completion', as
     );
     assert.equal(await count('round_players', `round_id='${privateRound}'`), 0);
   });
-  await t.test('member can edit own score but host cannot overwrite it', async () => {
+  await t.test('member and group scorekeeper can edit scores under the honor system', async () => {
     await asUser(guest);
     await db.query('UPDATE round_holes SET score=6 WHERE round_id=$1 AND player_id=$2', [
       live,
@@ -115,8 +115,8 @@ test('database migrations enforce round authorization and atomic completion', as
       'UPDATE round_holes SET score=9 WHERE round_id=$1 AND player_id=$2 RETURNING id',
       [live, guest],
     );
-    assert.equal(result.rows.length, 0);
-    assert.equal(await count('round_holes', `round_id='${live}' AND score=6`), 1);
+    assert.equal(result.rows.length, 1);
+    assert.equal(await count('round_holes', `round_id='${live}' AND score=9`), 1);
   });
   await t.test('live-hidden scores and membership stay hidden from followers', async () => {
     await asUser(spectator);
@@ -167,7 +167,7 @@ test('database migrations enforce round authorization and atomic completion', as
         [live, guest],
       );
       assert.equal(result.rows.length, 1);
-      assert.equal(result.rows[0]!.total_score, 6);
+      assert.equal(result.rows[0]!.total_score, 9);
       assert.equal(
         await count('follows', `follower_id='${guest}' AND following_id='${spectator}'`),
         0,

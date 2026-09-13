@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Keyboard, Pressable, Text, TextInput, View, ActivityIndicator } from 'react-native';
 
+import { KeyboardToolbar } from '@/components/KeyboardToolbar';
 import { useActionSheet } from '@/components/ActionSheet';
 import { containsProfanity } from '@/lib/profanity';
 import { usePostComment } from '@/lib/queries/comments';
@@ -38,6 +39,8 @@ export function CommentInput({ viewerId, roundId }: Props) {
   return (
     <View className="flex-row items-center">
       <TextInput
+        inputAccessoryViewID="comment-input"
+        style={{ maxHeight: 120, minHeight: 48, fontSize: 16 }}
         value={body}
         onChangeText={setBody}
         placeholder="Add a comment…"
@@ -61,6 +64,7 @@ export function CommentInput({ viewerId, roundId }: Props) {
           </Text>
         )}
       </Pressable>
+      <KeyboardToolbar id="comment-input" />
     </View>
   );
 }

@@ -82,7 +82,7 @@ export default function Today() {
             Rivalry ledger →
           </Text>
           <Text style={{ fontSize: 16, color: palette.fairway, marginTop: 6 }}>
-            Your confirmed Brass, friend by friend
+            Your Brass, friend by friend
           </Text>
         </Pressable>
         <RegularsPulseCard pulse={pulseQ.data} />

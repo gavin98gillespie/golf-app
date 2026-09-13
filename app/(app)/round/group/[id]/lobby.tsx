@@ -20,22 +20,30 @@ import { supabase } from '@/lib/supabase';
 import { palette, fontFamily } from '@/theme/linksman';
 
 export default function Lobby() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, manage } = useLocalSearchParams<{ id: string; manage?: string }>();
   const { session } = useSession();
   const groupQ = useGroupRound(id);
   const invite = useInviteToRound();
   const start = useStartGroupRound();
   const withdraw = useWithdrawFromRound();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [showCode, setShowCode] = useState(false);
   const sheet = useActionSheet();
 
   const round = groupQ.data?.round;
   const players = groupQ.data?.players ?? [];
   const isHost = round?.user_id === session?.user.id;
-  const joinedCount = players.filter((p) => p.status === 'joined').length;
+  const canManage =
+    isHost ||
+    players.some(
+      (p) => p.user_id === session?.user.id && ['joined', 'finished'].includes(p.status),
+    );
+  const joinedCount = players.filter(
+    (p) => p.status === 'joined' || p.status === 'finished',
+  ).length;
 
   // If round has started, route to score
-  if (round?.invites_locked_at) {
+  if (round?.invites_locked_at && manage !== '1') {
     return (
       <Redirect
         href={{ pathname: '/round/group/[id]/score', params: { id: round.id, hole: '1' } }}
@@ -55,6 +63,10 @@ export default function Lobby() {
 
   const onStart = async () => {
     if (!round) return;
+    if (round.invites_locked_at) {
+      router.replace({ pathname: '/round/group/[id]/score', params: { id } });
+      return;
+    }
     try {
       await start.mutateAsync({ roundId: round.id });
     } catch (error) {
@@ -71,7 +83,7 @@ export default function Lobby() {
       title: isHost ? 'Cancel round?' : 'Leave round?',
       subtitle: isHost
         ? 'This deletes the round for everyone.'
-        : 'You can rejoin later via the join code.',
+        : 'Your recorded scores stay with the round.',
       cancelLabel: 'Stay',
       actions: [
         {
@@ -90,7 +102,22 @@ export default function Lobby() {
     });
   };
 
-  if (!round) return null;
+  if (!round)
+    return (
+      <ScreenContainer surface="bone">
+        <Pressable onPress={() => router.replace('/(app)/(tabs)')} style={{ minHeight: 48 }}>
+          <Text style={{ color: palette.ink, fontSize: 16 }}>← Back to Today</Text>
+        </Pressable>
+        <Text style={{ color: palette.ink, fontSize: 16 }}>
+          {groupQ.isError ? 'Could not load this round.' : 'Loading round…'}
+        </Text>
+        {groupQ.isError && (
+          <Pressable onPress={() => void groupQ.refetch()} style={{ minHeight: 48 }}>
+            <Text style={{ color: palette.fairway, fontSize: 16 }}>Retry</Text>
+          </Pressable>
+        )}
+      </ScreenContainer>
+    );
 
   return (
     <ScreenContainer surface="bone">
@@ -110,7 +137,7 @@ export default function Lobby() {
           }}
         >
           <Wordmark size={20} color={palette.ink} />
-          <Pressable onPress={onLeave} hitSlop={8}>
+          <Pressable onPress={manage === '1' ? () => router.back() : onLeave} hitSlop={8}>
             <Text
               style={{
                 fontFamily: fontFamily.mono,
@@ -121,7 +148,7 @@ export default function Lobby() {
                 textTransform: 'uppercase',
               }}
             >
-              {isHost ? 'CANCEL' : 'LEAVE'}
+              {manage === '1' ? 'DONE' : isHost ? 'CANCEL' : 'LEAVE'}
             </Text>
           </Pressable>
         </View>
@@ -137,7 +164,7 @@ export default function Lobby() {
             marginTop: 16,
           }}
         >
-          LOBBY
+          {manage === '1' ? 'GROUP PLAYERS' : 'LOBBY'}
         </Text>
         <Text
           style={{
@@ -147,45 +174,57 @@ export default function Lobby() {
             marginTop: 4,
           }}
         >
-          Waiting for players
+          Who’s playing?
         </Text>
 
-        {/* Join code */}
         <Pressable
-          onPress={onCopyCode}
-          style={{
-            marginTop: 24,
-            paddingVertical: 18,
-            paddingHorizontal: 16,
-            borderWidth: 0.5,
-            borderColor: palette.ink + '33',
-          }}
+          accessibilityRole="button"
+          onPress={() => setShowCode((v) => !v)}
+          style={{ minHeight: 48, justifyContent: 'center' }}
         >
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.2,
-              color: palette.ink,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
-          >
-            JOIN CODE · TAP TO COPY
-          </Text>
-          <Text
-            style={{
-              fontFamily: fontFamily.display,
-              fontSize: 32,
-              color: palette.ink,
-              letterSpacing: 4,
-              marginTop: 4,
-            }}
-          >
-            {round.join_code}
+          <Text style={{ fontSize: 16, color: palette.fairway }}>
+            {showCode ? 'Hide join code' : 'Share a join code (optional)'}
           </Text>
         </Pressable>
-
+        {showCode && (
+          <>
+            {/* Join code */}
+            <Pressable
+              onPress={onCopyCode}
+              style={{
+                marginTop: 24,
+                paddingVertical: 18,
+                paddingHorizontal: 16,
+                borderWidth: 0.5,
+                borderColor: palette.ink + '33',
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: fontFamily.mono,
+                  fontSize: 9,
+                  letterSpacing: 9 * 0.2,
+                  color: palette.ink,
+                  opacity: 0.55,
+                  textTransform: 'uppercase',
+                }}
+              >
+                JOIN CODE · TAP TO COPY
+              </Text>
+              <Text
+                style={{
+                  fontFamily: fontFamily.display,
+                  fontSize: 32,
+                  color: palette.ink,
+                  letterSpacing: 4,
+                  marginTop: 4,
+                }}
+              >
+                {round.join_code}
+              </Text>
+            </Pressable>
+          </>
+        )}
         {/* Players */}
         <Text
           style={{
@@ -210,15 +249,36 @@ export default function Lobby() {
               isHost={p.user_id === round.user_id}
               isMe={p.user_id === session?.user.id}
             />
+            {canManage && p.user_id !== round.user_id && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={async () => {
+                  const { error } = await supabase
+                    .from('round_players')
+                    .delete()
+                    .eq('round_id', id)
+                    .eq('user_id', p.user_id);
+                  if (error) Alert.alert('Could not remove player', error.message);
+                  else await groupQ.refetch();
+                }}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
+                <Text style={{ fontSize: 15, color: palette.clay }}>
+                  Remove {p.profile?.display_name ?? 'player'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         ))}
 
-        <SkinsGamePanel
-          roundId={id}
-          setup={{ isHost, holeCount: round.hole_count ?? 18, players }}
-        />
+        {manage !== '1' && (
+          <SkinsGamePanel
+            roundId={id}
+            setup={{ isHost: canManage, holeCount: round.hole_count ?? 18, players }}
+          />
+        )}
 
-        {isHost ? (
+        {canManage ? (
           <>
             <Pressable
               onPress={() => setInviteOpen(true)}
@@ -240,13 +300,17 @@ export default function Lobby() {
                   textTransform: 'uppercase',
                 }}
               >
-                + INVITE A MUTUAL
+                + ADD PLAYERS
               </Text>
             </Pressable>
 
             <Pressable
               onPress={onStart}
-              disabled={joinedCount < 1 || start.isPending}
+              disabled={
+                (!round.invites_locked_at && !isHost) ||
+                (joinedCount < 1 && !round.invites_locked_at) ||
+                start.isPending
+              }
               style={{
                 marginTop: 32,
                 backgroundColor: palette.brass,
@@ -264,7 +328,7 @@ export default function Lobby() {
                   textTransform: 'uppercase',
                 }}
               >
-                START ROUND →
+                {round.invites_locked_at ? 'EDIT GROUP SCORES →' : 'START ROUND →'}
               </Text>
             </Pressable>
           </>
@@ -289,9 +353,17 @@ export default function Lobby() {
         onClose={() => setInviteOpen(false)}
         myUserId={session?.user.id}
         excludeIds={players.map((p) => p.user_id)}
-        onPick={(userId) => {
+        onGuest={async (name) => {
+          const { error } = await supabase.rpc('add_round_player', {
+            p_round: id,
+            p_guest_name: name,
+          });
+          if (error) throw error;
+          await groupQ.refetch();
+        }}
+        onPick={async (userId) => {
           if (!session?.user.id) return;
-          invite.mutate({
+          await invite.mutateAsync({
             roundId: round.id,
             userId,
             teeBox: round.tee_box,

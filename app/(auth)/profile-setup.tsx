@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
 import { z } from 'zod';
 
@@ -85,7 +94,11 @@ export default function ProfileSetup() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
       >
-        <View className="flex-1 mt-12">
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ paddingTop: 24, paddingBottom: 32 }}
+        >
           <Text style={monoLabel}>PROFILE</Text>
           <Text
             style={{
@@ -102,6 +115,8 @@ export default function ProfileSetup() {
           <View className="mb-6">
             <Text style={[monoLabel, { marginBottom: 6 }]}>USERNAME</Text>
             <TextInput
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
               value={username}
               onChangeText={(v) => setUsername(v.toLowerCase())}
               autoCapitalize="none"
@@ -117,6 +132,8 @@ export default function ProfileSetup() {
           <View className="mb-6">
             <Text style={[monoLabel, { marginBottom: 6 }]}>DISPLAY NAME</Text>
             <TextInput
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
               value={displayName}
               onChangeText={setDisplayName}
               autoComplete="name"
@@ -158,7 +175,7 @@ export default function ProfileSetup() {
               {loading ? 'SAVING…' : 'CONTINUE'}
             </Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
   );

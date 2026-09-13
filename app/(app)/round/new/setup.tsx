@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -54,37 +54,46 @@ export default function RoundSetup() {
 
   return (
     <ScreenContainer>
-      <Text className="text-text-primary text-3xl font-light mt-6 mb-2">Round setup</Text>
-      <Text className="text-text-secondary mb-8">{courseQ.data?.name ?? '...'}</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={{ minHeight: 48, justifyContent: 'center' }}
+        >
+          <Text style={{ color: '#f4f0e6', fontSize: 16 }}>← Back to courses</Text>
+        </Pressable>
+        <Text className="text-text-primary text-3xl font-light mt-6 mb-2">Round setup</Text>
+        <Text className="text-text-secondary mb-8">{courseQ.data?.name ?? '...'}</Text>
 
-      <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">Holes</Text>
-      <View className="flex-row gap-3 mb-6">
-        {[9, 18].map((n) => {
-          const active = holeCount === n;
-          return (
-            <Pressable
-              key={n}
-              onPress={() => setHoleCount(n as 9 | 18)}
-              className={`flex-1 py-4 rounded-xl border items-center ${
-                active ? 'border-accent bg-accent-soft' : 'border-border-subtle'
-              }`}
-            >
-              <Text className={`font-semibold ${active ? 'text-accent' : 'text-text-primary'}`}>
-                {n}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        <Text className="text-text-secondary text-xs uppercase tracking-wider mb-2">Holes</Text>
+        <View className="flex-row gap-3 mb-6">
+          {[9, 18].map((n) => {
+            const active = holeCount === n;
+            return (
+              <Pressable
+                key={n}
+                onPress={() => setHoleCount(n as 9 | 18)}
+                className={`flex-1 py-4 rounded-xl border items-center ${
+                  active ? 'border-accent bg-accent-soft' : 'border-border-subtle'
+                }`}
+              >
+                <Text className={`font-semibold ${active ? 'text-accent' : 'text-text-primary'}`}>
+                  {n}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      <View className="mt-auto pb-6">
-        <Button
-          label="Start scoring"
-          onPress={onStart}
-          loading={createRound.isPending}
-          disabled={!courseId}
-        />
-      </View>
+        <View className="mt-auto pb-6">
+          <Button
+            label="Start scoring"
+            onPress={onStart}
+            loading={createRound.isPending}
+            disabled={!courseId}
+          />
+        </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }

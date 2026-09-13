@@ -1,12 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -22,6 +15,7 @@ import { LikeButton } from '@/components/LikeButton';
 import { CommentList } from '@/components/CommentList';
 import { CommentInput } from '@/components/CommentInput';
 import { ReportSheet } from '@/components/ReportSheet';
+import { useMyProfile } from '@/lib/queries/profile';
 import { useRoundHoles } from '@/lib/queries/rounds';
 import { useComments } from '@/lib/queries/comments';
 import { useSession } from '@/lib/hooks/useSession';
@@ -61,20 +55,9 @@ export default function RoundDetail() {
   const round = roundQ.data;
   const isOwner = !!session?.user.id && round?.user_id === session.user.id;
 
-  const ownerProfileQ = useQuery({
-    queryKey: ['profile', round?.user_id],
-    queryFn: async () => {
-      if (!round?.user_id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, display_name')
-        .eq('id', round.user_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!round?.user_id,
-  });
+  // Use the canonical full-profile query. A partial author record under the
+  // same cache key would erase onboarding_completed and trigger onboarding.
+  const ownerProfileQ = useMyProfile(round?.user_id);
   const ownerProfile = ownerProfileQ.data;
 
   const commentsQ = useComments(round?.id);

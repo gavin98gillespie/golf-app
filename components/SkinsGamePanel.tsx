@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Keyboard,
   InputAccessoryView,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,10 +10,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
-import { useSession } from '@/lib/hooks/useSession';
 import { useSkinsAction, useSkinsGame, type GameAction } from '@/lib/queries/skins';
 import { palette, fontFamily } from '@/theme/linksman';
+export const brass = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 type Setup = {
   isHost: boolean;
   holeCount: number;
@@ -25,388 +24,289 @@ export function SkinsGamePanel({
   compact = false,
 }: {
   roundId: string;
-  setup?: Setup;
+  setup?: Setup | undefined;
   compact?: boolean;
 }) {
-  const query = useSkinsGame(roundId);
-  const action = useSkinsAction(roundId);
-  const { session } = useSession();
+  const q = useSkinsGame(roundId);
+  const mutation = useSkinsAction(roundId);
+  const game = q.data;
   const [editing, setEditing] = useState(false);
+  const [stake, setStake] = useState('1');
   const [mode, setMode] = useState<'gross' | 'net'>('gross');
   const [strokes, setStrokes] = useState<Record<string, string>>({});
   const [order, setOrder] = useState('');
-  const game = query.data;
-  const mine = game?.players.find((p) => p.userId === session?.user.id);
-  const run = async (input: GameAction) => {
+  const players =
+    setup?.players.filter((p) => p.status === 'joined' || p.status === 'finished') ?? [];
+  const run = async (a: GameAction) => {
     try {
       Keyboard.dismiss();
-      await action.mutateAsync(input);
+      await mutation.mutateAsync(a);
       setEditing(false);
     } catch (e) {
       Alert.alert(
-        'Could not update skins',
-        e instanceof Error
-          ? e.message
-          : ((e as { message?: string }).message ?? 'Please try again.'),
+        'Could not save skins',
+        (e as { message?: string }).message ?? 'Please try again.',
       );
     }
   };
-  const button = (label: string, onPress: () => void, disabled = false) => (
+  const button = (label: string, press: () => void, disabled = false) => (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled || action.isPending}
-      onPress={onPress}
-      style={[styles.button, { opacity: disabled || action.isPending ? 0.45 : 1 }]}
+      onPress={press}
+      disabled={disabled || mutation.isPending}
+      style={[s.button, { opacity: disabled || mutation.isPending ? 0.5 : 1 }]}
     >
-      <Text style={styles.buttonText}>{label}</Text>
+      <Text style={s.text}>{label}</Text>
     </Pressable>
   );
-  if (query.isPending)
+  if (q.isPending)
     return setup ? (
-      <View style={styles.section}>
-        <Text style={styles.text}>Loading game options…</Text>
+      <View style={s.section}>
+        <Text style={s.text}>Loading skins…</Text>
       </View>
     ) : null;
-  if (query.isError)
+  if (q.isError)
     return (
-      <View style={styles.section}>
-        <Text style={styles.text}>Could not load skins.</Text>
-        {button('Retry', () => void query.refetch())}
+      <View style={s.section}>{button('Could not load skins. Retry', () => void q.refetch())}</View>
+    );
+  if (compact) {
+    if (!game || game.state === 'void') return null;
+    return (
+      <View style={s.section}>
+        <Text style={s.title}>Skins · {game.state === 'settled' ? 'Saved' : 'Live'}</Text>
+        <Text style={s.text}>
+          {brass(game.stake)} Brass per skin · {game.result?.resolvedHoles ?? 0}/{game.hole_count}{' '}
+          holes scored
+        </Text>
       </View>
     );
-  if (!game && !setup) return null;
-  if (compact && game)
-    return (
-      <View style={styles.section}>
-        <Text style={styles.title}>
-          Skins ·{' '}
-          {game.state === 'settled'
-            ? 'Confirmed'
-            : game.state === 'void'
-              ? 'Voided'
-              : 'Provisional'}
-        </Text>
-        <Text style={styles.text}>
-          {game.state === 'void'
-            ? 'This game was voided. No Brass counts.'
-            : game.state === 'settled'
-              ? 'Everyone confirmed. Your result is saved in the ledger.'
-              : `${game.result?.resolvedHoles ?? 0} of ${game.hole_count} holes resolved. Brass posts after everyone confirms.`}
-        </Text>
-        {button('View skins', () =>
-          router.push({ pathname: '/round/group/[id]/game', params: { id: roundId } }),
-        )}
-      </View>
-    );
-  const joined = setup?.players.filter((p) => p.status === 'joined') ?? [];
-  const save = () => {
-    const allowances = Object.fromEntries(
-      joined.map((p) => [p.user_id, mode === 'gross' ? 0 : Number(strokes[p.user_id] ?? '0')]),
-    );
-    if (mode === 'net' && joined.some((p) => !/^\d+$/.test(strokes[p.user_id] ?? ''))) {
-      Alert.alert('Enter agreed strokes', 'Enter a whole number for each player, including zero.');
-      return;
-    }
-    const parsed =
-      mode === 'gross'
-        ? Array.from({ length: setup!.holeCount }, (_, i) => i + 1)
-        : order
-            .split(/[\s,]+/)
-            .filter(Boolean)
-            .map(Number);
-    void run({ type: 'configure', mode, allowances, order: parsed });
-  };
+  }
   const edit = () => {
     setMode(game?.mode ?? 'gross');
-    setStrokes(Object.fromEntries(game?.players.map((p) => [p.userId, String(p.strokes)]) ?? []));
+    setStake(String(game?.stake ?? 1));
+    setStrokes(
+      Object.fromEntries(
+        players.map((p) => [
+          p.user_id,
+          String(game?.players.find((v) => v.userId === p.user_id)?.strokes ?? 0),
+        ]),
+      ),
+    );
     setOrder(game?.mode === 'net' ? game.stroke_order.join(', ') : '');
     setEditing(true);
   };
+  const save = () => {
+    if (!/^\d+(\.\d{1,2})?$/.test(stake) || Number(stake) <= 0) {
+      Alert.alert(
+        'Enter a Brass amount',
+        'For example, 50 means 50 Brass per skin from each opponent.',
+      );
+      return;
+    }
+    const allowances = Object.fromEntries(
+      players.map((p) => [p.user_id, mode === 'gross' ? 0 : Number(strokes[p.user_id])]),
+    );
+    if (mode === 'net' && players.some((p) => !/^\d+$/.test(strokes[p.user_id] ?? ''))) {
+      Alert.alert('Enter whole strokes for each player');
+      return;
+    }
+    void run({
+      type: 'configure',
+      mode,
+      stake: Number(stake),
+      allowances,
+      order:
+        mode === 'gross'
+          ? Array.from({ length: setup!.holeCount }, (_, i) => i + 1)
+          : order
+              .split(/[\s,]+/)
+              .filter(Boolean)
+              .map(Number),
+    });
+  };
   return (
-    <View style={styles.section}>
-      <Text style={styles.title}>{game ? 'Skins' : 'Choose your game'}</Text>
-      {!game && !editing && (
+    <View style={s.section}>
+      <Text style={s.title}>Skins</Text>
+      {editing && setup ? (
         <>
-          <Text style={styles.text}>
-            Score only, or play skins for Brass points. Everyone agrees before teeing off.
-          </Text>
-          {setup?.isHost && (joined.length < 2 || joined.length > 4) && (
-            <Text style={styles.small}>Skins needs 2–4 joined players.</Text>
-          )}
-          {setup?.isHost ? (
-            button('Add skins', edit, joined.length < 2 || joined.length > 4)
-          ) : (
-            <Text style={styles.text}>The host can add skins once 2–4 players have joined.</Text>
-          )}
-        </>
-      )}
-      {editing && setup && (
-        <>
-          <Text style={styles.text}>
-            Lowest score wins the hole. Ties carry forward. Each opponent gives the winner 1 Brass
-            per skin. Final ties expire. Brass has no cash value.
+          <Text style={s.text}>Brass per skin, from each opponent</Text>
+          <TextInput
+            accessibilityLabel="Brass per skin"
+            style={s.input}
+            value={stake}
+            onChangeText={setStake}
+            keyboardType="decimal-pad"
+            inputAccessoryViewID="skins-inputs"
+          />
+          <Text style={s.small}>
+            A 50 Brass skin is +100 to the winner in a three-player game: 50 from each opponent.
+            Ties carry to the next hole; final ties expire.
           </Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            {(['gross', 'net'] as const).map((m) => (
-              <Pressable
-                key={m}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: mode === m }}
-                style={[
-                  styles.button,
-                  { flex: 1, backgroundColor: mode === m ? palette.fairway : palette.graphite },
-                ]}
-                onPress={() => setMode(m)}
-              >
-                <Text style={styles.buttonText}>
-                  {m === 'gross' ? 'Gross scores' : 'Net scores'}
-                </Text>
-              </Pressable>
-            ))}
+            {button(mode === 'gross' ? '✓ Gross scores' : 'Gross scores', () => setMode('gross'))}
+            {button(mode === 'net' ? '✓ Use strokes' : 'Use strokes', () => setMode('net'))}
           </View>
           {mode === 'net' && (
             <>
-              <Text style={styles.text}>
-                Agree strokes received over these {setup.holeCount} holes. These are game
-                allowances, not handicap indexes.
-              </Text>
-              {joined.map((p) => (
+              <Text style={s.text}>Strokes received over these {setup.holeCount} holes</Text>
+              {players.map((p) => (
                 <View key={p.user_id}>
-                  <Text style={styles.text}>
-                    {p.profile?.display_name ?? 'Player'} · strokes received
-                  </Text>
+                  <Text style={s.text}>{p.profile?.display_name ?? 'Player'}</Text>
                   <TextInput
-                    inputAccessoryViewID="skins-game-inputs"
-                    accessibilityLabel={`${p.profile?.display_name ?? 'Player'} strokes received`}
-                    style={styles.input}
-                    value={strokes[p.user_id] ?? ''}
-                    onChangeText={(v) => setStrokes((s) => ({ ...s, [p.user_id]: v }))}
-                    keyboardType="numbers-and-punctuation"
-                    returnKeyType="done"
-                    onSubmitEditing={Keyboard.dismiss}
-                    placeholder="0"
-                    placeholderTextColor={palette.sage}
+                    accessibilityLabel={`${p.profile?.display_name} strokes`}
+                    value={strokes[p.user_id] ?? '0'}
+                    onChangeText={(v) => setStrokes((old) => ({ ...old, [p.user_id]: v }))}
+                    keyboardType="number-pad"
+                    inputAccessoryViewID="skins-inputs"
+                    style={s.input}
                   />
                 </View>
               ))}
-              <Text style={styles.text}>
-                Hole numbers, hardest to easiest. Use your scorecard’s stroke indexes for only the
-                holes being played. Enter every hole once, separated by commas.
+              <Text style={s.text}>Played hole numbers, hardest to easiest</Text>
+              <Text style={s.small}>
+                Use the course’s stroke indexes. Enter every played hole once, separated by commas.
               </Text>
               <TextInput
-                inputAccessoryViewID="skins-game-inputs"
-                accessibilityLabel="Hardest to easiest hole numbers"
-                style={styles.input}
+                accessibilityLabel="Hole difficulty order"
+                style={s.input}
                 value={order}
                 onChangeText={setOrder}
                 placeholder="e.g. 5, 3, 1, …"
                 placeholderTextColor={palette.sage}
+                inputAccessoryViewID="skins-inputs"
                 returnKeyType="done"
                 onSubmitEditing={Keyboard.dismiss}
               />
             </>
           )}
-          {Platform.OS === 'ios' && mode === 'net' && (
-            <InputAccessoryView nativeID="skins-game-inputs">
+          {Platform.OS === 'ios' && (
+            <InputAccessoryView nativeID="skins-inputs">
               <View
                 style={{
                   backgroundColor: palette.graphite,
+                  paddingHorizontal: 24,
                   alignItems: 'flex-end',
-                  paddingHorizontal: 18,
                 }}
               >
                 <Pressable
                   accessibilityRole="button"
-                  onPress={Keyboard.dismiss}
                   style={{ minHeight: 44, justifyContent: 'center' }}
+                  onPress={Keyboard.dismiss}
                 >
-                  <Text style={styles.buttonText}>Done</Text>
+                  <Text style={s.text}>Done</Text>
                 </Pressable>
               </View>
             </InputAccessoryView>
           )}
-          {button('Save rules for everyone to review', save)}
+          {button('Save skins', save)}
           {button('Cancel', () => {
             Keyboard.dismiss();
             setEditing(false);
           })}
         </>
-      )}
-      {game && !editing && (
+      ) : (
         <>
-          <Text style={styles.text}>
-            {game.mode === 'gross' ? 'Gross' : 'Agreed net'} · {game.hole_count} holes · 1 Brass per
-            skin, from each opponent.
-          </Text>
-          <Text style={styles.text}>
-            Ties carry forward. Final ties expire. Brass is points only.
-          </Text>
-          {game.mode === 'net' && (
-            <Text style={styles.text}>Stroke order: {game.stroke_order.join(', ')}</Text>
-          )}
-          <Text style={styles.label}>
-            {game.state === 'setup'
-              ? 'AGREE BEFORE STARTING'
-              : game.state === 'settled'
-                ? 'CONFIRMED · SAVED TO LEDGER'
-                : game.state === 'void'
-                  ? 'VOID · NO BRASS COUNTS'
-                  : 'PROVISIONAL · NOT IN LEDGER YET'}
-          </Text>
-          {game.players.map((p) => (
-            <View style={styles.row} key={p.userId}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.text}>
-                  {p.name}
-                  {p.userId === session?.user.id ? ' (you)' : ''}
-                </Text>
-                <Text style={styles.small}>
-                  {game.mode === 'net' ? `${p.strokes} strokes · ` : ''}
-                  {game.state === 'setup'
-                    ? p.accepted
-                      ? 'Agreed'
-                      : 'Reviewing rules'
-                    : p.confirmed
-                      ? 'Result confirmed'
-                      : p.finished
-                        ? 'Scorecard finished'
-                        : 'Still scoring'}
-                </Text>
-              </View>
-              {game.result && game.state !== 'void' && game.state !== 'setup' && (
-                <Text style={styles.balance}>
-                  {(game.result.balances[p.userId] ?? 0) > 0 ? '+' : ''}
-                  {game.result.balances[p.userId] ?? 0}
-                </Text>
-              )}
-            </View>
-          ))}
-          {game.state === 'setup' && (
+          {!game || game.state === 'void' ? (
             <>
-              {button(
-                mine?.accepted ? 'You agreed' : 'Agree to these rules',
-                () => void run({ type: 'accept', revision: game.revision }),
-                !!mine?.accepted,
+              <Text style={s.text}>Lowest score wins the hole. Set your own Brass amount.</Text>
+              {setup?.isHost && button('Add skins', edit, players.length < 2 || players.length > 4)}
+              {setup && players.length < 2 && (
+                <Text style={s.small}>Add at least one other player first.</Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={s.text}>
+                {brass(game.stake)} Brass per skin · {game.mode === 'gross' ? 'Gross' : 'Net'}{' '}
+                scores
+              </Text>
+              <Text style={s.small}>
+                {game.state === 'settled'
+                  ? 'Saved to the ledger. Score edits update Brass automatically.'
+                  : 'Brass updates as you score and is saved when you finish the group round.'}
+              </Text>
+              {game.result && game.state !== 'setup' && (
+                <>
+                  {game.players.map((p) => (
+                    <View key={p.userId} style={s.row}>
+                      <Text style={[s.text, { flex: 1 }]}>{p.name}</Text>
+                      <Text style={s.amount}>
+                        {(game.result!.balances[p.userId] ?? 0) > 0 ? '+' : ''}
+                        {brass(game.result!.balances[p.userId] ?? 0)}
+                      </Text>
+                    </View>
+                  ))}
+                  {game.result.holes.map((h) => (
+                    <View key={h.hole} style={s.row}>
+                      <Text style={[s.text, { width: 70 }]}>Hole {h.hole}</Text>
+                      <Text style={[s.small, { flex: 1 }]}>
+                        {h.state === 'waiting'
+                          ? 'Waiting for scores'
+                          : h.state === 'carried'
+                            ? h.hole === game.hole_count
+                              ? 'Tied · no award'
+                              : 'Tied · carried'
+                            : `${game.players.find((p) => p.userId === h.winnerId)?.name ?? 'Player'} · ${brass((h.skinsAtStake ?? 0) * game.stake)} from each opponent`}
+                      </Text>
+                    </View>
+                  ))}
+                </>
               )}
               {setup?.isHost && (
                 <>
-                  {button('Change rules', edit)}
-                  {button('Use score only', () => void run({ type: 'remove' }))}
+                  {button('Edit skins', edit)}
+                  {button('Remove skins', () =>
+                    Alert.alert(
+                      'Remove skins?',
+                      'Your golf scores stay saved. Skins awards from this game will be removed.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Remove',
+                          style: 'destructive',
+                          onPress: () => void run({ type: 'remove' }),
+                        },
+                      ],
+                    ),
+                  )}
                 </>
               )}
             </>
           )}
-          {game.state === 'active' && (
-            <>
-              <Text style={styles.text}>
-                {game.result?.allScoresPresent && game.players.every((p) => p.finished)
-                  ? 'Review the hole results below. Everyone must confirm this result before Brass is recorded.'
-                  : `Waiting for all scorecards: ${game.result?.resolvedHoles ?? 0} of ${game.hole_count} holes resolved.`}
-              </Text>
-            </>
-          )}
-          {game.result && game.state !== 'void' && game.state !== 'setup' && (
-            <>
-              {game.result.holes.map((h) => (
-                <View style={styles.row} key={h.hole}>
-                  <Text style={[styles.text, { width: 65 }]}>Hole {h.hole}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.text}>
-                      {h.state === 'waiting'
-                        ? 'Waiting for scores'
-                        : h.state === 'carried'
-                          ? h.hole === game.hole_count && game.result?.allScoresPresent
-                            ? 'Tied · no award'
-                            : 'Tied · carries forward'
-                          : `${game.players.find((p) => p.userId === h.winnerId)?.name ?? 'Player'} · ${h.skinsAtStake} ${h.skinsAtStake === 1 ? 'skin' : 'skins'}`}
-                    </Text>
-                    <Text style={styles.small}>
-                      {h.scores
-                        .map(
-                          (s) =>
-                            `${game.players.find((p) => p.userId === s.playerId)?.name ?? 'Player'} ${s.gross}${game.mode === 'net' ? ` (${s.net} net)` : ''}`,
-                        )
-                        .join(' · ')}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-              {game.result.unawardedSkins > 0 && (
-                <Text style={styles.text}>
-                  {game.result.unawardedSkins} final tied skins expired without an award.
-                </Text>
-              )}
-            </>
-          )}
-          {game.state === 'active' && (
-            <>
-              {' '}
-              {button(
-                mine?.confirmed ? 'Waiting for the others' : 'Confirm this result',
-                () => void run({ type: 'confirm', revision: game.revision }),
-                !!mine?.confirmed ||
-                  !game.result?.allScoresPresent ||
-                  !game.players.every((p) => p.finished),
-              )}
-            </>
-          )}
-          {button('Open rivalry ledger', () => router.push('/ledger'))}
-          {game.state === 'active' &&
-            button('Void skins', () =>
-              Alert.alert(
-                'Void this game?',
-                'No Brass will count. Everyone’s golf scores stay saved. This cannot be undone.',
-                [
-                  { text: 'Keep playing', style: 'cancel' },
-                  {
-                    text: 'Void skins',
-                    style: 'destructive',
-                    onPress: () => void run({ type: 'remove' }),
-                  },
-                ],
-              ),
-            )}
         </>
       )}
     </View>
   );
 }
-const styles = StyleSheet.create({
-  section: { backgroundColor: palette.ink, padding: 18, marginVertical: 20 },
-  title: { fontFamily: fontFamily.display, fontSize: 28, color: palette.bone, marginBottom: 10 },
-  text: { fontSize: 16, lineHeight: 24, color: palette.bone, marginVertical: 4 },
-  small: { fontSize: 14, lineHeight: 21, color: palette.sage },
-  label: {
-    fontFamily: fontFamily.mono,
-    fontSize: 11,
-    color: palette.sage,
-    marginTop: 18,
-    marginBottom: 8,
+const s = StyleSheet.create({
+  section: { backgroundColor: palette.ink, padding: 20 },
+  title: { fontFamily: fontFamily.display, fontSize: 28, color: palette.bone, marginBottom: 8 },
+  text: { fontSize: 16, lineHeight: 24, color: palette.bone },
+  small: { fontSize: 14, lineHeight: 22, color: palette.sage, marginVertical: 8 },
+  input: {
+    minHeight: 48,
+    fontSize: 20,
+    color: palette.bone,
+    borderBottomWidth: 1,
+    borderColor: palette.sage,
+    paddingVertical: 10,
+    marginVertical: 8,
+  },
+  button: {
+    minHeight: 48,
+    padding: 12,
+    backgroundColor: palette.fairway,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
   },
   row: {
     flexDirection: 'row',
-    gap: 10,
     alignItems: 'center',
+    gap: 12,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: palette.bone + '33',
+    borderColor: palette.bone + '33',
   },
-  balance: { fontSize: 24, color: palette.brass },
-  button: {
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: palette.fairway,
-    marginTop: 12,
-  },
-  buttonText: { fontSize: 16, color: palette.bone, textAlign: 'center' },
-  input: {
-    minHeight: 48,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.sage,
-    fontSize: 18,
-    color: palette.bone,
-    paddingVertical: 10,
-  },
+  amount: { fontSize: 24, color: palette.brass },
 });

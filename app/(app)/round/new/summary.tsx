@@ -100,13 +100,14 @@ export default function Summary() {
         </Text>
       </View>
 
-      <View style={{ marginBottom: 16, borderTopWidth: 0.5, borderTopColor: palette.ink + '14' }}>
+      <View style={{ marginBottom: 16, borderTopWidth: 0.5, borderTopColor: palette.bone + '24' }}>
         <NotesField
           value={roundQ.data?.notes ?? ''}
-          onChange={(t) => {
-            if (roundQ.data) updateRoundNotes.mutate({ roundId: roundQ.data.id, notes: t });
+          onChange={async (t) => {
+            if (roundQ.data)
+              await updateRoundNotes.mutateAsync({ roundId: roundQ.data.id, notes: t });
           }}
-          surface="bone"
+          surface="ink"
         />
       </View>
 
@@ -150,14 +151,14 @@ export default function Summary() {
                   visibility === v ? 'text-accent' : 'text-text-primary'
                 }`}
               >
-                {v === 'mutuals' ? 'Friends' : 'Private'}
+                {v === 'mutuals' ? 'Followers' : 'Private'}
               </Text>
             </Pressable>
           ))}
         </View>
         <Text className="text-text-secondary text-xs mt-2">
           {visibility === 'mutuals'
-            ? 'Visible to mutual followers when feed launches in Phase 3.'
+            ? 'Visible to people who follow you. No follow-back needed.'
             : 'Only you can see this round.'}
         </Text>
       </View>

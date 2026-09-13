@@ -1,7 +1,18 @@
 import { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Modal,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardToolbar } from '@/components/KeyboardToolbar';
 import { useActionSheet } from '@/components/ActionSheet';
 import { useSubmitReport, type ReportReason, type ReportTargetType } from '@/lib/queries/reports';
 import { palette, fontFamily } from '@/theme/linksman';
@@ -68,24 +79,18 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
     <Modal
       visible={visible}
       animationType="slide"
-      transparent
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Pressable
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: palette.ink + 'CC', justifyContent: 'flex-end' }}
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: palette.bone }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{
-            backgroundColor: palette.bone,
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: Math.max(insets.bottom, 16) + 8,
-            borderTopLeftRadius: 4,
-            borderTopRightRadius: 4,
-          }}
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ padding: 24, paddingBottom: Math.max(insets.bottom, 16) + 24 }}
         >
           <Text
             style={{
@@ -152,6 +157,7 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
           </View>
 
           <TextInput
+            inputAccessoryViewID="report-input"
             value={details}
             onChangeText={setDetails}
             placeholder="Additional details (optional)"
@@ -168,6 +174,7 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
               borderWidth: 0.5,
               borderColor: palette.ink + '33',
               minHeight: 84,
+              maxHeight: 140,
               textAlignVertical: 'top',
             }}
           />
@@ -227,8 +234,9 @@ export function ReportSheet({ visible, reporterId, targetType, targetId, onClose
               )}
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
+        </ScrollView>
+        <KeyboardToolbar id="report-input" surface="bone" />
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

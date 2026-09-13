@@ -1,23 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useState, useEffect } from 'react';
+import { useIsFocused } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { AppState } from 'react-native';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase } from '@/lib/supabase';
 import type { SkinsResult } from '@/lib/games/skins';
 function useScreenFocused() {
-  const [focused, setFocused] = useState(false);
+  const focused = useIsFocused();
   const [active, setActive] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => setActive(state === 'active'));
     return () => sub.remove();
   }, []);
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
   return focused && active;
 }
 export type SkinsGame = {
@@ -29,6 +23,7 @@ export type SkinsGame = {
   stroke_order: number[];
   state: 'setup' | 'active' | 'settled' | 'void';
   revision: number;
+  stake: number;
   result: SkinsResult | null;
   players: {
     userId: string;
@@ -47,7 +42,9 @@ export type LedgerEntry = {
   name: string;
   change: number;
   hole: number;
-  kind: 'award' | 'reversal';
+  kind: 'award' | 'reversal' | 'manual';
+  label?: string;
+  editor?: string;
   course: string;
   created_at: string;
 };
@@ -72,8 +69,8 @@ export type GameAction =
       mode: 'gross' | 'net';
       allowances: Record<string, number>;
       order: number[];
+      stake: number;
     }
-  | { type: 'accept' | 'confirm'; revision: number }
   | { type: 'remove' };
 export function useSkinsAction(roundId: string) {
   const qc = useQueryClient();
@@ -81,18 +78,14 @@ export function useSkinsAction(roundId: string) {
     mutationFn: async (action: GameAction) => {
       const response =
         action.type === 'configure'
-          ? await supabase.rpc('configure_skins', {
+          ? await supabase.rpc('save_skins_game', {
               p_round: roundId,
               p_mode: action.mode,
               p_allowances: action.allowances,
               p_order: action.order,
+              p_stake: action.stake,
             })
-          : action.type === 'remove'
-            ? await supabase.rpc('remove_or_void_skins', { p_round: roundId })
-            : await supabase.rpc(action.type === 'accept' ? 'accept_skins' : 'confirm_skins', {
-                p_round: roundId,
-                p_revision: action.revision,
-              });
+          : await supabase.rpc('remove_or_void_skins', { p_round: roundId });
       if (response.error) throw response.error;
     },
     onSuccess: async () => {

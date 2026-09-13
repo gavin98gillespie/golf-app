@@ -80,7 +80,7 @@ export function useGroupRound(roundId: string | undefined) {
         supabase
           .from('round_players')
           .select(
-            '*, profile:profiles!round_players_user_id_fkey(id, display_name, username, avatar_url)',
+            '*, profile:profiles!round_players_profile_id_fkey(id, display_name, username, avatar_url), guest:guest_players!round_players_guest_id_fkey(id,display_name)',
           )
           .eq('round_id', roundId),
         supabase.from('round_holes').select('*').eq('round_id', roundId),
@@ -90,7 +90,16 @@ export function useGroupRound(roundId: string | undefined) {
       if (holesRes.error) throw holesRes.error;
       return {
         round: roundRes.data as Tables<'rounds'>,
-        players: (playersRes.data ?? []) as GroupRoundPlayer[],
+        players: (playersRes.data ?? []).map((row: unknown) => {
+          const p = row as GroupRoundPlayer & {
+            guest: { id: string; display_name: string } | null;
+          };
+          return {
+            ...p,
+            profile:
+              p.profile ?? (p.guest ? { ...p.guest, username: null, avatar_url: null } : null),
+          };
+        }),
         holes: (holesRes.data ?? []) as Tables<'round_holes'>[],
       };
     },
@@ -159,13 +168,10 @@ export function useInviteToRound() {
       teeBox: string;
       invitedBy: string;
     }) => {
-      const { error } = await supabase.from('round_players').insert({
-        round_id: input.roundId,
-        user_id: input.userId,
-        tee_box: input.teeBox,
-        status: 'invited',
-        invited_by: input.invitedBy,
-      } as Inserts<'round_players'>);
+      const { error } = await supabase.rpc('add_round_player', {
+        p_round: input.roundId,
+        p_user: input.userId,
+      });
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
