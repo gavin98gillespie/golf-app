@@ -1,6 +1,8 @@
 # Linksman — The Rivalry Ledger (design)
 
 **Date:** 2026-09-07
+
+**September 13 refinement:** See [games-first release](2026-09-13-rivalry-games-first-release.md) for current competitor findings, the points-only skins rules, fairness corrections and a narrower build sequence. The original novelty claims and broad first-release scope below are historical proposals, not verified facts or shipped features.
 **Supersedes:** the "social golf tracker" positioning of Phases 1–8
 **Goal:** Reposition Linksman from a social round tracker into golf's persistent rivalry ledger, on top of the existing chassis. Ship to the App Store and Google Play.
 
