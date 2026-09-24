@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlayModeSheet } from '@/components/PlayModeSheet';
-import { palette } from '@/theme/linksman';
+import { fontFamily, palette } from '@/theme/linksman';
 
 export type TabName = 'index' | 'profile';
 export function TabBar({
@@ -17,66 +18,169 @@ export function TabBar({
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
         backgroundColor: palette.ink,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         borderTopWidth: 0.5,
-        borderTopColor: palette.bone + '33',
-        paddingTop: 8,
+        borderColor: palette.bone + '24',
+        paddingTop: 10,
         paddingBottom: Math.max(insets.bottom, 12),
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
       }}
     >
-      <Tab label="Home" selected={active === 'index'} onPress={() => onSelect('index')} />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="New round"
-        onPress={() => setOpen(true)}
-        style={{
-          flex: 1,
-          minHeight: 48,
-          borderRadius: 24,
-          backgroundColor: palette.brass,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Text style={{ color: palette.ink, fontSize: 16, fontWeight: '600' }}>+ New round</Text>
-      </Pressable>
-      <Tab label="Me" selected={active === 'profile'} onPress={() => onSelect('profile')} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 70 }}>
+        <Tab
+          name="index"
+          label="Home"
+          selected={active === 'index'}
+          onPress={() => onSelect('index')}
+        />
+        <View style={{ flex: 1, alignItems: 'center', marginTop: -22 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="New round"
+            onPress={() => setOpen(true)}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              gap: 7,
+              transform: [{ scale: pressed ? 0.95 : 1 }],
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 66,
+                height: 66,
+                borderRadius: 33,
+                backgroundColor: palette.ink,
+                padding: 4,
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  borderRadius: 29,
+                  backgroundColor: palette.brass,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: palette.brass,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.22,
+                  shadowRadius: 10,
+                  elevation: 3,
+                }}
+              >
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    inset: 4,
+                    borderRadius: 25,
+                    borderWidth: 0.5,
+                    borderColor: palette.bone + '55',
+                  }}
+                />
+                <Svg width={28} height={28} viewBox="0 0 28 28" accessible={false}>
+                  <Path
+                    d="M10 22V5L22 9.5 10 14"
+                    stroke={palette.ink}
+                    strokeWidth={1.7}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                  <Path
+                    d="M7 20c-2 .5-3 1.2-3 2 0 1.7 4 3 9 3s9-1.3 9-3c0-1.2-2-2.2-5-2.7"
+                    stroke={palette.ink}
+                    strokeWidth={1.3}
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </Svg>
+              </View>
+            </View>
+            <Text
+              style={{
+                fontFamily: fontFamily.mono,
+                fontSize: 10,
+                letterSpacing: 0.6,
+                color: palette.bone,
+              }}
+            >
+              NEW ROUND
+            </Text>
+          </Pressable>
+        </View>
+        <Tab
+          name="profile"
+          label="Me"
+          selected={active === 'profile'}
+          onPress={() => onSelect('profile')}
+        />
+      </View>
       <PlayModeSheet visible={open} onClose={() => setOpen(false)} />
     </View>
   );
 }
 function Tab({
+  name,
   label,
   selected,
   onPress,
 }: {
+  name: TabName;
   label: string;
   selected: boolean;
   onPress: () => void;
 }) {
+  const color = selected ? palette.brass : palette.sage;
   return (
     <Pressable
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 5 }}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 64,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
+      <Svg width={23} height={23} viewBox="0 0 24 24" accessible={false}>
+        {name === 'index' ? (
+          <Path
+            d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"
+            stroke={color}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            fill={selected ? palette.brass + '18' : 'none'}
+          />
+        ) : (
+          <>
+            <Circle cx={12} cy={7} r={4} stroke={color} strokeWidth={1.5} fill="none" />
+            <Path
+              d="M4 21v-2a8 6 0 0 1 16 0v2"
+              stroke={color}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              fill="none"
+            />
+          </>
+        )}
+      </Svg>
       <Text
         style={{
-          fontSize: 16,
-          fontWeight: selected ? '600' : '400',
+          fontFamily: fontFamily.mono,
+          fontSize: 11,
+          letterSpacing: 0.8,
           color: selected ? palette.bone : palette.sage,
         }}
       >
-        {label}
+        {label.toUpperCase()}
       </Text>
-      <View
-        style={{ width: 18, height: 2, backgroundColor: selected ? palette.brass : 'transparent' }}
-      />
     </Pressable>
   );
 }
