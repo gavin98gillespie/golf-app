@@ -10,22 +10,13 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { z } from 'zod';
+import { ProfileBasicsSchema as Schema } from '@/lib/profileForm';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useSession } from '@/lib/hooks/useSession';
 import { explainProfanity } from '@/lib/profanity';
 import { useCheckUsername, useCreateProfile } from '@/lib/queries/profile';
 import { fontFamily, palette } from '@/theme/linksman';
-
-const Schema = z.object({
-  username: z
-    .string()
-    .min(3, 'At least 3 characters')
-    .max(30, 'At most 30')
-    .regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers, underscore'),
-  displayName: z.string().min(1, 'Required').max(60, 'At most 60'),
-});
 
 const monoLabel = {
   fontFamily: fontFamily.mono,
@@ -77,10 +68,9 @@ export default function ProfileSetup() {
         id: session.user.id,
         username: parsed.data.username,
         display_name: parsed.data.displayName,
+        onboarding_completed: true,
       });
-      // A brand-new profile always has onboarding_completed = false, so go
-      // straight there rather than tapping the tabs and getting redirected.
-      router.replace('/(onboarding)/home-course');
+      router.replace('/(app)/(tabs)');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
     }
@@ -109,7 +99,7 @@ export default function ProfileSetup() {
               marginBottom: 40,
             }}
           >
-            Pick your handle.
+            Finish your account.
           </Text>
 
           <View className="mb-6">

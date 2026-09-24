@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 
 import { TabBar } from '@/components/TabBar';
 
-type TabName = 'index' | 'feed' | 'search' | 'profile';
+type TabName = 'index' | 'profile';
 
 export default function TabsLayout() {
   return (
@@ -22,8 +22,8 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="feed" />
-      <Tabs.Screen name="search" />
+      <Tabs.Screen name="feed" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="start" options={{ href: null }} />
     </Tabs>

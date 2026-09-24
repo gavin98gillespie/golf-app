@@ -1,260 +1,192 @@
 import { useState } from 'react';
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Keyboard, ScrollView, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { z } from 'zod';
-
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { Wordmark } from '@/components/Wordmark';
+import { AccountField } from '@/components/AccountField';
 import { useActionSheet } from '@/components/ActionSheet';
+import { useCheckUsername } from '@/lib/queries/profile';
+import { SignUpSchema } from '@/lib/profileForm';
 import { signUp } from '@/lib/auth';
 import { fontFamily, palette } from '@/theme/linksman';
 
-const Schema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(8, 'At least 8 characters'),
-});
-
-const monoLabel = {
-  fontFamily: fontFamily.mono,
-  fontSize: 11,
-  letterSpacing: 0.18 * 11,
-  color: palette.ink,
-  opacity: 0.55,
-} as const;
-
-const fieldStyle = {
-  fontFamily: fontFamily.editorial,
-  fontSize: 18,
-  color: palette.ink,
-  paddingVertical: 8,
-} as const;
-
 export default function SignUp() {
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const checkUsername = useCheckUsername();
   const sheet = useActionSheet();
-
   async function onSubmit() {
+    if (loading) return;
     setError(null);
-    const parsed = Schema.safeParse({ email, password });
+    const parsed = SignUpSchema.safeParse({ displayName, username, email, password });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid input');
+      setError(parsed.error.issues[0]?.message ?? 'Check your details');
       return;
     }
+    Keyboard.dismiss();
     setLoading(true);
-    const { error: authError, needsEmailConfirmation } = await signUp(
-      parsed.data.email,
-      parsed.data.password,
-    );
-    setLoading(false);
-    if (authError) {
-      setError(authError.message);
-      return;
-    }
-    if (needsEmailConfirmation) {
-      sheet.show({
-        title: 'Check your email',
-        subtitle:
-          'We sent you a confirmation link. Tap it to finish creating your account, then come back and sign in.',
-        actions: [{ label: 'OK', onPress: () => router.replace('/(auth)/sign-in') }],
+    try {
+      if (!(await checkUsername.mutateAsync(parsed.data.username))) {
+        setError('That username is taken. Try another.');
+        return;
+      }
+      const result = await signUp(parsed.data.email, parsed.data.password, {
+        username: parsed.data.username,
+        display_name: parsed.data.displayName,
       });
-      return;
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+      if (result.needsEmailConfirmation) {
+        sheet.show({
+          title: 'Check your email',
+          subtitle: 'Confirm your email, then sign in. Your profile details are already saved.',
+          actions: [{ label: 'Go to sign in', onPress: () => router.replace('/(auth)/sign-in') }],
+        });
+      } else router.replace('/(app)/(tabs)');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not create your account. Try again.');
+    } finally {
+      setLoading(false);
     }
-    router.replace('/(auth)/profile-setup');
   }
-
   return (
     <ScreenContainer surface="bone">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
+      <ScrollView
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
-        <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 24 }}>
-          <Wordmark size={28} color={palette.ink} />
-        </View>
-        <Pressable onPress={() => router.back()} className="mt-2 mb-8 self-start">
-          <Text style={monoLabel}>← BACK</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={{ minHeight: 48, justifyContent: 'center' }}
+        >
+          <Text style={{ color: palette.fairway, fontSize: 16 }}>← Back</Text>
         </Pressable>
-
-        <View className="flex-1">
-          <Text style={monoLabel}>CREATE ACCOUNT</Text>
+        <Text
+          style={{ fontFamily: fontFamily.display, fontSize: 32, color: palette.ink, marginTop: 8 }}
+        >
+          Create account
+        </Text>
+        <Text
+          style={{
+            color: palette.ink + 'AA',
+            fontSize: 16,
+            lineHeight: 23,
+            marginTop: 8,
+            marginBottom: 24,
+          }}
+        >
+          Just the basics. Add your home course and other details whenever you like.
+        </Text>
+        <AccountField
+          label="Name"
+          value={displayName}
+          onChangeText={setDisplayName}
+          autoComplete="name"
+          maxLength={60}
+          placeholder="How friends know you"
+        />
+        <AccountField
+          label="Username"
+          value={username}
+          onChangeText={(v) => setUsername(v.toLowerCase())}
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={30}
+          placeholder="e.g. gavin_g"
+        />
+        <AccountField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          placeholder="you@example.com"
+        />
+        <AccountField
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="password-new"
+          secureTextEntry
+          placeholder="At least 8 characters"
+        />
+        {error ? (
           <Text
-            style={{
-              fontFamily: fontFamily.display,
-              fontSize: 28,
-              color: palette.ink,
-              marginTop: 8,
-              marginBottom: 40,
-            }}
+            accessibilityRole="alert"
+            style={{ color: palette.clay, fontSize: 15, marginBottom: 16 }}
           >
-            Get started.
+            {error}
           </Text>
-
-          <View className="mb-6">
-            <Text style={[monoLabel, { marginBottom: 6 }]}>EMAIL</Text>
-            <TextInput
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              autoComplete="email"
-              placeholder="you@domain.com"
-              placeholderTextColor={`${palette.ink}55`}
-              style={fieldStyle}
-              className="border-b border-ink/20"
-            />
-          </View>
-
-          <View className="mb-6">
-            <Text style={[monoLabel, { marginBottom: 6 }]}>PASSWORD</Text>
-            <TextInput
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="password-new"
-              placeholder="at least 8 characters"
-              placeholderTextColor={`${palette.ink}55`}
-              style={fieldStyle}
-              className="border-b border-ink/20"
-            />
-          </View>
-
-          {error ? (
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 12,
-                letterSpacing: 0.18 * 12,
-                color: palette.clay,
-                marginBottom: 16,
-              }}
-            >
-              {error.toUpperCase()}
-            </Text>
-          ) : null}
-
-          <Pressable
-            onPress={onSubmit}
-            disabled={loading}
-            className="bg-ink rounded-full py-4 items-center mt-4"
-            style={{ opacity: loading ? 0.6 : 1 }}
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          disabled={loading}
+          onPress={() => void onSubmit()}
+          style={{
+            backgroundColor: palette.ink,
+            borderRadius: 26,
+            minHeight: 52,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: loading ? 0.6 : 1,
+          }}
+        >
+          <Text style={{ fontSize: 17, fontWeight: '600', color: palette.bone }}>
+            {loading ? 'Creating account…' : 'Create account'}
+          </Text>
+        </Pressable>
+        <View style={{ marginTop: 16 }}>
+          <Text
+            style={{ color: palette.ink + 'AA', textAlign: 'center', fontSize: 13, lineHeight: 20 }}
           >
+            By creating an account, you agree to our{' '}
             <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 13,
-                letterSpacing: 0.18 * 13,
-                color: palette.bone,
-              }}
-            >
-              {loading ? 'CREATING…' : 'CREATE ACCOUNT'}
-            </Text>
-          </Pressable>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              marginTop: 14,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 10,
-                letterSpacing: 10 * 0.14,
-                color: palette.ink,
-                opacity: 0.55,
-                textTransform: 'uppercase',
-              }}
-            >
-              BY CREATING AN ACCOUNT YOU AGREE TO OUR{' '}
-            </Text>
-            <Pressable
+              style={{ color: palette.fairway, textDecorationLine: 'underline' }}
               onPress={() =>
-                WebBrowser.openBrowserAsync(
+                void WebBrowser.openBrowserAsync(
                   'https://gavin98gillespie.github.io/golf-app/legal/terms.html',
                 )
               }
             >
-              <Text
-                style={{
-                  fontFamily: fontFamily.mono,
-                  fontSize: 10,
-                  letterSpacing: 10 * 0.14,
-                  color: palette.fairway,
-                  textTransform: 'uppercase',
-                }}
-              >
-                TERMS
-              </Text>
-            </Pressable>
+              Terms
+            </Text>{' '}
+            and{' '}
             <Text
-              style={{
-                fontFamily: fontFamily.mono,
-                fontSize: 10,
-                letterSpacing: 10 * 0.14,
-                color: palette.ink,
-                opacity: 0.55,
-                textTransform: 'uppercase',
-              }}
-            >
-              {' '}
-              AND{' '}
-            </Text>
-            <Pressable
+              style={{ color: palette.fairway, textDecorationLine: 'underline' }}
               onPress={() =>
-                WebBrowser.openBrowserAsync(
+                void WebBrowser.openBrowserAsync(
                   'https://gavin98gillespie.github.io/golf-app/legal/privacy.html',
                 )
               }
             >
-              <Text
-                style={{
-                  fontFamily: fontFamily.mono,
-                  fontSize: 10,
-                  letterSpacing: 10 * 0.14,
-                  color: palette.fairway,
-                  textTransform: 'uppercase',
-                }}
-              >
-                PRIVACY
-              </Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            onPress={() => router.replace('/(auth)/sign-in')}
-            hitSlop={12}
-            style={{
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              alignSelf: 'center',
-              marginTop: 16,
-            }}
-          >
-            <Text style={monoLabel}>ALREADY HAVE AN ACCOUNT? SIGN IN.</Text>
-          </Pressable>
+              Privacy Policy
+            </Text>
+            .
+          </Text>
         </View>
-      </KeyboardAvoidingView>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.replace('/(auth)/sign-in')}
+          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 12 }}
+        >
+          <Text style={{ color: palette.fairway, fontSize: 16 }}>
+            Already have an account? Sign in
+          </Text>
+        </Pressable>
+      </ScrollView>
     </ScreenContainer>
   );
 }

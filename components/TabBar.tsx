@@ -1,141 +1,82 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Svg, { Circle, Line } from 'react-native-svg';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlayModeSheet } from '@/components/PlayModeSheet';
-import { palette, fontFamily } from '@/theme/linksman';
+import { palette } from '@/theme/linksman';
 
-type TabName = 'index' | 'feed' | 'search' | 'profile';
-
-type TabItem = {
-  name: TabName;
-  label: string;
-};
-
-const ITEMS: TabItem[] = [
-  { name: 'index', label: 'Today' },
-  { name: 'feed', label: 'Feed' },
-  { name: 'search', label: 'Search' },
-  { name: 'profile', label: 'Me' },
-];
-
-type Props = {
-  active: TabName | 'start';
-  onSelect: (name: TabName) => void;
-};
-
-export function TabBar({ active, onSelect }: Props) {
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 30,
-        backgroundColor: palette.ink + 'EE',
-        borderTopWidth: 0.5,
-        borderTopColor: palette.bone + '1A',
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
-      {ITEMS.slice(0, 2).map((it) => (
-        <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
-          <TabCell item={it} active={active === it.name} onSelect={onSelect} />
-        </View>
-      ))}
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <PlayButton />
-      </View>
-      {ITEMS.slice(2).map((it) => (
-        <View key={it.name} style={{ flex: 1, alignItems: 'center' }}>
-          <TabCell item={it} active={active === it.name} onSelect={onSelect} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function TabCell({
-  item,
+export type TabName = 'index' | 'profile';
+export function TabBar({
   active,
   onSelect,
 }: {
-  item: TabItem;
-  active: boolean;
+  active: string;
   onSelect: (name: TabName) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: palette.ink,
+        borderTopWidth: 0.5,
+        borderTopColor: palette.bone + '33',
+        paddingTop: 8,
+        paddingBottom: Math.max(insets.bottom, 12),
+        paddingHorizontal: 20,
+      }}
+    >
+      <Tab label="Home" selected={active === 'index'} onPress={() => onSelect('index')} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="New round"
+        onPress={() => setOpen(true)}
+        style={{
+          flex: 1,
+          minHeight: 48,
+          borderRadius: 24,
+          backgroundColor: palette.brass,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ color: palette.ink, fontSize: 16, fontWeight: '600' }}>+ New round</Text>
+      </Pressable>
+      <Tab label="Me" selected={active === 'profile'} onPress={() => onSelect('profile')} />
+      <PlayModeSheet visible={open} onClose={() => setOpen(false)} />
+    </View>
+  );
+}
+function Tab({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="tab"
-      accessibilityLabel={item.label}
-      accessibilityState={{ selected: active }}
-      onPress={() => onSelect(item.name)}
-      hitSlop={8}
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 48,
-        minWidth: 48,
-        gap: 4,
-        opacity: active ? 1 : 0.7,
-      }}
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 5 }}
     >
-      <View
-        style={{
-          width: 4,
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: palette.bone,
-          opacity: active ? 1 : 0,
-        }}
-      />
       <Text
         style={{
-          fontFamily: fontFamily.mono,
-          fontSize: 11,
-          letterSpacing: 11 * 0.08,
-          color: palette.bone,
-          textTransform: 'uppercase',
+          fontSize: 16,
+          fontWeight: selected ? '600' : '400',
+          color: selected ? palette.bone : palette.sage,
         }}
       >
-        {item.label}
+        {label}
       </Text>
+      <View
+        style={{ width: 18, height: 2, backgroundColor: selected ? palette.brass : 'transparent' }}
+      />
     </Pressable>
-  );
-}
-
-function PlayButton() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Start a round"
-        onPress={() => setOpen(true)}
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: palette.brass,
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: palette.brass,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.4,
-          shadowRadius: 16,
-        }}
-      >
-        <Svg width={22} height={22} viewBox="0 0 22 22">
-          <Circle cx={11} cy={6} r={3} fill={palette.ink} />
-          <Line x1={11} y1={9} x2={11} y2={16} stroke={palette.ink} strokeWidth={1.4} />
-          <Line x1={7} y1={16} x2={15} y2={16} stroke={palette.ink} strokeWidth={1.4} />
-        </Svg>
-      </Pressable>
-      <PlayModeSheet visible={open} onClose={() => setOpen(false)} />
-    </>
   );
 }

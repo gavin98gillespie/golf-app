@@ -1,110 +1,273 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router } from 'expo-router';
-import { format } from 'date-fns';
-
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { ScreenContainer } from '@/components/ScreenContainer';
+import { SearchField } from '@/components/SearchField';
 import { Wordmark } from '@/components/Wordmark';
-import { Topo } from '@/components/Topo';
-import { HomeCourseCard } from '@/components/HomeCourseCard';
-import { LedgerCard } from '@/components/LedgerCard';
-import { RegularsPulseCard } from '@/components/RegularsPulseCard';
+import { FeedRoundCard } from '@/components/FeedRoundCard';
+import { GroupRoundCard } from '@/components/GroupRoundCard';
+import { CourseListItem } from '@/components/CourseListItem';
+import { UserListItem } from '@/components/UserListItem';
 import { useSession } from '@/lib/hooks/useSession';
-import { useMyProfile, useHomeCourse } from '@/lib/queries/profile';
-import { useBestCard, useLatestCard, useLatestRegularsPulse } from '@/lib/queries/today';
-import { useAchievements } from '@/lib/queries/achievements';
+import { useFeed } from '@/lib/queries/feed';
+import { useSearchUsers } from '@/lib/queries/users';
+import { useCourseSearch } from '@/lib/queries/courses';
+import { supabase } from '@/lib/supabase';
 import { palette, fontFamily } from '@/theme/linksman';
 
-export default function Today() {
+export default function Home() {
   const { session } = useSession();
   const userId = session?.user.id;
-  const profileQ = useMyProfile(userId);
-  const homeCourseQ = useHomeCourse(profileQ.data?.home_course_id);
-  const bestQ = useBestCard(userId, profileQ.data?.home_course_id);
-  const latestQ = useLatestCard(userId);
-  const pulseQ = useLatestRegularsPulse(userId);
-  const achievementsQ = useAchievements(userId);
-
-  const trophyCount = achievementsQ.data
-    ? achievementsQ.data.eagles + achievementsQ.data.aces + achievementsQ.data.albatrosses
-    : 0;
-
-  const todayLabel = format(new Date(), 'MMM d').toUpperCase();
-  const dowLabel = format(new Date(), 'EEE').toUpperCase();
-
+  const params = useLocalSearchParams<{ search?: string }>();
+  const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const feedQ = useFeed(userId);
+  const usersQ = useSearchUsers(debounced, userId);
+  const coursesQ = useCourseSearch(debounced);
+  const searching = query.trim().length > 0;
+  const waiting = query.trim() !== debounced;
+  const activeQ = useQuery({
+    queryKey: ['rounds', 'inProgress', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('round_players')
+        .select(
+          'round_id, rounds!inner(id,is_group,is_draft,invites_locked_at,hole_count,courses(name),round_holes(hole_number,player_id))',
+        )
+        .eq('user_id', userId!)
+        .eq('status', 'joined')
+        .order('joined_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? [])
+        .map((p) => p.rounds)
+        .filter((r) => r && (r.is_group || r.is_draft))
+        .map((r) => {
+          const scored = new Set(
+            r.round_holes.filter((h) => h.player_id === userId).map((h) => h.hole_number),
+          );
+          const count = r.hole_count ?? 18;
+          let resumeHole = 1;
+          while (resumeHole < count && scored.has(resumeHole)) resumeHole++;
+          return { ...r, resumeHole };
+        });
+    },
+  });
   return (
-    <ScreenContainer surface="bone">
-      <View
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.06 }}
-      >
-        <Topo seed="today" width={400} height={900} stroke={palette.ink + '40'} />
+    <ScreenContainer>
+      <View style={{ paddingVertical: 12 }}>
+        <Wordmark size={24} color={palette.bone} />
       </View>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={{
-            paddingTop: 8,
-            paddingBottom: 14,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Wordmark size={20} color={palette.ink} />
-          <Text
+      <SearchField
+        accessibilityLabel="Find golfers or courses"
+        value={query}
+        onChangeText={setQuery}
+        autoFocus={params.search === '1'}
+        placeholder="Find golfers or courses"
+        autoCapitalize="none"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+        style={{
+          fontSize: 17,
+          color: palette.bone,
+          backgroundColor: palette.bone + '0D',
+          borderRadius: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        }}
+      />
+      {searching ? (
+        <>
+          <View
             style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.16,
-              color: palette.ink,
-              opacity: 0.55,
-              textTransform: 'uppercase',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: 8,
             }}
           >
-            {dowLabel} · {todayLabel}
-          </Text>
-        </View>
-
-        <HomeCourseCard course={homeCourseQ.data ?? null} />
-        <LedgerCard best={bestQ.data} latest={latestQ.data} achievementsCount={trophyCount} />
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/ledger')}
-          style={{
-            paddingVertical: 20,
-            borderBottomWidth: 0.5,
-            borderBottomColor: palette.ink + '33',
-          }}
-        >
-          <Text style={{ fontFamily: fontFamily.display, fontSize: 26, color: palette.ink }}>
-            Rivalry ledger →
-          </Text>
-          <Text style={{ fontSize: 16, color: palette.fairway, marginTop: 6 }}>
-            Your Brass, friend by friend
-          </Text>
-        </Pressable>
-        <RegularsPulseCard pulse={pulseQ.data} />
-
-        <Pressable
-          onPress={() => router.push('/(app)/(tabs)/feed')}
-          style={{ paddingVertical: 24 }}
-        >
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.16,
-              color: palette.ink,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
+            <Text style={styles.muted}>Search results</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setQuery('');
+                Keyboard.dismiss();
+              }}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Text style={{ color: palette.sage, fontSize: 16 }}>Back to rounds</Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+            contentContainerStyle={{ paddingBottom: 24 }}
           >
-            OPEN FEED FOR THE REST →
-          </Text>
-        </Pressable>
-      </ScrollView>
+            {query.trim().length < 2 ? (
+              <Text style={styles.muted}>Enter at least two characters.</Text>
+            ) : (
+              <>
+                <Text style={styles.section}>Golfers</Text>
+                {waiting || usersQ.isLoading ? (
+                  <ActivityIndicator color={palette.sage} />
+                ) : usersQ.isError ? (
+                  <Retry
+                    message="Could not search golfers."
+                    onPress={() => void usersQ.refetch()}
+                  />
+                ) : usersQ.data?.length ? (
+                  usersQ.data.map((u) => <UserListItem key={u.id} user={u} viewerId={userId!} />)
+                ) : (
+                  <Text style={styles.muted}>No golfers found.</Text>
+                )}
+                <Text style={styles.section}>Courses</Text>
+                {waiting || coursesQ.isLoading ? (
+                  <ActivityIndicator color={palette.sage} />
+                ) : coursesQ.isError ? (
+                  <Retry
+                    message="Could not search courses."
+                    onPress={() => void coursesQ.refetch()}
+                  />
+                ) : coursesQ.data?.length ? (
+                  coursesQ.data.map((c) => (
+                    <CourseListItem
+                      key={c.id}
+                      course={c}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        router.push({ pathname: '/course/[id]', params: { id: c.id } });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.muted}>No courses found.</Text>
+                )}
+              </>
+            )}
+          </ScrollView>
+        </>
+      ) : (
+        <FlatList
+          data={feedQ.data ?? []}
+          keyExtractor={(r) => r.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          refreshing={refreshing}
+          onRefresh={async () => {
+            setRefreshing(true);
+            try {
+              await Promise.all([feedQ.refetch(), activeQ.refetch()]);
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+          ListHeaderComponent={
+            <View>
+              {(activeQ.data ?? []).map((round) => (
+                <Pressable
+                  key={round.id}
+                  accessibilityRole="button"
+                  onPress={() =>
+                    router.push(
+                      round.is_group
+                        ? {
+                            pathname: round.invites_locked_at
+                              ? '/round/group/[id]/score'
+                              : '/round/group/[id]/lobby',
+                            params: { id: round.id },
+                          }
+                        : {
+                            pathname: '/round/new/score',
+                            params: { roundId: round.id, hole: String(round.resumeHole) },
+                          },
+                    )
+                  }
+                  style={{
+                    paddingVertical: 16,
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: palette.bone + '33',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, color: palette.brass }}>
+                    Continue {round.is_group ? 'group ' : ''}round →
+                  </Text>
+                  <Text style={{ fontSize: 18, color: palette.bone, marginTop: 5 }}>
+                    {round.courses?.name ?? 'Your round'}
+                  </Text>
+                </Pressable>
+              ))}
+              {activeQ.isError ? (
+                <Retry
+                  message="Could not load unfinished rounds."
+                  onPress={() => void activeQ.refetch()}
+                />
+              ) : null}
+              <Text style={styles.section}>On the course</Text>
+            </View>
+          }
+          renderItem={({ item }) =>
+            userId ? (
+              item.is_group ? (
+                <GroupRoundCard round={item} viewerId={userId} />
+              ) : (
+                <FeedRoundCard round={item} viewerId={userId} />
+              )
+            ) : null
+          }
+          ListEmptyComponent={
+            feedQ.isLoading ? (
+              <ActivityIndicator color={palette.sage} />
+            ) : feedQ.isError ? (
+              <Retry message="Could not load rounds." onPress={() => void feedQ.refetch()} />
+            ) : (
+              <View style={{ paddingVertical: 20 }}>
+                <Text style={{ fontFamily: fontFamily.display, fontSize: 26, color: palette.bone }}>
+                  Your golf starts here.
+                </Text>
+                <Text style={[styles.muted, { marginTop: 10, lineHeight: 24 }]}>
+                  Find golfers using the search bar above. Follow them to see their shared rounds—no
+                  follow-back needed.
+                </Text>
+                <Text style={[styles.muted, { marginTop: 16 }]}>
+                  Ready to play? Tap New round below.
+                </Text>
+              </View>
+            )
+          }
+        />
+      )}
     </ScreenContainer>
   );
 }
+function Retry({ message, onPress }: { message: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={{ paddingVertical: 16 }}>
+      <Text style={styles.muted}>{message} Tap to retry.</Text>
+    </Pressable>
+  );
+}
+const styles = {
+  section: {
+    fontFamily: fontFamily.display,
+    fontSize: 24,
+    color: palette.bone,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  muted: { fontSize: 16, color: palette.sage },
+};

@@ -1,4 +1,4 @@
-import { Redirect, Stack, useSegments } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { useSession } from '@/lib/hooks/useSession';
@@ -7,8 +7,6 @@ import { fontFamily, palette } from '@/theme/linksman';
 
 export default function AppLayout() {
   const { session } = useSession();
-  const segments = useSegments();
-  const addingCourse = segments[segments.length - 1] === 'add-course';
   const profileQ = useMyProfile(session?.user.id);
 
   if (!session) {
@@ -39,10 +37,6 @@ export default function AppLayout() {
 
   if (!profileQ.data) {
     return <Redirect href="/(auth)/profile-setup" />;
-  }
-
-  if (!profileQ.data.onboarding_completed && !addingCourse) {
-    return <Redirect href="/(onboarding)/home-course" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

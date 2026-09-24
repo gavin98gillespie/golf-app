@@ -53,7 +53,7 @@ export default function Profile() {
       <FlatList
         data={rounds}
         keyExtractor={(r) => r.round_id ?? ''}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
         onRefresh={async () => {
@@ -78,46 +78,48 @@ export default function Profile() {
             >
               <Wordmark size={20} color={palette.ink} />
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Invitations"
-                  onPress={() => router.push('/(app)/invites')}
-                  hitSlop={10}
-                  style={{ padding: 4 }}
-                >
-                  {/* Bell glyph: 22x22, rounded body + clapper */}
-                  <Svg width={22} height={22} viewBox="0 0 24 24">
-                    <Path
-                      d="M12 3a5 5 0 0 0-5 5v3.2c0 .9-.36 1.77-1 2.4L4.6 15.4a.6.6 0 0 0 .42 1.02h13.96a.6.6 0 0 0 .42-1.02l-1.4-1.8a3.4 3.4 0 0 1-1-2.4V8a5 5 0 0 0-5-5z"
-                      fill="none"
-                      stroke={palette.ink}
-                      strokeWidth={1.4}
-                      strokeLinejoin="round"
-                    />
-                    <Path
-                      d="M10 18.5a2 2 0 0 0 4 0"
-                      fill="none"
-                      stroke={palette.ink}
-                      strokeWidth={1.4}
-                      strokeLinecap="round"
-                    />
-                  </Svg>
-                  {inviteCount > 0 ? (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 2,
-                        right: 2,
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: palette.fairway,
-                        borderWidth: 1.5,
-                        borderColor: palette.bone,
-                      }}
-                    />
-                  ) : null}
-                </Pressable>
+                {inviteCount > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Invitations"
+                    onPress={() => router.push('/(app)/invites')}
+                    hitSlop={10}
+                    style={{ padding: 4 }}
+                  >
+                    {/* Bell glyph: 22x22, rounded body + clapper */}
+                    <Svg width={22} height={22} viewBox="0 0 24 24">
+                      <Path
+                        d="M12 3a5 5 0 0 0-5 5v3.2c0 .9-.36 1.77-1 2.4L4.6 15.4a.6.6 0 0 0 .42 1.02h13.96a.6.6 0 0 0 .42-1.02l-1.4-1.8a3.4 3.4 0 0 1-1-2.4V8a5 5 0 0 0-5-5z"
+                        fill="none"
+                        stroke={palette.ink}
+                        strokeWidth={1.4}
+                        strokeLinejoin="round"
+                      />
+                      <Path
+                        d="M10 18.5a2 2 0 0 0 4 0"
+                        fill="none"
+                        stroke={palette.ink}
+                        strokeWidth={1.4}
+                        strokeLinecap="round"
+                      />
+                    </Svg>
+                    {inviteCount > 0 ? (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: palette.fairway,
+                          borderWidth: 1.5,
+                          borderColor: palette.bone,
+                        }}
+                      />
+                    ) : null}
+                  </Pressable>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Settings"
@@ -194,6 +196,36 @@ export default function Profile() {
             >
               @{profile.username}
             </Text>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/edit-profile')}
+              style={{ minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' }}
+            >
+              <Text style={{ color: palette.fairway, fontSize: 16 }}>Edit profile</Text>
+            </Pressable>
+            {profile.bio ? (
+              <Text style={{ color: palette.ink, fontSize: 16, lineHeight: 24 }}>
+                {profile.bio}
+              </Text>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/ledger')}
+              style={{
+                minHeight: 56,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderTopWidth: 0.5,
+                borderBottomWidth: 0.5,
+                borderColor: palette.ink + '33',
+                marginTop: 8,
+              }}
+            >
+              <Text style={{ color: palette.ink, fontSize: 18 }}>Rivalry ledger</Text>
+              <Text style={{ color: palette.fairway, fontSize: 18 }}>→</Text>
+            </Pressable>
 
             {/* Handicap hero */}
             <View style={{ alignItems: 'center', marginTop: 32 }}>
@@ -358,7 +390,7 @@ export default function Profile() {
               marginTop: 16,
             }}
           >
-            No rounds yet. Hit the Play tab to score your first.
+            No rounds yet. Tap New round to score your first.
           </Text>
         }
       />

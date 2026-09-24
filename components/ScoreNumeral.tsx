@@ -25,15 +25,15 @@ export function ScoreNumeral({
   const valueText = (
     <Text
       numberOfLines={1}
-      adjustsFontSizeToFit
+      adjustsFontSizeToFit={!stack}
       style={{
         fontFamily: fontFamily.display,
         fontSize: size,
         letterSpacing: -size * 0.04,
         color,
-        lineHeight: size * 0.95,
+        lineHeight: size * 1.15,
         fontVariant: ['tabular-nums', 'lining-nums'],
-        flexShrink: 1,
+        flexShrink: stack ? 0 : 1,
       }}
     >
       {value}

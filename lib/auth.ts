@@ -5,8 +5,13 @@ export type AuthError = { message: string };
 export async function signUp(
   email: string,
   password: string,
+  profile: { username: string; display_name: string },
 ): Promise<{ error: AuthError | null; needsEmailConfirmation: boolean }> {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: profile },
+  });
   if (error) {
     return { error: { message: error.message }, needsEmailConfirmation: false };
   }

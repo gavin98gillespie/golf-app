@@ -96,3 +96,41 @@ export function useCompleteOnboarding() {
       }),
   });
 }
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      username,
+      display_name,
+      bio,
+    }: {
+      id: string;
+      username: string;
+      display_name: string;
+      bio: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ username, display_name, bio })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (profile) => {
+      qc.setQueryData(['profile', profile.id], profile);
+      for (const key of [
+        'profile_by_username',
+        'search_users',
+        'following_list',
+        'followers_list',
+        'feed',
+        'groupRound',
+      ])
+        void qc.invalidateQueries({ queryKey: [key] });
+    },
+  });
+}
