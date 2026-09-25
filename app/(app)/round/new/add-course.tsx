@@ -17,7 +17,7 @@ const Schema = z.object({
 });
 
 export default function AddCourse() {
-  const params = useLocalSearchParams<{ returnTo?: string; mode?: string }>();
+  const params = useLocalSearchParams<{ returnTo?: string; mode?: string; game?: string }>();
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -47,7 +47,7 @@ export default function AddCourse() {
       });
       router.dismissTo({
         pathname: params.returnTo === '/home-course' ? '/home-course' : '/round/new/course',
-        params: { mode: params.mode ?? '', createdCourseId: course.id },
+        params: { mode: params.mode ?? '', game: params.game ?? '', createdCourseId: course.id },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');

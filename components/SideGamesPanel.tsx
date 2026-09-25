@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { RulesButton } from '@/components/GameRulesSheet';
+import { GAME_RULES, type GameKind } from '@/lib/gameRules';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   InputAccessoryView,
@@ -19,15 +21,19 @@ import { palette, fontFamily } from '@/theme/linksman';
 export function SideGamesPanel({
   roundId,
   onFormChange,
+  selectedGame,
 }: {
   roundId: string;
+  selectedGame?: Exclude<GameKind, 'skins'> | undefined;
   onFormChange?: () => void;
 }) {
   const { session } = useSession();
   const group = useGroupRound(roundId);
   const qc = useQueryClient();
-  const players =
-    group.data?.players.filter((p) => p.status === 'joined' || p.status === 'finished') ?? [];
+  const players = useMemo(
+    () => group.data?.players.filter((p) => p.status === 'joined' || p.status === 'finished') ?? [],
+    [group.data?.players],
+  );
   const canEdit =
     group.data?.round.user_id === session?.user.id ||
     players.some((p) => p.user_id === session?.user.id);
@@ -79,6 +85,21 @@ export function SideGamesPanel({
           },
     );
   };
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!selectedGame || opened.current || !canEdit || players.length < 2) return;
+    opened.current = true;
+    const from =
+      players.find((p) => p.user_id === session?.user.id)?.user_id ?? players[0]!.user_id;
+    setForm({
+      id: null,
+      from,
+      to: players.find((p) => p.user_id !== from)!.user_id,
+      amount: '50',
+      hole: '1',
+      label: selectedGame === 'custom' ? '' : GAME_RULES[selectedGame].title,
+    });
+  }, [selectedGame, canEdit, players, session?.user.id]);
   const save = async () => {
     if (!form) return;
     if (form.from === form.to || !form.from || !form.to) {
@@ -133,6 +154,17 @@ export function SideGamesPanel({
   return (
     <View style={{ paddingVertical: 20 }}>
       <Text style={s.title}>Side games & Brass</Text>
+      <RulesButton
+        game={
+          form?.label === GAME_RULES.closest.title
+            ? 'closest'
+            : form?.label === GAME_RULES.drive.title
+              ? 'drive'
+              : form
+                ? 'custom'
+                : (selectedGame ?? 'custom')
+        }
+      />
       <Text style={s.text}>
         Closest to pin, longest drive, or your own side game. Enter the amount you played for: 50
         means 50 Brass.

@@ -11,7 +11,7 @@ import { supabase, type Tables } from '@/lib/supabase';
 import { palette, fontFamily } from '@/theme/linksman';
 
 export default function GroupSetup() {
-  const params = useLocalSearchParams<{ courseId?: string }>();
+  const params = useLocalSearchParams<{ courseId?: string; game?: string }>();
   const courseId = params.courseId;
   const { session } = useSession();
   const [teeBox, setTeeBox] = useState('white');
@@ -37,9 +37,12 @@ export default function GroupSetup() {
   // If no course chosen yet, send to picker
   useEffect(() => {
     if (!courseId) {
-      router.replace('/round/new/course?mode=groupRoundSelect');
+      router.replace({
+        pathname: '/round/new/course',
+        params: { mode: 'groupRoundSelect', game: params.game ?? '' },
+      });
     }
-  }, [courseId]);
+  }, [courseId, params.game]);
 
   if (!courseId) return null;
 
@@ -54,7 +57,10 @@ export default function GroupSetup() {
         live_visible: liveVisible,
         played_at: new Date().toISOString().slice(0, 10),
       });
-      router.replace(`/round/group/${round.id}/lobby` as never);
+      router.replace({
+        pathname: '/round/group/[id]/lobby',
+        params: { id: round.id, game: params.game ?? '' },
+      });
     } catch (error) {
       Alert.alert(
         'Could not create round',

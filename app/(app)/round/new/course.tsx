@@ -6,7 +6,7 @@ import { useSession } from '@/lib/hooks/useSession';
 
 export default function CoursePickerScreen() {
   const { session } = useSession();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; game?: string }>();
   const updateHome = useUpdateHomeCourse();
 
   if (params.mode === 'homeCourse') {
@@ -27,7 +27,10 @@ export default function CoursePickerScreen() {
       <CoursePicker
         headline="Pick a course for the group"
         onPick={(courseId) => {
-          router.replace({ pathname: '/round/new/group-setup', params: { courseId } });
+          router.replace({
+            pathname: '/round/new/group-setup',
+            params: { courseId, game: params.game ?? '' },
+          });
           return true;
         }}
       />

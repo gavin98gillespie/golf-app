@@ -1,3 +1,4 @@
+import { RulesButton } from '@/components/GameRulesSheet';
 import { useState } from 'react';
 import {
   Alert,
@@ -127,6 +128,7 @@ export function SkinsGamePanel({
   return (
     <View style={s.section}>
       <Text style={s.title}>Skins</Text>
+      <RulesButton game="skins" />
       {editing && setup ? (
         <>
           <Text style={s.text}>Brass per skin, from each opponent</Text>

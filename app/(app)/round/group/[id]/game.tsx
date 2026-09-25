@@ -1,3 +1,4 @@
+import { isGameKind } from '@/lib/gameRules';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,7 +19,8 @@ export default function Game() {
       hide.remove();
     };
   }, []);
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, game } = useLocalSearchParams<{ id: string; game?: string }>();
+  const selectedGame = isGameKind(game) ? game : undefined;
   const group = useGroupRound(id);
   const { session } = useSession();
   const canEdit =
@@ -55,22 +57,27 @@ export default function Game() {
         keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <SideGamesPanel
-          roundId={id}
-          onFormChange={() => scroll.current?.scrollTo({ y: 0, animated: false })}
-        />
-        <SkinsGamePanel
-          roundId={id}
-          setup={
-            group.data
-              ? {
-                  isHost: canEdit,
-                  holeCount: group.data.round.hole_count ?? 18,
-                  players: group.data.players,
-                }
-              : undefined
-          }
-        />
+        {selectedGame !== 'skins' && (
+          <SideGamesPanel
+            selectedGame={selectedGame}
+            roundId={id}
+            onFormChange={() => scroll.current?.scrollTo({ y: 0, animated: false })}
+          />
+        )}
+        {(!selectedGame || selectedGame === 'skins') && (
+          <SkinsGamePanel
+            roundId={id}
+            setup={
+              group.data
+                ? {
+                    isHost: canEdit,
+                    holeCount: group.data.round.hole_count ?? 18,
+                    players: group.data.players,
+                  }
+                : undefined
+            }
+          />
+        )}
       </ScrollView>
     </ScreenContainer>
   );

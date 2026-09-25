@@ -43,7 +43,7 @@ export function CoursePicker({
 }: Props) {
   const [query, setQuery] = useState('');
   const pathname = usePathname();
-  const params = useLocalSearchParams<{ mode?: string; createdCourseId?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; game?: string; createdCourseId?: string }>();
   const picking = useRef(false);
   const { session } = useSession();
   const recent = useRecentCourses(session?.user.id, 5);
@@ -236,7 +236,7 @@ export function CoursePicker({
             onPress={() =>
               router.push({
                 pathname: '/round/new/add-course',
-                params: { returnTo: pathname, mode: params.mode ?? '' },
+                params: { returnTo: pathname, mode: params.mode ?? '', game: params.game ?? '' },
               })
             }
             style={{

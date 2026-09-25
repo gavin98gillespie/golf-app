@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 
 import { TabBar } from '@/components/TabBar';
 
-type TabName = 'index' | 'profile';
+type TabName = 'index' | 'games' | 'profile';
 
 export default function TabsLayout() {
   return (
@@ -22,6 +22,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="games" />
       <Tabs.Screen name="feed" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="profile" />

@@ -1,3 +1,5 @@
+import { GAME_RULES, isGameKind } from '@/lib/gameRules';
+import { RulesButton } from '@/components/GameRulesSheet';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
@@ -20,7 +22,12 @@ import { supabase } from '@/lib/supabase';
 import { palette, fontFamily } from '@/theme/linksman';
 
 export default function Lobby() {
-  const { id, manage } = useLocalSearchParams<{ id: string; manage?: string }>();
+  const { id, manage, game } = useLocalSearchParams<{
+    id: string;
+    manage?: string;
+    game?: string;
+  }>();
+  const selectedGame = isGameKind(game) ? game : undefined;
   const { session } = useSession();
   const groupQ = useGroupRound(id);
   const invite = useInviteToRound();
@@ -271,7 +278,21 @@ export default function Lobby() {
           </View>
         ))}
 
-        {manage !== '1' && (
+        {selectedGame && canManage && (
+          <View style={{ marginVertical: 16 }}>
+            <Text style={{ color: palette.ink, fontFamily: fontFamily.display, fontSize: 24 }}>
+              {GAME_RULES[selectedGame].title}
+            </Text>
+            <RulesButton game={selectedGame} surface="bone" />
+            <Text style={{ color: palette.fairway, fontSize: 16, lineHeight: 23 }}>
+              {selectedGame === 'skins'
+                ? 'Add at least two players, then set up Skins below.'
+                : 'Add your players and start the round. Record the winner from Games when the result is known.'}
+            </Text>
+          </View>
+        )}
+
+        {manage !== '1' && (!selectedGame || selectedGame === 'skins') && (
           <SkinsGamePanel
             roundId={id}
             setup={{ isHost: canManage, holeCount: round.hole_count ?? 18, players }}
