@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { RulesButton } from '@/components/GameRulesSheet';
+import { GameRulesContent } from '@/components/GameRulesSheet';
+import { GameEmblem } from '@/components/GameEmblem';
 import { GAME_RULES, type GameKind } from '@/lib/gameRules';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase } from '@/lib/supabase';
@@ -17,7 +18,7 @@ export default function Games() {
   const userId = session?.user.id;
   const rounds = useQuery({
     queryKey: ['games', 'roundPicker', userId],
-    enabled: !!userId,
+    enabled: !!userId && !!selected,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('round_players')
@@ -33,8 +34,8 @@ export default function Games() {
   const { refetch } = rounds;
   useFocusEffect(
     useCallback(() => {
-      if (userId) void refetch();
-    }, [refetch, userId]),
+      if (userId && selected) void refetch();
+    }, [refetch, userId, selected]),
   );
   const openRound = (id: string, started: boolean) =>
     router.push({
@@ -49,7 +50,10 @@ export default function Games() {
   };
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: 12, paddingBottom: 24 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: 12, paddingBottom: 24 }}
+      >
         {selected && (
           <Pressable accessibilityRole="button" onPress={() => setSelected(null)} style={s.back}>
             <Text style={s.detail}>← Games</Text>
@@ -59,55 +63,62 @@ export default function Games() {
           {selected ? GAME_RULES[selected].title : 'Games'}
         </Text>
         {selected ? (
-          <RulesButton game={selected} />
+          <View style={s.scorecard}>
+            <View style={s.cardHeader}>
+              <Text style={s.cardLabel}>HOW TO PLAY</Text>
+              <GameEmblem kind={selected} color={palette.fairway} size={30} />
+            </View>
+            <View style={{ paddingHorizontal: 18, paddingBottom: 20 }}>
+              <GameRulesContent game={selected} inline />
+            </View>
+          </View>
         ) : (
-          <View>
+          <View style={{ gap: 12 }}>
             {(Object.keys(GAME_RULES) as GameKind[]).map((key) => (
-              <Pressable
+              <GameTile
                 key={key}
-                accessibilityRole="button"
+                kind={key}
+                title={GAME_RULES[key].title}
                 onPress={() => setSelected(key)}
-                style={s.row}
-              >
-                <Text style={s.rowTitle}>{GAME_RULES[key].title}</Text>
-                <Text style={s.arrow}>↗</Text>
-              </Pressable>
+              />
             ))}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/ledger')}
-              style={[s.row, { marginTop: 24, borderBottomWidth: 0 }]}
-            >
-              <Text style={s.detail}>Rivalry ledger</Text>
-              <Text style={s.arrow}>→</Text>
-            </Pressable>
+            <View style={{ height: 4 }} />
+            <GameTile kind="ledger" title="Rivalry ledger" onPress={() => router.push('/ledger')} />
           </View>
         )}
-        <View style={{ flex: 1, minHeight: 36 }} />
-        {rounds.isError ? (
-          <Pressable accessibilityRole="button" onPress={() => void refetch()} style={s.secondary}>
-            <Text style={s.detail}>Retry loading rounds</Text>
-          </Pressable>
-        ) : (
-          !!rounds.data?.length && (
-            <Pressable accessibilityRole="button" onPress={continueRound} style={s.secondary}>
-              <Text style={s.detail}>{selected ? 'Use existing round' : 'Continue round'}</Text>
-            </Pressable>
-          )
-        )}
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            router.push({
-              pathname: '/round/new/group-setup',
-              params: selected ? { game: selected } : {},
-            })
-          }
-          style={s.start}
-        >
-          <Text style={s.startText}>Start a round →</Text>
-        </Pressable>
       </ScrollView>
+      {selected && (
+        <View style={s.actions}>
+          {rounds.isError ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void refetch()}
+              style={s.secondary}
+            >
+              <Text style={s.detail}>Retry loading rounds</Text>
+            </Pressable>
+          ) : (
+            !!rounds.data?.length && (
+              <Pressable accessibilityRole="button" onPress={continueRound} style={s.secondary}>
+                <GameEmblem kind="ledger" size={25} />
+                <Text style={s.actionText}>Use existing round</Text>
+              </Pressable>
+            )
+          )}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              router.push({ pathname: '/round/new/group-setup', params: { game: selected } })
+            }
+            style={s.start}
+          >
+            <View style={s.actionSeal}>
+              <GameEmblem kind="round" color={palette.ink} size={26} />
+            </View>
+            <Text style={s.startText}>Start a round</Text>
+          </Pressable>
+        </View>
+      )}
       <Modal
         visible={choosingRound}
         transparent
@@ -158,7 +169,7 @@ export default function Games() {
                       {round.played_at} · {round.hole_count ?? 18} holes
                     </Text>
                   </View>
-                  <Text style={s.arrow}>→</Text>
+                  <GameEmblem kind="round" size={25} />
                 </Pressable>
               ))}
             </ScrollView>
@@ -168,13 +179,79 @@ export default function Games() {
     </ScreenContainer>
   );
 }
+function GameTile({
+  kind,
+  title,
+  onPress,
+}: {
+  kind: GameKind | 'ledger';
+  title: string;
+  onPress: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[s.tile, { opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}
+    >
+      <View style={s.emblem}>
+        <GameEmblem kind={kind} />
+      </View>
+      <Text style={s.tileTitle}>{title}</Text>
+    </Pressable>
+  );
+}
 const s = StyleSheet.create({
   title: {
     fontFamily: fontFamily.display,
     color: palette.bone,
     fontSize: 38,
     marginTop: 12,
-    marginBottom: 28,
+    marginBottom: 24,
+  },
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    minHeight: 80,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: palette.graphite,
+    borderWidth: 0.5,
+    borderColor: palette.brass + '44',
+  },
+  emblem: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: palette.brass + '66',
+    backgroundColor: palette.ink,
+  },
+  tileTitle: { flex: 1, fontFamily: fontFamily.display, fontSize: 24, color: palette.bone },
+  scorecard: { backgroundColor: palette.bone, borderRadius: 12, overflow: 'hidden' },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: 18,
+    marginBottom: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderColor: palette.fairway,
+  },
+  cardLabel: {
+    flexShrink: 1,
+    fontFamily: fontFamily.mono,
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: palette.fairway,
   },
   row: {
     flexDirection: 'row',
@@ -187,24 +264,45 @@ const s = StyleSheet.create({
   },
   rowTitle: { flexShrink: 1, fontFamily: fontFamily.display, fontSize: 24, color: palette.bone },
   detail: { color: palette.sage, fontSize: 16, lineHeight: 24 },
-  arrow: { color: palette.brass, fontSize: 22 },
   back: { minHeight: 44, justifyContent: 'center' },
+  actions: {
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 10,
+    borderTopWidth: 0.5,
+    borderColor: palette.bone + '22',
+  },
   secondary: {
     minHeight: 52,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
     borderWidth: 0.5,
-    borderColor: palette.sage + '66',
-    borderRadius: 26,
+    borderColor: palette.brass + '77',
+    borderRadius: 14,
+    backgroundColor: palette.graphite,
   },
+  actionText: { flexShrink: 1, color: palette.bone, fontSize: 16 },
   start: {
-    minHeight: 52,
-    borderRadius: 26,
+    minHeight: 58,
+    borderRadius: 14,
     backgroundColor: palette.brass,
+    flexDirection: 'row',
+    gap: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
+    padding: 10,
   },
-  startText: { fontSize: 17, color: palette.ink },
+  actionSeal: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: palette.ink + '55',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startText: { flexShrink: 1, fontSize: 17, color: palette.ink },
 });

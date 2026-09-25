@@ -52,7 +52,6 @@ export function GameRulesSheet({
   visible: boolean;
   onClose: () => void;
 }) {
-  const info = GAME_RULES[game];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: palette.ink + 'B8', justifyContent: 'flex-end' }}>
@@ -108,69 +107,76 @@ export function GameRulesSheet({
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={{ padding: 24 }}>
-            <Text
-              accessibilityRole="header"
-              style={{ color: palette.ink, fontFamily: fontFamily.display, fontSize: 32 }}
-            >
-              {info.title}
-            </Text>
-            <Text style={{ color: palette.fairway, fontSize: 14, marginTop: 6, marginBottom: 20 }}>
-              {info.subtitle}
-            </Text>
-            {info.rules.map((rule, i) => (
-              <View
-                key={rule}
-                style={{
-                  flexDirection: 'row',
-                  borderTopWidth: 0.5,
-                  borderColor: palette.ink + '28',
-                  paddingVertical: 14,
-                }}
-              >
-                <View
-                  style={{
-                    width: 32,
-                    borderRightWidth: 0.5,
-                    borderColor: palette.ink + '28',
-                    marginRight: 14,
-                  }}
-                >
-                  <Text
-                    style={{ color: palette.fairway, fontFamily: fontFamily.mono, fontSize: 13 }}
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </Text>
-                </View>
-                <Text style={{ flex: 1, color: palette.ink, fontSize: 16, lineHeight: 23 }}>
-                  {rule}
-                </Text>
-              </View>
-            ))}
-            <View
-              style={{
-                borderTopWidth: 2,
-                borderColor: palette.fairway,
-                paddingTop: 16,
-                marginTop: 6,
-              }}
-            >
-              <Text
-                style={{
-                  color: palette.fairway,
-                  fontFamily: fontFamily.mono,
-                  fontSize: 11,
-                  letterSpacing: 1,
-                }}
-              >
-                BRASS EXAMPLE
-              </Text>
-              <Text style={{ color: palette.ink, fontSize: 16, lineHeight: 23, marginTop: 8 }}>
-                {info.example}
-              </Text>
-            </View>
+            <GameRulesContent game={game} />
           </ScrollView>
         </SafeAreaView>
       </View>
     </Modal>
+  );
+}
+
+export function GameRulesContent({ game, inline = false }: { game: GameKind; inline?: boolean }) {
+  const info = GAME_RULES[game];
+  return (
+    <>
+      {!inline && (
+        <Text
+          accessibilityRole="header"
+          style={{ color: palette.ink, fontFamily: fontFamily.display, fontSize: 32 }}
+        >
+          {info.title}
+        </Text>
+      )}
+      <Text style={{ color: palette.fairway, fontSize: 14, marginTop: 6, marginBottom: 20 }}>
+        {info.subtitle}
+      </Text>
+      {info.rules.map((rule, i) => (
+        <View
+          key={rule}
+          style={{
+            flexDirection: 'row',
+            borderTopWidth: 0.5,
+            borderColor: palette.ink + '28',
+            paddingVertical: 14,
+          }}
+        >
+          <View
+            style={{
+              width: 32,
+              borderRightWidth: 0.5,
+              borderColor: palette.ink + '28',
+              marginRight: 14,
+            }}
+          >
+            <Text style={{ color: palette.fairway, fontFamily: fontFamily.mono, fontSize: 13 }}>
+              {String(i + 1).padStart(2, '0')}
+            </Text>
+          </View>
+          <Text style={{ flex: 1, color: palette.ink, fontSize: 16, lineHeight: 23 }}>{rule}</Text>
+        </View>
+      ))}
+      <View
+        style={{
+          borderTopWidth: 2,
+          borderColor: palette.fairway,
+          paddingTop: 16,
+          marginTop: 6,
+        }}
+      >
+        <Text
+          style={{
+            color: palette.fairway,
+            fontFamily: fontFamily.mono,
+            fontSize: 11,
+            letterSpacing: 1,
+          }}
+        >
+          BRASS EXAMPLE
+        </Text>
+        <Text style={{ color: palette.ink, fontSize: 16, lineHeight: 23, marginTop: 8 }}>
+          {info.example}
+        </Text>
+      </View>
+    </>
   );
 }

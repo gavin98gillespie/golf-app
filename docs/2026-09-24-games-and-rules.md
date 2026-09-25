@@ -1,6 +1,14 @@
 # Games tab and quick rules — September 24
 
-## Minimal design revision
+## Emblems and inline scorecards (current)
+
+The main Games page now contains only the four game buttons and a matching rivalry ledger button. Each has a custom SVG emblem: stacked Brass for Skins, a flag/target for closest to pin, a flight path for longest drive, a diamond/plus for custom, and a scorebook for the ledger. No catalog arrows or round actions remain. Round queries run when a game is selected.
+
+Selected games show a cream rules scorecard with numbered rows and a Brass example. The rules content is shared with existing in-round rules sheets so wording stays consistent. Existing/new-round actions remain below the scroll view with scorebook/flag icons. Existing-round selection still handles one round directly or multiple rounds in a sheet.
+
+Verified the catalog, game detail, both round-action layouts and round-picker opening in a native iPhone preview using local-only query fixtures. Preview and fixtures were removed; no backend records were created. Simulator scroll gestures did not move the content during this check, so touch scrolling still needs physical-phone verification. The screen uses a bounded flex scroll view above the fixed actions. TypeScript, changed-file lint and iOS/Android exports pass. Authenticated scoring was not repeated for this visual change.
+
+## Minimal design revision (superseded)
 
 Four equal-width navigation targets now sit on one baseline: Home, Play, Games, Me. Play has a Brass flag medallion; Games has a matching trophy medallion. The game catalog shows names only, a ledger link and round actions. Selection replaces the catalog with the game title, outlined How to play button, and start/continue actions. Course names and explanatory paragraphs are removed. Multiple active rounds can be chosen in a separate sheet using round number, date and hole count. Skins explanations stay in the rules sheet; hole results are collapsed initially. Critical amount labels, errors and input guidance remain.
 
