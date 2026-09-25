@@ -25,6 +25,11 @@ export function RulesButton({
           flexDirection: 'row',
           alignItems: 'center',
           gap: 7,
+          paddingHorizontal: 14,
+          borderRadius: 22,
+          borderWidth: 0.5,
+          borderColor: surface === 'ink' ? palette.sage + '66' : palette.fairway + '66',
+          marginBottom: 16,
         }}
       >
         <Text style={{ color: surface === 'ink' ? palette.sage : palette.fairway, fontSize: 17 }}>

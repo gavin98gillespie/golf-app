@@ -153,7 +153,7 @@ export function SideGamesPanel({
   };
   return (
     <View style={{ paddingVertical: 20 }}>
-      <Text style={s.title}>Side games & Brass</Text>
+      <Text style={s.title}>{selectedGame ? GAME_RULES[selectedGame].title : 'Side games'}</Text>
       <RulesButton
         game={
           form?.label === GAME_RULES.closest.title
@@ -165,10 +165,6 @@ export function SideGamesPanel({
                 : (selectedGame ?? 'custom')
         }
       />
-      <Text style={s.text}>
-        Closest to pin, longest drive, or your own side game. Enter the amount you played for: 50
-        means 50 Brass.
-      </Text>
       {form ? (
         <>
           <Text style={s.label}>Game</Text>

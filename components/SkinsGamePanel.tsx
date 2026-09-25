@@ -32,6 +32,7 @@ export function SkinsGamePanel({
   const mutation = useSkinsAction(roundId);
   const game = q.data;
   const [editing, setEditing] = useState(false);
+  const [showHoles, setShowHoles] = useState(false);
   const [stake, setStake] = useState('1');
   const [mode, setMode] = useState<'gross' | 'net'>('gross');
   const [strokes, setStrokes] = useState<Record<string, string>>({});
@@ -140,10 +141,6 @@ export function SkinsGamePanel({
             keyboardType="decimal-pad"
             inputAccessoryViewID="skins-inputs"
           />
-          <Text style={s.small}>
-            A 50 Brass skin is +100 to the winner in a three-player game: 50 from each opponent.
-            Ties carry to the next hole; final ties expire.
-          </Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             {button(mode === 'gross' ? '✓ Gross scores' : 'Gross scores', () => setMode('gross'))}
             {button(mode === 'net' ? '✓ Use strokes' : 'Use strokes', () => setMode('net'))}
@@ -210,7 +207,6 @@ export function SkinsGamePanel({
         <>
           {!game || game.state === 'void' ? (
             <>
-              <Text style={s.text}>Lowest score wins the hole. Set your own Brass amount.</Text>
               {setup?.isHost && button('Add skins', edit, players.length < 2 || players.length > 4)}
               {setup && players.length < 2 && (
                 <Text style={s.small}>Add at least one other player first.</Text>
@@ -223,9 +219,7 @@ export function SkinsGamePanel({
                 scores
               </Text>
               <Text style={s.small}>
-                {game.state === 'settled'
-                  ? 'Saved to the ledger. Score edits update Brass automatically.'
-                  : 'Brass updates as you score and is saved when you finish the group round.'}
+                {game.state === 'settled' ? 'Saved to ledger' : 'Live Brass'}
               </Text>
               {game.result && game.state !== 'setup' && (
                 <>
@@ -238,20 +232,24 @@ export function SkinsGamePanel({
                       </Text>
                     </View>
                   ))}
-                  {game.result.holes.map((h) => (
-                    <View key={h.hole} style={s.row}>
-                      <Text style={[s.text, { width: 70 }]}>Hole {h.hole}</Text>
-                      <Text style={[s.small, { flex: 1 }]}>
-                        {h.state === 'waiting'
-                          ? 'Waiting for scores'
-                          : h.state === 'carried'
-                            ? h.hole === game.hole_count
-                              ? 'Tied · no award'
-                              : 'Tied · carried'
-                            : `${game.players.find((p) => p.userId === h.winnerId)?.name ?? 'Player'} · ${brass((h.skinsAtStake ?? 0) * game.stake)} from each opponent`}
-                      </Text>
-                    </View>
-                  ))}
+                  {button(showHoles ? 'Hide hole results' : 'Hole results', () =>
+                    setShowHoles(!showHoles),
+                  )}
+                  {showHoles &&
+                    game.result.holes.map((h) => (
+                      <View key={h.hole} style={s.row}>
+                        <Text style={[s.text, { width: 70 }]}>Hole {h.hole}</Text>
+                        <Text style={[s.small, { flex: 1 }]}>
+                          {h.state === 'waiting'
+                            ? 'Waiting for scores'
+                            : h.state === 'carried'
+                              ? h.hole === game.hole_count
+                                ? 'Tied · no award'
+                                : 'Tied · carried'
+                              : `${game.players.find((p) => p.userId === h.winnerId)?.name ?? 'Player'} · ${brass((h.skinsAtStake ?? 0) * game.stake)} from each opponent`}
+                        </Text>
+                      </View>
+                    ))}
                 </>
               )}
               {setup?.isHost && (

@@ -1,5 +1,13 @@
 # Games tab and quick rules — September 24
 
+## Minimal design revision
+
+Four equal-width navigation targets now sit on one baseline: Home, Play, Games, Me. Play has a Brass flag medallion; Games has a matching trophy medallion. The game catalog shows names only, a ledger link and round actions. Selection replaces the catalog with the game title, outlined How to play button, and start/continue actions. Course names and explanatory paragraphs are removed. Multiple active rounds can be chosen in a separate sheet using round number, date and hole count. Skins explanations stay in the rules sheet; hole results are collapsed initially. Critical amount labels, errors and input guidance remain.
+
+Verified the catalog, equal navigation spacing, selected-game screen and rules sheet in an isolated native iPhone component preview, then removed the preview. TypeScript, changed-file ESLint and both mobile bundle exports pass. Authenticated round submission was not repeated for this visual revision.
+
+## Initial implementation (superseded layout below)
+
 Implemented the Games destination alongside Home and Me, preserving the raised round action with a separate touch target. Games links to the existing rivalry ledger and offers Skins, closest to pin, longest drive, and custom games. A selected game can use an active group round or begin group setup. Game intent survives course selection, including adding a course, and appears in the lobby.
 
 “How to play” opens a cream, scorecard-style bottom sheet: four numbered rules, a literal Brass example, scrolling for smaller screens, and a fixed Done control. Rules are also accessible in existing Skins and side-game forms. Closing the sheet preserves the current selection/form.
