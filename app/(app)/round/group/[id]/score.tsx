@@ -1,3 +1,5 @@
+import { RoundGames, RoundBrass } from '@/components/RoundGames';
+import { isGameKind } from '@/lib/gameRules';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -21,7 +23,12 @@ import { fontFamily, palette } from '@/theme/linksman';
 
 type Save = (confirm?: boolean) => Promise<boolean>;
 export default function GroupScore() {
-  const { id, hole: holeParam } = useLocalSearchParams<{ id: string; hole?: string }>();
+  const {
+    id,
+    hole: holeParam,
+    game,
+    games,
+  } = useLocalSearchParams<{ id: string; hole?: string; game?: string; games?: string }>();
   const hole = Math.max(1, Number(holeParam) || 1);
   const group = useGroupRound(id);
   const { session } = useSession();
@@ -160,10 +167,11 @@ export default function GroupScore() {
           >
             <Text style={s.link}>← Round overview</Text>
           </Pressable>
+          <Text style={s.eyebrow}>GROUP SCORECARD</Text>
           <Text style={s.title}>
             Hole {hole} <Text style={{ fontSize: 20 }}>of {total}</Text>
           </Text>
-          <Text style={s.copy}>One scorekeeper. Everyone’s round.</Text>
+          <Text style={s.small}>Golf scores & games, all in one round.</Text>
           {group.isError || courseHoles.isError ? (
             <Pressable
               onPress={() => {
@@ -193,14 +201,25 @@ export default function GroupScore() {
                     disabled={busy}
                     style={[
                       s.hole,
-                      { backgroundColor: hole === i + 1 ? palette.fairway : palette.graphite },
+                      { backgroundColor: hole === i + 1 ? palette.brass : palette.graphite },
                     ]}
                     onPress={() => void go(i + 1)}
                   >
-                    <Text style={s.link}>{i + 1}</Text>
+                    <Text style={[s.link, hole === i + 1 && { color: palette.ink }]}>{i + 1}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
+              <RoundGames
+                key={`${id}:${game ?? ''}:${games ?? ''}`}
+                roundId={id}
+                players={players}
+                canEdit={!!canEdit}
+                holeCount={total}
+                hole={hole}
+                initialGame={isGameKind(game) ? game : undefined}
+                autoOpen={games === '1'}
+                beforeOpen={() => flush()}
+              />
               {players.map((p) => (
                 <PlayerScore
                   key={`${p.user_id}:${hole}:${reset}`}
@@ -228,6 +247,7 @@ export default function GroupScore() {
                   clear={() => void clear(p.user_id)}
                 />
               ))}
+              <RoundBrass roundId={id} />
               <Pressable
                 accessibilityRole="button"
                 disabled={busy || players.length === 0}
@@ -246,18 +266,6 @@ export default function GroupScore() {
                 Saving this hole records the displayed scores for everyone. You can edit them
                 anytime.
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                style={s.button}
-                onPress={async () => {
-                  if (await flush()) {
-                    refreshSummaries();
-                    router.push({ pathname: '/round/group/[id]/game', params: { id } });
-                  }
-                }}
-              >
-                <Text style={s.link}>Games & Brass →</Text>
-              </Pressable>
             </>
           )}
         </ScrollView>
@@ -476,6 +484,14 @@ function PlayerScore({
   );
 }
 const s = StyleSheet.create({
+  eyebrow: {
+    fontFamily: fontFamily.mono,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: palette.sage,
+    marginTop: 12,
+    marginBottom: 8,
+  },
   title: { fontFamily: fontFamily.display, fontSize: 36, color: palette.bone },
   copy: { fontSize: 16, lineHeight: 24, color: palette.bone, marginVertical: 6 },
   small: { fontSize: 14, lineHeight: 21, color: palette.sage, marginVertical: 6 },
@@ -484,11 +500,12 @@ const s = StyleSheet.create({
   primary: {
     minHeight: 52,
     backgroundColor: palette.fairway,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 16,
   },
-  hole: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  hole: { borderRadius: 24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   player: { borderBottomWidth: 1, borderBottomColor: palette.bone + '33', paddingVertical: 18 },
   name: { fontFamily: fontFamily.display, fontSize: 24, color: palette.bone },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 },
@@ -496,11 +513,14 @@ const s = StyleSheet.create({
     width: 48,
     height: 48,
     backgroundColor: palette.graphite,
+    borderRadius: 24,
+    borderWidth: 0.5,
+    borderColor: palette.bone + '33',
     alignItems: 'center',
     justifyContent: 'center',
   },
   number: { fontSize: 28, minWidth: 36, textAlign: 'center', color: palette.bone },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 8 },
-  option: { minHeight: 44, padding: 12, backgroundColor: palette.graphite },
+  option: { borderRadius: 22, minHeight: 44, padding: 12, backgroundColor: palette.graphite },
   selected: { backgroundColor: palette.fairway },
 });

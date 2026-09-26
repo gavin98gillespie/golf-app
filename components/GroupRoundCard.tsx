@@ -356,18 +356,6 @@ export function GroupRoundCard({ round, viewerId }: Props) {
             </Text>
           </Pressable>
         </View>
-        <Text
-          style={{
-            fontFamily: fontFamily.mono,
-            fontSize: 9,
-            letterSpacing: 9 * 0.18,
-            color: fg,
-            opacity: 0.4,
-            textTransform: 'uppercase',
-          }}
-        >
-          VIEW ROUND
-        </Text>
       </View>
     </Pressable>
   );

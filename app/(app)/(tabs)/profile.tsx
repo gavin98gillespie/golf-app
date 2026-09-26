@@ -1,3 +1,4 @@
+import { BrassOverview } from '@/components/BrassOverview';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -209,23 +210,7 @@ export default function Profile() {
                 {profile.bio}
               </Text>
             ) : null}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/ledger')}
-              style={{
-                minHeight: 56,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderTopWidth: 0.5,
-                borderBottomWidth: 0.5,
-                borderColor: palette.ink + '33',
-                marginTop: 8,
-              }}
-            >
-              <Text style={{ color: palette.ink, fontSize: 18 }}>Rivalry ledger</Text>
-              <Text style={{ color: palette.fairway, fontSize: 18 }}>→</Text>
-            </Pressable>
+            <BrassOverview light />
 
             {/* Handicap hero */}
             <View style={{ alignItems: 'center', marginTop: 32 }}>

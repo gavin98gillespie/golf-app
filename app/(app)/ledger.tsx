@@ -1,3 +1,4 @@
+import { BrassAmount } from '@/components/BrassAmount';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -73,7 +74,13 @@ export default function Ledger() {
         contentContainerStyle={{ paddingBottom: 50 }}
       >
         <Text style={s.title}>{rival ? rival.name : 'Rivalry ledger'}</Text>
-        <Text style={s.text}>Brass · your running results</Text>
+        <BrassAmount
+          amount={Array.from(rivals.values()).reduce((sum, r) => sum + r.balance, 0)}
+          signed
+          light
+          size={38}
+        />
+        <Text style={s.text}>Your net Brass · all rivalries</Text>
         {query.isPending && <Text style={s.text}>Loading your rivalries…</Text>}
         {query.isError && (
           <Pressable

@@ -1,11 +1,10 @@
-import { GAME_RULES, isGameKind } from '@/lib/gameRules';
-import { RulesButton } from '@/components/GameRulesSheet';
+import { isGameKind, type GameKind } from '@/lib/gameRules';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 
-import { SkinsGamePanel } from '@/components/SkinsGamePanel';
+import { RoundGames } from '@/components/RoundGames';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useActionSheet } from '@/components/ActionSheet';
 import { Wordmark } from '@/components/Wordmark';
@@ -27,7 +26,9 @@ export default function Lobby() {
     manage?: string;
     game?: string;
   }>();
-  const selectedGame = isGameKind(game) ? game : undefined;
+  const [selectedGame, setSelectedGame] = useState<GameKind | undefined>(
+    isGameKind(game) ? game : undefined,
+  );
   const { session } = useSession();
   const groupQ = useGroupRound(id);
   const invite = useInviteToRound();
@@ -53,7 +54,10 @@ export default function Lobby() {
   if (round?.invites_locked_at && manage !== '1') {
     return (
       <Redirect
-        href={{ pathname: '/round/group/[id]/score', params: { id: round.id, hole: '1' } }}
+        href={{
+          pathname: '/round/group/[id]/score',
+          params: { id: round.id, hole: '1', ...(selectedGame ? { game: selectedGame } : {}) },
+        }}
       />
     );
   }
@@ -113,7 +117,7 @@ export default function Lobby() {
     return (
       <ScreenContainer surface="bone">
         <Pressable onPress={() => router.replace('/(app)/(tabs)')} style={{ minHeight: 48 }}>
-          <Text style={{ color: palette.ink, fontSize: 16 }}>← Back to Today</Text>
+          <Text style={{ color: palette.ink, fontSize: 16 }}>← Back to Feed</Text>
         </Pressable>
         <Text style={{ color: palette.ink, fontSize: 16 }}>
           {groupQ.isError ? 'Could not load this round.' : 'Loading round…'}
@@ -278,27 +282,6 @@ export default function Lobby() {
           </View>
         ))}
 
-        {selectedGame && canManage && (
-          <View style={{ marginVertical: 16 }}>
-            <Text style={{ color: palette.ink, fontFamily: fontFamily.display, fontSize: 24 }}>
-              {GAME_RULES[selectedGame].title}
-            </Text>
-            <RulesButton game={selectedGame} surface="bone" />
-            <Text style={{ color: palette.fairway, fontSize: 16, lineHeight: 23 }}>
-              {selectedGame === 'skins'
-                ? 'Add at least two players, then set up Skins below.'
-                : 'Add your players and start the round. Record the winner from Games when the result is known.'}
-            </Text>
-          </View>
-        )}
-
-        {manage !== '1' && (!selectedGame || selectedGame === 'skins') && (
-          <SkinsGamePanel
-            roundId={id}
-            setup={{ isHost: canManage, holeCount: round.hole_count ?? 18, players }}
-          />
-        )}
-
         {canManage ? (
           <>
             <Pressable
@@ -325,6 +308,18 @@ export default function Lobby() {
               </Text>
             </Pressable>
 
+            <View style={{ marginTop: 24 }}>
+              <RoundGames
+                roundId={id}
+                players={players}
+                canEdit={canManage}
+                holeCount={round.hole_count ?? 18}
+                lobby
+                initialGame={selectedGame}
+                onSelect={setSelectedGame}
+              />
+            </View>
+
             <Pressable
               onPress={onStart}
               disabled={
@@ -335,6 +330,7 @@ export default function Lobby() {
               style={{
                 marginTop: 32,
                 backgroundColor: palette.brass,
+                borderRadius: 28,
                 paddingVertical: 16,
                 alignItems: 'center',
                 opacity: start.isPending || joinedCount < 1 ? 0.5 : 1,

@@ -54,7 +54,7 @@ function NavItem({
   const medal = name === 'play' || name === 'games';
   const filled = name === 'play' || (name === 'games' && selected);
   const color = filled ? palette.ink : selected || medal ? palette.brass : palette.sage;
-  const label = { index: 'Home', play: 'Play', games: 'Games', profile: 'Me' }[name];
+  const label = { index: 'Feed', play: 'Play', games: 'Games', profile: 'Me' }[name];
   return (
     <Pressable
       accessibilityRole={name === 'play' ? 'button' : 'tab'}

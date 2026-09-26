@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SkinsGamePanel } from '@/components/SkinsGamePanel';
+import { RoundBrass, RoundGames } from '@/components/RoundGames';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { HoleGrid } from '@/components/HoleGrid';
 import { Topo } from '@/components/Topo';
@@ -257,7 +257,12 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
             </Text>
           </View>
 
-          <SkinsGamePanel roundId={roundId} compact />
+          {canEditOrDelete && (
+            <RoundBrass
+              roundId={roundId}
+              finished={players.every((p) => p.status === 'finished' || p.status === 'withdrawn')}
+            />
+          )}
 
           {canEditOrDelete && (
             <Pressable
@@ -273,17 +278,12 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
               <Text style={{ fontSize: 17, color: palette.bone }}>Edit group scores →</Text>
             </Pressable>
           )}
-          {canEditOrDelete && (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() =>
-                router.push({ pathname: '/round/group/[id]/game', params: { id: roundId } })
-              }
-              style={{ minHeight: 48, justifyContent: 'center' }}
-            >
-              <Text style={{ fontSize: 17, color: palette.bone }}>Games & Brass →</Text>
-            </Pressable>
-          )}
+          <RoundGames
+            roundId={roundId}
+            players={players}
+            canEdit={canEditOrDelete}
+            holeCount={round.hole_count ?? 18}
+          />
           {/* Per-player slices */}
           {visiblePlayers.map((p) => {
             const playerHoles = holes

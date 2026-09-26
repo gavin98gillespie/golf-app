@@ -1,3 +1,5 @@
+import { BrassAmount, BrassCoin } from '@/components/BrassAmount';
+import { useSideGames } from '@/lib/queries/sideGames';
 import { RulesButton } from '@/components/GameRulesSheet';
 import { GAME_RULES, type GameKind } from '@/lib/gameRules';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,18 +14,23 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGroupRound } from '@/lib/queries/groupRounds';
 import { useSession } from '@/lib/hooks/useSession';
 import { supabase, type Tables } from '@/lib/supabase';
-import { brass } from '@/components/SkinsGamePanel';
 import { palette, fontFamily } from '@/theme/linksman';
 export function SideGamesPanel({
   roundId,
   onFormChange,
   selectedGame,
+  hole = 1,
+  onSaved,
+  onCancel,
 }: {
   roundId: string;
+  hole?: number;
+  onSaved?: () => void;
+  onCancel?: () => void;
   selectedGame?: Exclude<GameKind, 'skins'> | undefined;
   onFormChange?: () => void;
 }) {
@@ -37,18 +44,7 @@ export function SideGamesPanel({
   const canEdit =
     group.data?.round.user_id === session?.user.id ||
     players.some((p) => p.user_id === session?.user.id);
-  const q = useQuery({
-    queryKey: ['sideGames', roundId, session?.user.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('round_side_games')
-        .select('*')
-        .eq('round_id', roundId)
-        .order('edited_at', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const q = useSideGames(roundId);
   const [form, setForm] = useState<{
     id: string | null;
     from: string;
@@ -77,11 +73,11 @@ export function SideGamesPanel({
           }
         : {
             id: null,
-            from: session?.user.id ?? players[0]?.user_id ?? '',
-            to: players.find((p) => p.user_id !== session?.user.id)?.user_id ?? '',
+            from: '',
+            to: '',
             amount: '50',
-            hole: '1',
-            label: 'Closest to pin',
+            hole: String(hole),
+            label: selectedGame && selectedGame !== 'custom' ? GAME_RULES[selectedGame].title : '',
           },
     );
   };
@@ -89,17 +85,15 @@ export function SideGamesPanel({
   useEffect(() => {
     if (!selectedGame || opened.current || !canEdit || players.length < 2) return;
     opened.current = true;
-    const from =
-      players.find((p) => p.user_id === session?.user.id)?.user_id ?? players[0]!.user_id;
     setForm({
       id: null,
-      from,
-      to: players.find((p) => p.user_id !== from)!.user_id,
+      from: '',
+      to: '',
       amount: '50',
-      hole: '1',
+      hole: String(hole),
       label: selectedGame === 'custom' ? '' : GAME_RULES[selectedGame].title,
     });
-  }, [selectedGame, canEdit, players, session?.user.id]);
+  }, [selectedGame, canEdit, players, session?.user.id, hole]);
   const save = async () => {
     if (!form) return;
     if (form.from === form.to || !form.from || !form.to) {
@@ -109,6 +103,10 @@ export function SideGamesPanel({
     if (
       !/^\d+(\.\d{1,2})?$/.test(form.amount) ||
       Number(form.amount) <= 0 ||
+      Number(form.amount) > 1000000 ||
+      !form.label.trim() ||
+      Number(form.hole) < 1 ||
+      Number(form.hole) > (group.data?.round.hole_count ?? 18) ||
       !/^\d+$/.test(form.hole)
     ) {
       Alert.alert(
@@ -133,6 +131,7 @@ export function SideGamesPanel({
       setForm(null);
       onFormChange?.();
       await refresh();
+      onSaved?.();
     } catch (e) {
       Alert.alert('Could not save Brass', (e as { message?: string }).message ?? 'Try again.');
     } finally {
@@ -153,7 +152,16 @@ export function SideGamesPanel({
   };
   return (
     <View style={{ paddingVertical: 20 }}>
-      <Text style={s.title}>{selectedGame ? GAME_RULES[selectedGame].title : 'Side games'}</Text>
+      <Text style={s.title}>
+        {form?.label || (selectedGame ? GAME_RULES[selectedGame].title : 'Side games')}
+      </Text>
+      <Text style={s.small}>
+        {selectedGame === 'drive'
+          ? 'Longest tee shot in the fairway wins.'
+          : selectedGame === 'closest'
+            ? 'Nearest eligible tee shot to the pin wins.'
+            : 'Your challenge. Your agreed result.'}
+      </Text>
       <RulesButton
         game={
           form?.label === GAME_RULES.closest.title
@@ -167,24 +175,31 @@ export function SideGamesPanel({
       />
       {form ? (
         <>
-          <Text style={s.label}>Game</Text>
-          <TextInput
-            accessibilityLabel="Side game name"
-            value={form.label}
-            onChangeText={(label) => setForm({ ...form, label })}
-            style={s.input}
-            maxLength={60}
-            returnKeyType="done"
-            inputAccessoryViewID="side-game-inputs"
-            onSubmitEditing={Keyboard.dismiss}
-          />
-          <Text style={s.label}>From</Text>
+          {(!selectedGame || selectedGame === 'custom') && (
+            <>
+              <Text style={s.label}>Challenge name</Text>
+              <TextInput
+                accessibilityLabel="Side game name"
+                value={form.label}
+                onChangeText={(label) => setForm({ ...form, label })}
+                style={s.input}
+                maxLength={60}
+                returnKeyType="done"
+                inputAccessoryViewID="side-game-inputs"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+            </>
+          )}
+          <Text style={s.label}>Who pays?</Text>
           <View style={s.options}>
             {players.map((p) => (
               <Pressable
                 accessibilityRole="button"
                 key={p.user_id}
-                onPress={() => setForm({ ...form, from: p.user_id })}
+                accessibilityState={{ selected: form.from === p.user_id }}
+                onPress={() =>
+                  setForm({ ...form, from: p.user_id, to: form.to === p.user_id ? '' : form.to })
+                }
                 style={[s.option, form.from === p.user_id && s.selected]}
               >
                 <Text style={s.text}>
@@ -200,7 +215,14 @@ export function SideGamesPanel({
               <Pressable
                 accessibilityRole="button"
                 key={p.user_id}
-                onPress={() => setForm({ ...form, to: p.user_id })}
+                accessibilityState={{ selected: form.to === p.user_id }}
+                onPress={() =>
+                  setForm({
+                    ...form,
+                    to: p.user_id,
+                    from: form.from === p.user_id ? '' : form.from,
+                  })
+                }
                 style={[s.option, form.to === p.user_id && s.selected]}
               >
                 <Text style={s.text}>
@@ -210,29 +232,42 @@ export function SideGamesPanel({
               </Pressable>
             ))}
           </View>
-          <Text style={s.label}>Brass amount</Text>
-          <TextInput
-            accessibilityLabel="Brass amount"
-            value={form.amount}
-            onChangeText={(amount) => setForm({ ...form, amount })}
-            keyboardType="decimal-pad"
-            inputAccessoryViewID="side-game-inputs"
-            style={s.input}
-          />
-          <Text style={s.label}>Hole</Text>
-          <TextInput
-            accessibilityLabel="Side game hole"
-            value={form.hole}
-            onChangeText={(hole) => setForm({ ...form, hole })}
-            keyboardType="number-pad"
-            inputAccessoryViewID="side-game-inputs"
-            style={s.input}
-          />
+          <View style={{ flexDirection: 'row', gap: 24, marginTop: 12 }}>
+            <View style={{ flex: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <BrassCoin size={24} />
+                <Text style={s.label}>Brass</Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Brass amount"
+                value={form.amount}
+                onChangeText={(amount) => setForm({ ...form, amount })}
+                keyboardType="decimal-pad"
+                inputAccessoryViewID="side-game-inputs"
+                style={s.input}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.label}>Hole</Text>
+              <TextInput
+                accessibilityLabel="Side game hole"
+                value={form.hole}
+                onChangeText={(hole) => setForm({ ...form, hole })}
+                keyboardType="number-pad"
+                inputAccessoryViewID="side-game-inputs"
+                style={s.input}
+              />
+            </View>
+          </View>
+          <Text style={s.small}>One entry transfers this amount from the payer to the winner.</Text>
           {Platform.OS === 'ios' && (
             <InputAccessoryView nativeID="side-game-inputs">
               <View
                 style={{
                   backgroundColor: palette.graphite,
+                  borderRadius: 24,
+                  borderWidth: 1,
+                  borderColor: palette.bone + '22',
                   alignItems: 'flex-end',
                   paddingHorizontal: 24,
                 }}
@@ -253,7 +288,9 @@ export function SideGamesPanel({
             onPress={() => void save()}
             style={s.button}
           >
-            <Text style={s.text}>{busy ? 'Saving…' : 'Save Brass'}</Text>
+            <Text style={[s.text, { color: palette.ink }]}>
+              {busy ? 'Saving…' : 'Record winner'}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -261,8 +298,9 @@ export function SideGamesPanel({
             onPress={() => {
               Keyboard.dismiss();
               setForm(null);
+              onCancel?.();
             }}
-            style={s.option}
+            style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={s.text}>Cancel</Text>
           </Pressable>
@@ -284,45 +322,60 @@ export function SideGamesPanel({
           <Text style={s.text}>Could not load side games. Retry</Text>
         </Pressable>
       )}
-      {(q.data ?? []).map((e) => (
-        <View
-          key={e.id}
-          style={{ borderBottomWidth: 0.5, borderColor: palette.bone + '33', paddingVertical: 18 }}
-        >
-          <Text style={s.label}>
-            {e.label} · Hole {e.hole}
-          </Text>
-          <Text style={s.text}>
-            {name(e.from_player)} → {name(e.to_player)} · {brass(e.amount)} Brass
-          </Text>
-          <Text style={s.small}>Edited by {name(e.edited_by)}</Text>
-          {canEdit && (
-            <View style={s.options}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={busy}
-                onPress={() => edit(e)}
-                style={s.option}
-              >
-                <Text style={s.text}>Edit</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={busy}
-                onPress={() =>
-                  Alert.alert('Delete this Brass entry?', 'You can add it again if needed.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => void remove(e.id) },
-                  ])
-                }
-                style={s.option}
-              >
-                <Text style={s.text}>Delete</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      ))}
+      {(q.data ?? [])
+        .filter(
+          (e) =>
+            !selectedGame ||
+            (selectedGame === 'custom'
+              ? ![GAME_RULES.closest.title, GAME_RULES.drive.title].includes(
+                  e.label as typeof GAME_RULES.closest.title,
+                )
+              : e.label === GAME_RULES[selectedGame].title),
+        )
+        .map((e) => (
+          <View
+            key={e.id}
+            style={{
+              borderBottomWidth: 0.5,
+              borderColor: palette.bone + '33',
+              paddingVertical: 18,
+            }}
+          >
+            <Text style={s.label}>
+              {e.label} · Hole {e.hole}
+            </Text>
+            <Text style={s.text}>
+              {name(e.to_player)} won · from {name(e.from_player)}
+            </Text>
+            <BrassAmount amount={e.amount} />
+            <Text style={s.small}>Edited by {name(e.edited_by)}</Text>
+            {canEdit && (
+              <View style={s.options}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy}
+                  onPress={() => edit(e)}
+                  style={s.option}
+                >
+                  <Text style={s.text}>Edit</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={busy}
+                  onPress={() =>
+                    Alert.alert('Delete this Brass entry?', 'You can add it again if needed.', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', style: 'destructive', onPress: () => void remove(e.id) },
+                    ])
+                  }
+                  style={s.option}
+                >
+                  <Text style={s.text}>Delete</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        ))}
     </View>
   );
 }
@@ -337,19 +390,23 @@ const s = StyleSheet.create({
     padding: 12,
     justifyContent: 'center',
     backgroundColor: palette.graphite,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: palette.bone + '22',
   },
-  selected: { backgroundColor: palette.fairway },
+  selected: { backgroundColor: palette.fairway, borderColor: palette.brass },
   button: {
     minHeight: 48,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.fairway,
+    backgroundColor: palette.brass,
+    borderRadius: 28,
     marginVertical: 12,
   },
   input: {
     minHeight: 48,
-    fontSize: 20,
+    fontSize: 28,
     color: palette.bone,
     borderBottomWidth: 1,
     borderColor: palette.sage,

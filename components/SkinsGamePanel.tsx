@@ -1,3 +1,4 @@
+import { BrassAmount, BrassCoin } from '@/components/BrassAmount';
 import { RulesButton } from '@/components/GameRulesSheet';
 import { useState } from 'react';
 import {
@@ -132,7 +133,11 @@ export function SkinsGamePanel({
       <RulesButton game="skins" />
       {editing && setup ? (
         <>
-          <Text style={s.text}>Brass per skin, from each opponent</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <BrassCoin />
+            <Text style={[s.text, { flex: 1 }]}>Brass per skin</Text>
+          </View>
+          <Text style={s.small}>Paid by each opponent to the winner.</Text>
           <TextInput
             accessibilityLabel="Brass per skin"
             style={s.input}
@@ -141,10 +146,27 @@ export function SkinsGamePanel({
             keyboardType="decimal-pad"
             inputAccessoryViewID="skins-inputs"
           />
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            {button(mode === 'gross' ? '✓ Gross scores' : 'Gross scores', () => setMode('gross'))}
-            {button(mode === 'net' ? '✓ Use strokes' : 'Use strokes', () => setMode('net'))}
+          <View style={s.segment}>
+            {(['gross', 'net'] as const).map((value) => (
+              <Pressable
+                key={value}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: mode === value }}
+                disabled={mutation.isPending}
+                onPress={() => setMode(value)}
+                style={[s.segmentOption, mode === value && s.segmentSelected]}
+              >
+                <Text style={[s.text, { color: mode === value ? palette.ink : palette.bone }]}>
+                  {value === 'gross' ? 'Gross scores' : 'Use strokes'}
+                </Text>
+              </Pressable>
+            ))}
           </View>
+          <Text style={s.small}>
+            {mode === 'gross'
+              ? 'Lowest actual score wins. No handicap adjustment.'
+              : 'Adjust scores using each player’s agreed strokes.'}
+          </Text>
           {mode === 'net' && (
             <>
               <Text style={s.text}>Strokes received over these {setup.holeCount} holes</Text>
@@ -197,7 +219,16 @@ export function SkinsGamePanel({
               </View>
             </InputAccessoryView>
           )}
-          {button('Save skins', save)}
+          <Pressable
+            accessibilityRole="button"
+            disabled={mutation.isPending}
+            onPress={save}
+            style={s.primary}
+          >
+            <Text style={[s.text, { color: palette.ink }]}>
+              {mutation.isPending ? 'Saving…' : 'Save Skins'}
+            </Text>
+          </Pressable>
           {button('Cancel', () => {
             Keyboard.dismiss();
             setEditing(false);
@@ -214,10 +245,11 @@ export function SkinsGamePanel({
             </>
           ) : (
             <>
-              <Text style={s.text}>
-                {brass(game.stake)} Brass per skin · {game.mode === 'gross' ? 'Gross' : 'Net'}{' '}
-                scores
+              <BrassAmount amount={game.stake} />
+              <Text style={s.small}>
+                Per skin · {game.mode === 'gross' ? 'Gross' : 'Net'} scores
               </Text>
+              <Text style={s.text}>Calculated from your round’s scorecard.</Text>
               <Text style={s.small}>
                 {game.state === 'settled' ? 'Saved to ledger' : 'Live Brass'}
               </Text>
@@ -279,7 +311,7 @@ export function SkinsGamePanel({
   );
 }
 const s = StyleSheet.create({
-  section: { backgroundColor: palette.ink, padding: 20 },
+  section: { backgroundColor: palette.ink, paddingVertical: 12 },
   title: { fontFamily: fontFamily.display, fontSize: 28, color: palette.bone, marginBottom: 8 },
   text: { fontSize: 16, lineHeight: 24, color: palette.bone },
   small: { fontSize: 14, lineHeight: 22, color: palette.sage, marginVertical: 8 },
@@ -295,11 +327,37 @@ const s = StyleSheet.create({
   button: {
     minHeight: 48,
     padding: 12,
-    backgroundColor: palette.fairway,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0.5,
+    borderColor: palette.bone + '22',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
   },
+  primary: {
+    minHeight: 52,
+    borderRadius: 26,
+    backgroundColor: palette.brass,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  segment: {
+    flexDirection: 'row',
+    padding: 4,
+    backgroundColor: palette.graphite,
+    borderRadius: 28,
+    marginTop: 16,
+  },
+  segmentOption: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    padding: 8,
+  },
+  segmentSelected: { backgroundColor: palette.bone },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

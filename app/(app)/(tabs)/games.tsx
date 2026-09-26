@@ -1,3 +1,4 @@
+import { BrassOverview } from '@/components/BrassOverview';
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -74,6 +75,7 @@ export default function Games() {
           </View>
         ) : (
           <View style={{ gap: 12 }}>
+            <BrassOverview />
             {(Object.keys(GAME_RULES) as GameKind[]).map((key) => (
               <GameTile
                 key={key}
