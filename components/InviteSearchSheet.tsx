@@ -95,7 +95,7 @@ export function InviteSearchSheet({
               Add players
             </Text>
             <Text style={{ fontSize: 16, lineHeight: 24, color: palette.ink, marginVertical: 8 }}>
-              Choose an account or enter a guest’s name. Nobody else needs to log in.
+              Accounts & guests
             </Text>
             <SearchField
               surface="bone"

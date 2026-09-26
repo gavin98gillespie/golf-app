@@ -375,7 +375,7 @@ export default function Profile() {
               marginTop: 16,
             }}
           >
-            No rounds yet. Tap New round to score your first.
+            No rounds yet.
           </Text>
         }
       />

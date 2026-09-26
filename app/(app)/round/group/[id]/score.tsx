@@ -1,9 +1,14 @@
+import { ScoreSaveStatus } from '@/components/ScoreSaveStatus';
+import { HoleScorecard } from '@/components/HoleScorecard';
+import { Topo } from '@/components/Topo';
+import { scorecardTotals, nextUnscoredPlayer } from '@/lib/games/scorecard';
 import { RoundGames, RoundBrass } from '@/components/RoundGames';
 import { isGameKind } from '@/lib/gameRules';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -11,6 +16,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -38,6 +44,8 @@ export default function GroupScore() {
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
   }, [hole]);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const advancing = useRef(false);
   const [busy, setBusy] = useState(false);
   const [reset, setReset] = useState(0);
   const round = group.data?.round;
@@ -45,6 +53,16 @@ export default function GroupScore() {
     () => group.data?.players.filter((p) => p.status === 'joined' || p.status === 'finished') ?? [],
     [group.data],
   );
+  const activePlayer = players.find((p) => p.user_id === selectedPlayer) ?? players[0];
+  const recorded = new Set(
+    (group.data?.holes ?? []).filter((h) => h.hole_number === hole).map((h) => h.player_id),
+  );
+  const nextPlayerId = nextUnscoredPlayer(
+    players.map((p) => p.user_id),
+    activePlayer?.user_id ?? '',
+    recorded,
+  );
+  const nextPlayer = players.find((p) => p.user_id === nextPlayerId);
   const total = round?.hole_count ?? 18;
   const courseHoles = useQuery({
     queryKey: ['course_holes_group', round?.course_id],
@@ -92,10 +110,28 @@ export default function GroupScore() {
     }
   };
   const next = async () => {
-    if (busy) return;
+    if (advancing.current || !activePlayer) return;
+    advancing.current = true;
     setBusy(true);
     try {
-      if (!(await flush(true))) return;
+      if (!(await saves.get(activePlayer.user_id)?.(true))) return;
+      if (!(await flush(false))) return;
+      const fresh = await group.refetch();
+      if (fresh.error) throw fresh.error;
+      const saved = new Set(
+        (fresh.data?.holes ?? []).filter((h) => h.hole_number === hole).map((h) => h.player_id),
+      );
+      const pending = nextUnscoredPlayer(
+        players.map((p) => p.user_id),
+        activePlayer.user_id,
+        saved,
+      );
+      if (pending) {
+        setSelectedPlayer(pending);
+        scroll.current?.scrollTo({ y: 0, animated: false });
+        return;
+      }
+      setSelectedPlayer(null);
       if (hole < total) {
         router.setParams({ hole: String(hole + 1) });
         return;
@@ -125,6 +161,7 @@ export default function GroupScore() {
         (e as { message?: string }).message ?? 'Please try again.',
       );
     } finally {
+      advancing.current = false;
       setBusy(false);
     }
   };
@@ -145,70 +182,130 @@ export default function GroupScore() {
   };
   return (
     <ScreenContainer>
+      <View pointerEvents="none" style={{ position: 'absolute', inset: 0, opacity: 0.18 }}>
+        <Topo seed={`${id}-h${hole}`} width={400} height={900} stroke={palette.bone + '22'} />
+      </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           ref={scroll}
+          style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 }}
         >
-          <Pressable
-            accessibilityRole="button"
-            style={s.button}
-            onPress={async () => {
-              if (group.isError || courseHoles.isError || (await flush())) {
-                refreshSummaries();
-                router.dismissTo({ pathname: '/round/[id]', params: { id } });
-              }
-            }}
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <Text style={s.link}>← Round overview</Text>
-          </Pressable>
-          <Text style={s.eyebrow}>GROUP SCORECARD</Text>
-          <Text style={s.title}>
-            Hole {hole} <Text style={{ fontSize: 20 }}>of {total}</Text>
-          </Text>
-          <Text style={s.small}>Golf scores & games, all in one round.</Text>
+            <Pressable
+              accessibilityRole="button"
+              style={s.button}
+              onPress={async () => {
+                if (group.isError || courseHoles.isError || (await flush())) {
+                  refreshSummaries();
+                  router.dismissTo({ pathname: '/round/[id]', params: { id } });
+                }
+              }}
+            >
+              <Text style={s.eyebrow}>‹ ROUND</Text>
+            </Pressable>
+            <Text style={s.progress}>
+              {String(hole).padStart(2, '0')}/{String(total).padStart(2, '0')}
+            </Text>
+          </View>
           {group.isError || courseHoles.isError ? (
             <Pressable
+              style={s.button}
               onPress={() => {
                 void group.refetch();
                 void courseHoles.refetch();
               }}
-              style={s.button}
             >
-              <Text style={s.link}>Could not load round. Tap to retry.</Text>
+              <Text style={s.link}>Could not load round. Retry</Text>
             </Pressable>
           ) : group.isPending ? (
-            <Text style={s.copy}>Loading players…</Text>
+            <Text style={s.small}>Loading…</Text>
           ) : !canEdit ? (
-            <Text style={s.copy}>This round is read only.</Text>
+            <Text style={s.small}>Read only</Text>
           ) : (
             <>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6, marginVertical: 16 }}
+                contentContainerStyle={{ gap: 8, paddingVertical: 8 }}
               >
-                {Array.from({ length: total }, (_, i) => (
+                {players.map((p) => (
                   <Pressable
-                    key={i}
-                    accessibilityLabel={`Go to hole ${i + 1}`}
-                    accessibilityRole="button"
+                    key={p.user_id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: p.user_id === activePlayer?.user_id }}
                     disabled={busy}
-                    style={[
-                      s.hole,
-                      { backgroundColor: hole === i + 1 ? palette.brass : palette.graphite },
-                    ]}
-                    onPress={() => void go(i + 1)}
+                    onPress={async () => {
+                      if (await flush()) setSelectedPlayer(p.user_id);
+                    }}
+                    style={[s.playerTab, p.user_id === activePlayer?.user_id && s.activeTab]}
                   >
-                    <Text style={[s.link, hole === i + 1 && { color: palette.ink }]}>{i + 1}</Text>
+                    <Text
+                      style={[
+                        s.tabName,
+                        p.user_id === activePlayer?.user_id && { color: palette.ink },
+                      ]}
+                    >
+                      {p.profile?.display_name ?? 'Player'}
+                    </Text>
+                    <Text
+                      style={[
+                        s.tabScore,
+                        p.user_id === activePlayer?.user_id && { color: palette.fairway },
+                      ]}
+                    >
+                      {group.data?.holes.find(
+                        (h) => h.hole_number === hole && h.player_id === p.user_id,
+                      )?.score ?? '—'}
+                    </Text>
                   </Pressable>
                 ))}
               </ScrollView>
+              {players.map((p) => (
+                <PlayerScore
+                  key={`${p.user_id}:${hole}:${reset}`}
+                  player={p}
+                  roundId={id}
+                  hole={hole}
+                  active={p.user_id === activePlayer?.user_id}
+                  totalHoles={total}
+                  played={group.data?.holes.filter((h) => h.player_id === p.user_id) ?? []}
+                  course={courseHoles.data?.filter((h) => h.tee_box === p.tee_box) ?? []}
+                  ready={courseHoles.isSuccess}
+                  coursePar={
+                    courseHoles.data?.find((h) => h.hole_number === hole && h.tee_box === p.tee_box)
+                      ?.par
+                  }
+                  existing={group.data?.holes.find(
+                    (h) => h.player_id === p.user_id && h.hole_number === hole,
+                  )}
+                  register={saves}
+                  clear={() => void clear(p.user_id)}
+                />
+              ))}
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || !activePlayer}
+                style={[s.primary, busy && { opacity: 0.5 }]}
+                onPress={() => void next()}
+              >
+                <Text style={s.action}>
+                  {busy
+                    ? 'SAVING…'
+                    : nextPlayer
+                      ? `NEXT · ${nextPlayer.profile?.display_name ?? 'PLAYER'} →`
+                      : hole === total
+                        ? 'FINISH ROUND →'
+                        : `HOLE ${hole + 1} →`}
+                </Text>
+              </Pressable>
               <RoundGames
                 key={`${id}:${game ?? ''}:${games ?? ''}`}
                 roundId={id}
@@ -220,52 +317,25 @@ export default function GroupScore() {
                 autoOpen={games === '1'}
                 beforeOpen={() => flush()}
               />
-              {players.map((p) => (
-                <PlayerScore
-                  key={`${p.user_id}:${hole}:${reset}`}
-                  player={p}
-                  roundId={id}
-                  hole={hole}
-                  ready={courseHoles.isSuccess}
-                  coursePar={
-                    courseHoles.data?.find((h) => h.hole_number === hole && h.tee_box === p.tee_box)
-                      ?.par
-                  }
-                  existing={group.data?.holes.find(
-                    (h) => h.player_id === p.user_id && h.hole_number === hole,
-                  )}
-                  editorName={
-                    group.data?.players.find(
-                      (v) =>
-                        v.user_id ===
-                        group.data?.holes.find(
-                          (h) => h.player_id === p.user_id && h.hole_number === hole,
-                        )?.edited_by,
-                    )?.profile?.display_name ?? null
-                  }
-                  register={saves}
-                  clear={() => void clear(p.user_id)}
-                />
-              ))}
               <RoundBrass roundId={id} />
-              <Pressable
-                accessibilityRole="button"
-                disabled={busy || players.length === 0}
-                style={[s.primary, { opacity: busy ? 0.5 : 1 }]}
-                onPress={() => void next()}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 6, paddingVertical: 12 }}
               >
-                <Text style={s.link}>
-                  {busy
-                    ? 'Saving…'
-                    : hole === total
-                      ? 'Finish group round'
-                      : 'Save hole & continue →'}
-                </Text>
-              </Pressable>
-              <Text style={s.small}>
-                Saving this hole records the displayed scores for everyone. You can edit them
-                anytime.
-              </Text>
+                {Array.from({ length: total }, (_, i) => (
+                  <Pressable
+                    key={i}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to hole ${i + 1}`}
+                    disabled={busy}
+                    onPress={() => void go(i + 1)}
+                    style={[s.hole, hole === i + 1 && { borderColor: palette.brass }]}
+                  >
+                    <Text style={s.small}>{i + 1}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
             </>
           )}
         </ScrollView>
@@ -273,6 +343,7 @@ export default function GroupScore() {
     </ScreenContainer>
   );
 }
+
 function PlayerScore({
   player,
   roundId,
@@ -280,7 +351,10 @@ function PlayerScore({
   ready,
   coursePar,
   existing,
-  editorName,
+  active,
+  totalHoles,
+  played,
+  course,
   register,
   clear,
 }: {
@@ -290,7 +364,10 @@ function PlayerScore({
   ready: boolean;
   coursePar: number | undefined;
   existing: Tables<'round_holes'> | undefined;
-  editorName: string | null;
+  active: boolean;
+  totalHoles: number;
+  played: Tables<'round_holes'>[];
+  course: Tables<'course_holes'>[];
   register: Map<string, Save>;
   clear: () => void;
 }) {
@@ -333,6 +410,7 @@ function PlayerScore({
     };
   }, [register, player.user_id, save]);
   const v = editor.value;
+  if (!active) return null;
   if (!v)
     return (
       <View style={s.player}>
@@ -369,121 +447,140 @@ function PlayerScore({
     </View>
   );
   return (
-    <View style={s.player}>
-      <Text style={s.name}>
-        {player.profile?.display_name ?? 'Player'}
-        {player.guest_id ? ' · Guest' : ''}
-      </Text>
-      {step(
-        'Strokes',
-        v.score,
-        () => editor.setScore((n) => Math.max(1, n - 1)),
-        () => editor.setScore((n) => Math.min(20, n + 1)),
-      )}
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => void editor.save(false)}
-        style={{ minHeight: 28, justifyContent: 'center' }}
+    <View>
+      <HoleScorecard
+        hole={hole}
+        par={v.par}
+        score={v.score}
+        editablePar={!course.find((h) => h.hole_number === hole)}
+        yardage={course.find((h) => h.hole_number === hole)?.yardage}
+        telemetry={scorecardTotals(hole, v.score, v.par, totalHoles, played, course)}
+        onPar={editor.setPar}
+        onScore={editor.setScore}
+      />
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: 12,
+        }}
       >
-        <Text style={s.small}>
-          {editor.status === 'error'
-            ? 'Not saved · tap to retry'
-            : editor.status === 'saving' || editor.status === 'unsaved'
-              ? 'Saving…'
-              : existing
-                ? `Saved${editorName ? ` · edited by ${editorName}` : ''}`
-                : 'Not recorded yet'}
-        </Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={() => setDetails((v) => !v)} style={s.button}>
-        <Text style={s.link}>
-          {details ? 'Hide stats & notes' : `Par ${v.par} · Stats & notes`}
-        </Text>
-      </Pressable>
-      {details && (
-        <>
-          {step(
-            'Par',
-            v.par,
-            () => editor.setPar((n) => Math.max(3, n - 1)),
-            () => editor.setPar((n) => Math.min(6, n + 1)),
-          )}
-          {v.putts === null ? (
-            <Pressable style={s.button} onPress={() => editor.setPutts(2)}>
-              <Text style={s.link}>Track putts</Text>
-            </Pressable>
-          ) : (
-            <>
-              {step(
-                'Putts',
-                v.putts,
-                () => editor.setPutts((n) => Math.max(0, (n ?? 0) - 1)),
-                () => editor.setPutts((n) => Math.min(20, (n ?? 0) + 1)),
-              )}
-              <Pressable style={s.button} onPress={() => editor.setPutts(null)}>
-                <Text style={s.small}>Clear putts</Text>
-              </Pressable>
-            </>
-          )}
-          <Text style={s.copy}>Fairway</Text>
-          <View style={s.options}>
-            {(
-              [
-                ['Not tracked', null],
-                ['Hit', 'fairway'],
-                ['Missed', 'rough'],
-              ] as const
-            ).map(([label, value]) => (
-              <Pressable
-                key={label}
-                accessibilityRole="button"
-                onPress={() => editor.setFairwayCategory(value)}
-                style={[s.option, v.fairwayCategory === value && s.selected]}
-              >
-                <Text style={s.link}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={s.copy}>Green in regulation</Text>
-          <View style={s.options}>
-            {(
-              [
-                ['Not tracked', null],
-                ['Yes', true],
-                ['No', false],
-              ] as const
-            ).map(([label, value]) => (
-              <Pressable
-                key={label}
-                accessibilityRole="button"
-                onPress={() => editor.setGir(value)}
-                style={[s.option, v.gir === value && s.selected]}
-              >
-                <Text style={s.link}>{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <NotesField
-            value={notes}
-            onChange={async (next) => {
-              notesRef.current = next;
-              setNotes(next);
-              if (!(await save(false))) throw new Error('Please try saving the note again.');
+        <ScoreSaveStatus status={editor.status} retry={() => void editor.save(false)} />
+        <Pressable accessibilityRole="button" onPress={() => setDetails(true)} style={s.button}>
+          <Text style={s.eyebrow}>STATS & NOTES</Text>
+        </Pressable>
+      </View>
+      <Modal
+        visible={details}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setDetails(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: palette.ink }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 24,
             }}
-          />
-          {existing && (
-            <Pressable accessibilityRole="button" style={s.button} onPress={clear}>
-              <Text style={{ fontSize: 16, color: palette.clay }}>
-                Clear this hole’s score & stats
-              </Text>
+          >
+            <Text style={s.name}>{player.profile?.display_name ?? 'Player'}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setDetails(false)}
+              style={s.button}
+            >
+              <Text style={s.link}>Done</Text>
             </Pressable>
-          )}
-        </>
-      )}
+          </View>
+          <ScrollView
+            automaticallyAdjustKeyboardInsets
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          >
+            {v.putts === null ? (
+              <Pressable style={s.button} onPress={() => editor.setPutts(2)}>
+                <Text style={s.link}>Track putts</Text>
+              </Pressable>
+            ) : (
+              <>
+                {step(
+                  'Putts',
+                  v.putts,
+                  () => editor.setPutts((n) => Math.max(0, (n ?? 0) - 1)),
+                  () => editor.setPutts((n) => Math.min(20, (n ?? 0) + 1)),
+                )}
+                <Pressable style={s.button} onPress={() => editor.setPutts(null)}>
+                  <Text style={s.small}>Clear putts</Text>
+                </Pressable>
+              </>
+            )}
+            <Text style={s.copy}>Green in regulation</Text>
+            <View style={s.options}>
+              {(
+                [
+                  ['Not tracked', null],
+                  ['Yes', true],
+                  ['No', false],
+                ] as const
+              ).map(([label, value]) => (
+                <Pressable
+                  key={label}
+                  accessibilityRole="button"
+                  onPress={() => editor.setGir(value)}
+                  style={[s.option, v.gir === value && s.selected]}
+                >
+                  <Text style={s.link}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <NotesField
+              value={notes}
+              onChange={async (next) => {
+                notesRef.current = next;
+                setNotes(next);
+                if (!(await save(false))) throw new Error('Please try saving the note again.');
+              }}
+            />
+            {existing && (
+              <Pressable accessibilityRole="button" style={s.button} onPress={clear}>
+                <Text style={{ fontSize: 16, color: palette.clay }}>
+                  Clear this hole’s score & stats
+                </Text>
+              </Pressable>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
 const s = StyleSheet.create({
+  progress: { fontFamily: fontFamily.display, color: palette.bone, fontSize: 18 },
+  playerTab: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: palette.bone + '33',
+    borderRadius: 4,
+  },
+  activeTab: { backgroundColor: palette.bone },
+  tabName: { fontSize: 16, color: palette.bone },
+  tabScore: { fontFamily: fontFamily.mono, fontSize: 13, color: palette.sage },
+  action: {
+    fontFamily: fontFamily.mono,
+    fontSize: 13,
+    letterSpacing: 1.5,
+    color: palette.ink,
+    textAlign: 'center',
+  },
   eyebrow: {
     fontFamily: fontFamily.mono,
     fontSize: 11,
@@ -499,13 +596,21 @@ const s = StyleSheet.create({
   button: { minHeight: 48, justifyContent: 'center', paddingVertical: 8 },
   primary: {
     minHeight: 52,
-    backgroundColor: palette.fairway,
-    borderRadius: 28,
+    backgroundColor: palette.sage,
+    borderRadius: 4,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 16,
   },
-  hole: { borderRadius: 24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  hole: {
+    borderWidth: 0.5,
+    borderColor: palette.bone + '33',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   player: { borderBottomWidth: 1, borderBottomColor: palette.bone + '33', paddingVertical: 18 },
   name: { fontFamily: fontFamily.display, fontSize: 24, color: palette.bone },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 },

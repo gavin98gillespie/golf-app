@@ -150,7 +150,7 @@ export function RoundGames({
               ? hole === holeCount
                 ? 'Tied · no award'
                 : 'Tied · carries forward'
-              : 'Enter everyone’s scores to find the winner'}
+              : 'Awaiting scores'}
         </Text>
       )}
       {!lobby &&
@@ -167,11 +167,6 @@ export function RoundGames({
               <BrassAmount amount={entry.amount} size={22} />
             </View>
           ))}
-      {lobby && (
-        <Text style={[s.detail, { color: palette.fairway }]}>
-          Set up Skins now, or record a side-game winner on your scorecard.
-        </Text>
-      )}
       <Modal
         visible={!!selected}
         animationType="slide"
@@ -180,9 +175,7 @@ export function RoundGames({
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: palette.ink }}>
           <View style={s.modalHeader}>
-            <Text style={s.label}>
-              {lobby ? 'ROUND GAMES' : `ON YOUR SCORECARD · HOLE ${hole}`}
-            </Text>
+            <Text style={s.label}>{lobby ? 'ROUND GAMES' : `HOLE ${hole}`}</Text>
             <Pressable accessibilityRole="button" onPress={close} style={s.close}>
               <Text style={s.detail}>Done</Text>
             </Pressable>
@@ -203,10 +196,7 @@ export function RoundGames({
                   <View style={s.ruleCard}>
                     <GameRulesContent game={selected} inline />
                   </View>
-                  <Text style={s.detail}>
-                    Choose this game for the round. Record the hole, winner and agreed Brass amount
-                    from the scorecard after the shot.
-                  </Text>
+
                   <Pressable accessibilityRole="button" onPress={close} style={s.primary}>
                     <Text style={{ color: palette.ink, fontSize: 17 }}>
                       Use {GAME_RULES[selected].title}

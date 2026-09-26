@@ -160,7 +160,7 @@ export function SideGamesPanel({
           ? 'Longest tee shot in the fairway wins.'
           : selectedGame === 'closest'
             ? 'Nearest eligible tee shot to the pin wins.'
-            : 'Your challenge. Your agreed result.'}
+            : 'Custom result'}
       </Text>
       <RulesButton
         game={
@@ -259,7 +259,6 @@ export function SideGamesPanel({
               />
             </View>
           </View>
-          <Text style={s.small}>One entry transfers this amount from the payer to the winner.</Text>
           {Platform.OS === 'ios' && (
             <InputAccessoryView nativeID="side-game-inputs">
               <View

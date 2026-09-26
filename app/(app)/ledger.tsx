@@ -93,10 +93,7 @@ export default function Ledger() {
         )}
         {!query.isPending && !query.isError && rivals.size === 0 && (
           <>
-            <Text style={[s.text, { marginTop: 32 }]}>
-              Record a side game or finish a skins round to start your ledger. One scorekeeper can
-              do it all.
-            </Text>
+            <Text style={[s.text, { marginTop: 32 }]}>No game results yet.</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push('/round/new/group-setup')}

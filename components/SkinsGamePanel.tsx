@@ -249,7 +249,6 @@ export function SkinsGamePanel({
               <Text style={s.small}>
                 Per skin · {game.mode === 'gross' ? 'Gross' : 'Net'} scores
               </Text>
-              <Text style={s.text}>Calculated from your round’s scorecard.</Text>
               <Text style={s.small}>
                 {game.state === 'settled' ? 'Saved to ledger' : 'Live Brass'}
               </Text>

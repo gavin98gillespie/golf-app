@@ -74,7 +74,7 @@ export function NotesField({ value, onChange, onCommit, surface = 'ink' }: Props
           }}
           numberOfLines={2}
         >
-          {value || 'Tap to add a note about this round'}
+          {value || 'Add a note'}
         </Text>
       </Pressable>
       <Modal visible={open} animationType="slide" transparent onRequestClose={close}>

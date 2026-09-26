@@ -1,14 +1,15 @@
+import { ScoreSaveStatus } from '@/components/ScoreSaveStatus';
+import { scorecardTotals } from '@/lib/games/scorecard';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { Datum } from '@/components/Datum';
-import { ScoreNumeral } from '@/components/ScoreNumeral';
+import { HoleScorecard } from '@/components/HoleScorecard';
 import { Topo } from '@/components/Topo';
 import { EagleCelebration } from '@/components/EagleCelebration';
-import { palette, fontFamily, deltaLabel } from '@/theme/linksman';
+import { palette, fontFamily } from '@/theme/linksman';
 import { supabase, type Tables } from '@/lib/supabase';
 import { useRoundHoles, useUpdateRoundNotes } from '@/lib/queries/rounds';
 import { NotesField } from '@/components/NotesField';
@@ -86,8 +87,8 @@ export default function HoleEntry() {
     existing: existingHole,
     coursePar: courseHole?.par,
   });
-  const { setPar, setScore, setFairwayCategory, setGir } = editor;
-  const { par = 4, score = 4, fairwayCategory = null, gir = null } = editor.value ?? {};
+  const { setPar, setScore, setGir } = editor;
+  const { par = 4, score = 4, gir = null } = editor.value ?? {};
 
   const handleEagle = useCallback(
     async (
@@ -120,27 +121,18 @@ export default function HoleEntry() {
     [session],
   );
 
-  // Telemetry: holes BEFORE the current one
-  const telemetry = useMemo(() => {
-    const scored = roundHolesQ.data ?? [];
-    const prior = scored.filter((h) => h.hole_number < hole);
-    const priorScore = prior.reduce((a, h) => a + h.score, 0);
-    const priorPar = prior.reduce((a, h) => a + h.par, 0);
-    const totalScore = priorScore + score;
-    const totalPar = priorPar + par;
-    const diff = totalScore - totalPar;
-    const vsPar = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-    const totalCoursePar = Array.from({ length: totalHoles }, (_, index) => {
-      const number = index + 1;
-      return number === hole
-        ? par
-        : (scored.find((h) => h.hole_number === number)?.par ??
-            courseHolesQ.data?.find((h) => h.hole_number === number)?.par ??
-            4);
-    }).reduce((sum, value) => sum + value, 0);
-    const projected = totalCoursePar + diff;
-    return { thru: hole, totalScore, vsPar, projected };
-  }, [roundHolesQ.data, courseHolesQ.data, hole, score, par, totalHoles]);
+  const telemetry = useMemo(
+    () =>
+      scorecardTotals(
+        hole,
+        score,
+        par,
+        totalHoles,
+        roundHolesQ.data ?? [],
+        courseHolesQ.data ?? [],
+      ),
+    [hole, score, par, totalHoles, roundHolesQ.data, courseHolesQ.data],
+  );
 
   const isLast = hole >= totalHoles;
   const nextHole = hole + 1;
@@ -210,9 +202,6 @@ export default function HoleEntry() {
     router.replace('/(app)/(tabs)');
   };
 
-  const delta = score - par;
-  const deltaTextColor = delta < 0 ? palette.sage : delta > 1 ? palette.clay : palette.bone + '99';
-
   const yardage = courseHole?.yardage ?? null;
 
   if (!editor.value) {
@@ -244,24 +233,7 @@ export default function HoleEntry() {
 
   return (
     <ScreenContainer>
-      <Pressable
-        onPress={() => void editor.save(false)}
-        accessibilityRole="button"
-        style={{ minHeight: 44, justifyContent: 'center' }}
-      >
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{ color: editor.status === 'error' ? palette.clay : palette.bone, fontSize: 16 }}
-        >
-          {editor.status === 'error'
-            ? 'Not saved · Tap to retry'
-            : editor.status === 'saving' || editor.status === 'unsaved'
-              ? 'Saving score…'
-              : editor.status === 'saved'
-                ? 'Score saved'
-                : 'Enter your score, then continue'}
-        </Text>
-      </Pressable>
+      <ScoreSaveStatus status={editor.status} retry={() => void editor.save(false)} />
       <View
         pointerEvents="none"
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.18 }}
@@ -278,6 +250,8 @@ export default function HoleEntry() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
       >
         {/* Top row */}
         <View
@@ -368,157 +342,16 @@ export default function HoleEntry() {
           </ScrollView>
         ) : null}
 
-        {/* Hole metadata */}
-        <Text
-          style={{
-            fontFamily: fontFamily.mono,
-            fontSize: 11,
-            letterSpacing: 11 * 0.18,
-            color: palette.bone,
-            opacity: 0.7,
-            textTransform: 'uppercase',
-            marginTop: isEditMode ? 24 : 32,
-          }}
-        >
-          HOLE {padded}
-          {yardage ? ` · ${yardage} Y` : ''}
-        </Text>
-
-        {/* PAR hero */}
-        <Text
-          style={{
-            fontFamily: fontFamily.display,
-            fontSize: 80,
-            letterSpacing: -80 * 0.04,
-            color: palette.bone,
-            marginTop: 4,
-            lineHeight: 80 * 0.95,
-          }}
-        >
-          PAR {par}
-        </Text>
-
-        {/* Par picker when course hole missing */}
-        {!courseHole ? (
-          <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>
-            {[3, 4, 5].map((p) => {
-              const active = par === p;
-              return (
-                <Pressable
-                  key={p}
-                  onPress={() => setPar(p)}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 14,
-                    borderWidth: active ? 1 : 0.5,
-                    borderColor: active ? palette.bone : palette.bone + '40',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.bone,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    PAR {p}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        {/* Telemetry strip */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginTop: 28,
-          }}
-        >
-          <Datum label="THRU" value={telemetry.thru} color={palette.bone} />
-          <Datum label="STROKES" value={telemetry.totalScore} color={palette.bone} />
-          <Datum label="VS PAR" value={telemetry.vsPar} color={palette.bone} />
-          <Datum label="PROJ" value={telemetry.projected} color={palette.bone} align="right" />
-        </View>
-
-        {/* Score stepper */}
-        <View style={{ marginTop: 48, alignItems: 'center' }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.18,
-              color: palette.bone,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-            }}
-          >
-            STROKES THIS HOLE
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 32,
-              marginTop: 18,
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Subtract one stroke"
-              onPress={() => setScore((s) => Math.max(1, s - 1))}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                borderWidth: 0.5,
-                borderColor: palette.bone + '40',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 24, color: palette.bone }}>
-                −
-              </Text>
-            </Pressable>
-            <ScoreNumeral value={score} size={120} color={palette.bone} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add one stroke"
-              onPress={() => setScore((s) => Math.min(20, s + 1))}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                borderWidth: 0.5,
-                borderColor: palette.bone + '40',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontFamily: fontFamily.mono, fontSize: 24, color: palette.bone }}>
-                +
-              </Text>
-            </Pressable>
-          </View>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 11,
-              letterSpacing: 11 * 0.18,
-              color: deltaTextColor,
-              marginTop: 12,
-              textTransform: 'uppercase',
-            }}
-          >
-            {deltaLabel(delta, par, score)}
-          </Text>
-        </View>
+        <HoleScorecard
+          hole={hole}
+          par={par}
+          score={score}
+          yardage={yardage}
+          editablePar={!courseHole}
+          telemetry={telemetry}
+          onPar={setPar}
+          onScore={setScore}
+        />
 
         {/* Advance button */}
         <Pressable
@@ -547,55 +380,6 @@ export default function HoleEntry() {
               : `HOLE ${nextHole} · PAR ${nextPar} →`}
           </Text>
         </Pressable>
-
-        {/* Detail chips */}
-        <View style={{ marginTop: 24 }}>
-          <Text
-            style={{
-              fontFamily: fontFamily.mono,
-              fontSize: 9,
-              letterSpacing: 9 * 0.18,
-              color: palette.bone,
-              opacity: 0.55,
-              textTransform: 'uppercase',
-              marginBottom: 6,
-            }}
-          >
-            DRIVE LANDED IN · OPTIONAL
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {(['fairway', 'rough', 'sand', 'water'] as const).map((cat) => {
-              const active = fairwayCategory === cat;
-              return (
-                <Pressable
-                  key={cat}
-                  onPress={() => setFairwayCategory((prev) => (prev === cat ? null : cat))}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderWidth: active ? 1 : 0.5,
-                    borderColor: active ? palette.bone : palette.bone + '40',
-                    backgroundColor: active ? palette.bone + '10' : 'transparent',
-                    alignItems: 'center',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: fontFamily.mono,
-                      fontSize: 11,
-                      letterSpacing: 11 * 0.16,
-                      color: palette.bone,
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {cat}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
 
         {/* GIR (full width, right aligned) */}
         <View style={{ marginTop: 16, flexDirection: 'row', justifyContent: 'flex-end' }}>

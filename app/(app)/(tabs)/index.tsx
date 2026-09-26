@@ -240,11 +240,7 @@ export default function Home() {
                   Your golf starts here.
                 </Text>
                 <Text style={[styles.muted, { marginTop: 10, lineHeight: 24 }]}>
-                  Find golfers using the search bar above. Follow them to see their shared rounds—no
-                  follow-back needed.
-                </Text>
-                <Text style={[styles.muted, { marginTop: 16 }]}>
-                  Ready to play? Tap New round below.
+                  Follow golfers to see their rounds.
                 </Text>
               </View>
             )
