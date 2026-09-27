@@ -1,3 +1,4 @@
+import { AcePhotoPrompt } from '@/components/RoundPhotos';
 import { ScoreSaveStatus } from '@/components/ScoreSaveStatus';
 import { HoleScorecard } from '@/components/HoleScorecard';
 import { Topo } from '@/components/Topo';
@@ -503,6 +504,14 @@ function PlayerScore({
         onPar={onPar}
         onScore={editor.setScore}
       />
+      {v.score === 1 && editor.status === 'saved' && (
+        <AcePhotoPrompt
+          key={`${player.user_id}:${hole}`}
+          roundId={roundId}
+          playerId={player.user_id}
+          hole={hole}
+        />
+      )}
       <View
         style={{
           flexDirection: 'row',

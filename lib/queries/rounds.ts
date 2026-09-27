@@ -87,6 +87,8 @@ export function useUpsertHoleScore() {
       return data as Tables<'round_holes'>;
     },
     onSuccess: (saved, vars) => {
+      void qc.invalidateQueries({ queryKey: ['roundPhotos'] });
+      void qc.invalidateQueries({ queryKey: ['profilePhotos'] });
       // Merge into cache without triggering refetch (which would race with
       // the user's next tap and revert their input).
       qc.setQueryData<Tables<'round_holes'>[]>(['round_holes', vars.round_id], (prev) => {

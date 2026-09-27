@@ -31,6 +31,9 @@ export function useBlock() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['is_blocked', vars.blockerId, vars.blockedId] });
       qc.invalidateQueries({ queryKey: ['feed', vars.blockerId] });
+      qc.removeQueries({ queryKey: ['roundPhotos'] });
+      qc.removeQueries({ queryKey: ['profilePhotos'] });
+      qc.removeQueries({ queryKey: ['photoUrl'] });
       qc.invalidateQueries({ queryKey: ['profile_by_username'] });
       qc.invalidateQueries({ queryKey: ['followers_list'] });
       qc.invalidateQueries({ queryKey: ['following_list'] });
@@ -52,6 +55,9 @@ export function useUnblock() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['is_blocked', vars.blockerId, vars.blockedId] });
       qc.invalidateQueries({ queryKey: ['feed', vars.blockerId] });
+      qc.removeQueries({ queryKey: ['roundPhotos'] });
+      qc.removeQueries({ queryKey: ['profilePhotos'] });
+      qc.removeQueries({ queryKey: ['photoUrl'] });
     },
   });
 }

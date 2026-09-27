@@ -1,3 +1,4 @@
+import { ProfilePhotos } from '@/components/RoundPhotos';
 import { BrassOverview } from '@/components/BrassOverview';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
@@ -347,6 +348,7 @@ export default function Profile() {
               </Text>
             </Pressable>
 
+            <ProfilePhotos userId={viewerId} />
             {/* Recent rounds label */}
             <Text
               style={{

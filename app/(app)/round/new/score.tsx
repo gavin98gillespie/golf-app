@@ -1,3 +1,4 @@
+import { AcePhotoPrompt } from '@/components/RoundPhotos';
 import { ScoreSaveStatus } from '@/components/ScoreSaveStatus';
 import { scorecardTotals } from '@/lib/games/scorecard';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -355,6 +356,14 @@ export default function HoleEntry() {
           onScore={setScore}
         />
 
+        {score === 1 && editor.status === 'saved' && session?.user.id && roundId && (
+          <AcePhotoPrompt
+            key={`${roundId}:${hole}`}
+            roundId={roundId}
+            playerId={session.user.id}
+            hole={hole}
+          />
+        )}
         {/* Advance button */}
         <Pressable
           onPress={advance}

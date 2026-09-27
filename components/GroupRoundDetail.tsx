@@ -1,3 +1,4 @@
+import { RoundPhotoSection } from '@/components/RoundPhotos';
 import { GameEmblem } from '@/components/GameEmblem';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
@@ -302,6 +303,23 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
               </View>
             </Pressable>
           )}
+          <RoundPhotoSection
+            roundId={roundId}
+            canEdit={canEditOrDelete}
+            groupFinished={
+              !round.is_draft &&
+              players.some((p) => p.status === 'finished') &&
+              !players.some((p) => p.status === 'joined' || p.status === 'invited')
+            }
+            aces={holes
+              .filter((h) => h.score === 1)
+              .map((h) => ({
+                playerId: h.player_id,
+                hole: h.hole_number,
+                name:
+                  players.find((p) => p.user_id === h.player_id)?.profile?.display_name ?? 'Player',
+              }))}
+          />
           <RoundGames
             overview
             roundId={roundId}

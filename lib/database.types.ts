@@ -361,6 +361,21 @@ export type Database = {
           },
         ]
       }
+      photo_cleanup_queue: {
+        Row: {
+          created_at: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -641,6 +656,78 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_round_summaries"
             referencedColumns: ["round_id_dup"]
+          },
+        ]
+      }
+      round_photos: {
+        Row: {
+          created_at: string
+          hole_number: number | null
+          id: string
+          kind: string
+          player_id: string | null
+          round_id: string
+          slot: string | null
+          storage_path: string
+          uploader_id: string
+        }
+        Insert: {
+          created_at?: string
+          hole_number?: number | null
+          id?: string
+          kind: string
+          player_id?: string | null
+          round_id: string
+          slot?: string | null
+          storage_path: string
+          uploader_id: string
+        }
+        Update: {
+          created_at?: string
+          hole_number?: number | null
+          id?: string
+          kind?: string
+          player_id?: string | null
+          round_id?: string
+          slot?: string | null
+          storage_path?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_photos_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_photos_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+          {
+            foreignKeyName: "round_photos_round_id_player_id_fkey"
+            columns: ["round_id", "player_id"]
+            isOneToOne: false
+            referencedRelation: "round_players"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_photos_round_id_player_id_fkey"
+            columns: ["round_id", "player_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id", "user_id"]
+          },
+          {
+            foreignKeyName: "round_photos_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -955,6 +1042,7 @@ export type Database = {
       are_mutuals: { Args: { a: string; b: string }; Returns: boolean }
       calculate_skins_result: { Args: { p_round: string }; Returns: Json }
       calculate_skins_units: { Args: { p_round: string }; Returns: Json }
+      can_attach_round_photo: { Args: { p_round: string }; Returns: boolean }
       can_read_round: { Args: { p_round_id: string }; Returns: boolean }
       can_score_group: { Args: { p_round: string }; Returns: boolean }
       configure_skins: {
@@ -1003,6 +1091,35 @@ export type Database = {
       is_username_available: {
         Args: { check_username: string }
         Returns: boolean
+      }
+      photo_eligible: {
+        Args: {
+          p_hole: number
+          p_kind: string
+          p_player: string
+          p_round: string
+        }
+        Returns: boolean
+      }
+      profile_round_photos: {
+        Args: { p_user: string }
+        Returns: {
+          created_at: string
+          hole_number: number | null
+          id: string
+          kind: string
+          player_id: string | null
+          round_id: string
+          slot: string | null
+          storage_path: string
+          uploader_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "round_photos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       redeem_join_code: {
         Args: { p_code: string; p_tee_box: string }

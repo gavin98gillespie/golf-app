@@ -1,3 +1,4 @@
+import { RoundPhotoStrip } from '@/components/RoundPhotos';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
@@ -121,6 +122,7 @@ export function GroupRoundCard({ round, viewerId }: Props) {
         </Text>
       </View>
 
+      <RoundPhotoStrip roundId={round.id} />
       {/* Topo header with course label */}
       <View style={{ position: 'relative', height: 132 }}>
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.85 }}>

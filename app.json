@@ -68,6 +68,14 @@
             "NSPrivacyCollectedDataTypePurposes": [
               "NSPrivacyCollectedDataTypePurposeAppFunctionality"
             ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosorVideos",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           }
         ]
       }
@@ -106,7 +114,15 @@
           "backgroundColor": "#0E1410"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Linksman uses selected photos to celebrate a hole in one or remember your group round.",
+          "cameraPermission": "Linksman uses your camera to take a round photo.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "router": {},

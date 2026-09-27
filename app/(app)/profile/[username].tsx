@@ -1,3 +1,4 @@
+import { ProfilePhotos } from '@/components/RoundPhotos';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -308,6 +309,7 @@ export default function OtherProfile() {
               </Pressable>
             </View>
 
+            <ProfilePhotos userId={profile?.id} />
             <Text
               style={{
                 fontFamily: fontFamily.mono,

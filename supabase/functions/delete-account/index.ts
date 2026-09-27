@@ -41,6 +41,50 @@ Deno.serve(async (req) => {
   const userId = userData.user.id;
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  // Storage-owned objects must be removed before deleting their auth owner.
+  const { data: owned, error: photoErr } = await admin
+    .from('round_photos')
+    .select('storage_path')
+    .eq('uploader_id', userId);
+  if (photoErr)
+    return new Response(
+      JSON.stringify({ error: 'Could not remove account photos. Please retry.' }),
+      { status: 500 },
+    );
+  // Include abandoned uploads which never received a metadata row.
+  const { data: folders, error: folderError } = await admin.storage
+    .from('round-photos')
+    .list(userId, { limit: 1000 });
+  if (folderError)
+    return new Response(JSON.stringify({ error: 'Could not read account photos. Please retry.' }), {
+      status: 500,
+    });
+  const paths = new Set((owned ?? []).map((p) => p.storage_path));
+  for (const folder of folders ?? []) {
+    let offset = 0;
+    while (true) {
+      const { data: files, error } = await admin.storage
+        .from('round-photos')
+        .list(`${userId}/${folder.name}`, { limit: 1000, offset });
+      if (error)
+        return new Response(
+          JSON.stringify({ error: 'Could not read account photos. Please retry.' }),
+          { status: 500 },
+        );
+      for (const f of files ?? []) paths.add(`${userId}/${folder.name}/${f.name}`);
+      if (!files || files.length < 1000) break;
+      offset += 1000;
+    }
+  }
+  const allPaths = [...paths];
+  for (let i = 0; i < allPaths.length; i += 100) {
+    const { error } = await admin.storage.from('round-photos').remove(allPaths.slice(i, i + 100));
+    if (error)
+      return new Response(
+        JSON.stringify({ error: 'Could not remove account photos. Please retry.' }),
+        { status: 500 },
+      );
+  }
   const { error: delErr } = await admin.auth.admin.deleteUser(userId);
   if (delErr) {
     return new Response(JSON.stringify({ error: delErr.message }), {

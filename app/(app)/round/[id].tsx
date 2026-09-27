@@ -1,3 +1,4 @@
+import { RoundPhotoSection } from '@/components/RoundPhotos';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -362,6 +363,13 @@ export default function RoundDetail() {
             </View>
           ) : null}
 
+          <RoundPhotoSection
+            roundId={round.id}
+            canEdit={isOwner}
+            aces={(roundHolesQ.data ?? [])
+              .filter((h) => h.score === 1)
+              .map((h) => ({ playerId: h.player_id, hole: h.hole_number }))}
+          />
           {/* Hole grid */}
           {holeRows.length > 0 ? (
             <View

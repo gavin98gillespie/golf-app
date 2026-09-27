@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { cleanupPhotos } from '@/lib/queries/roundPhotos';
 import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
@@ -7,6 +9,9 @@ import { fontFamily, palette } from '@/theme/linksman';
 
 export default function AppLayout() {
   const { session } = useSession();
+  useEffect(() => {
+    if (session?.user.id) void cleanupPhotos();
+  }, [session?.user.id]);
   const profileQ = useMyProfile(session?.user.id);
 
   if (!session) {
