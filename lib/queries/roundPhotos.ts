@@ -37,12 +37,28 @@ export function usePhotoUrl(photo: RoundPhoto) {
 export function useProfilePhotos(userId: string | undefined) {
   const { session } = useSession();
   return useQuery({
-    queryKey: ['profilePhotos', session?.user.id, userId],
+    queryKey: ['profilePhotos', session?.user.id, userId, 'highlights'],
     enabled: !!userId && !!session,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('profile_round_photos', { p_user: userId! });
       if (error) throw error;
-      return data;
+      if (!data.length) return [];
+      // The RPC limits this to 30 photos; batch their round context into one read.
+      const { data: rounds, error: roundError } = await supabase
+        .from('rounds')
+        .select('id, played_at, courses(name, city, state)')
+        .in('id', [...new Set(data.map((photo) => photo.round_id))]);
+      if (roundError) throw roundError;
+      return data
+        .map((photo) => ({
+          ...photo,
+          round: rounds.find((round) => round.id === photo.round_id) ?? null,
+        }))
+        .sort(
+          (a, b) =>
+            (b.round?.played_at ?? '').localeCompare(a.round?.played_at ?? '') ||
+            b.created_at.localeCompare(a.created_at),
+        );
     },
   });
 }

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { parseLocalDate } from '@/lib/date';
 import {
   ActivityIndicator,
   Alert,
@@ -307,41 +309,136 @@ export function RoundPhotoStrip({ roundId }: { roundId: string }) {
     </ScrollView>
   );
 }
-export function ProfilePhotos({ userId }: { userId: string | undefined }) {
+export function ProfilePhotos({
+  userId,
+  light = true,
+}: {
+  userId: string | undefined;
+  light?: boolean;
+}) {
   const photos = useProfilePhotos(userId);
+  const [expandedFor, setExpandedFor] = useState<string | null>(null);
+  const expanded = !!userId && expandedFor === userId;
+  const fg = light ? palette.ink : palette.bone;
+  const secondary = light ? palette.fairway : palette.sage;
   if (!photos.data?.length) return null;
+  const visible = expanded ? photos.data : photos.data.slice(0, 1);
   return (
     <View style={{ marginTop: 28 }}>
-      <Text
+      <View
         style={{
-          fontFamily: fontFamily.display,
-          fontSize: 26,
-          color: palette.ink,
-          marginBottom: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
         }}
       >
-        Photos
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 12 }}
-      >
-        {photos.data.map((p) => (
+        <Text style={{ fontFamily: fontFamily.display, fontSize: 24, color: fg }}>Highlights</Text>
+        {photos.data.length > 1 && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              expanded ? 'Show fewer highlights' : `Show ${photos.data.length - 1} more highlights`
+            }
+            accessibilityState={{ expanded }}
+            onPress={() => setExpandedFor(expanded ? null : (userId ?? null))}
+            style={({ pressed }) => ({
+              minHeight: 44,
+              justifyContent: 'center',
+              paddingHorizontal: 4,
+              opacity: pressed ? 0.55 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 13, color: secondary }}>
+              {expanded ? 'Show less −' : `Show more +${photos.data.length - 1}`}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      {visible.map((p) => {
+        const title = p.kind === 'ace' ? 'Hole in one' : 'Group round';
+        const course = p.round?.courses?.name ?? 'Course unavailable';
+        const location = [p.round?.courses?.city, p.round?.courses?.state]
+          .filter(Boolean)
+          .join(', ');
+        const date = p.round?.played_at
+          ? format(parseLocalDate(p.round.played_at), 'MMM d, yyyy')
+          : null;
+        return (
           <Pressable
             key={p.id}
             accessibilityRole="button"
-            accessibilityLabel={label(p)}
+            accessibilityLabel={[
+              title,
+              p.kind === 'ace' ? `Hole ${p.hole_number}` : '',
+              course,
+              location,
+              date,
+              'Open round',
+            ]
+              .filter(Boolean)
+              .join(', ')}
             onPress={() => router.push({ pathname: '/round/[id]', params: { id: p.round_id } })}
-            style={{ width: 140 }}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              gap: 16,
+              alignItems: 'center',
+              paddingVertical: 16,
+              borderBottomWidth: 0.5,
+              borderColor: fg + '25',
+              opacity: pressed ? 0.65 : 1,
+            })}
           >
-            <View pointerEvents="none">
+            <View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{ width: 84 }}
+            >
               <PhotoImage photo={p} thumbnail />
             </View>
-            <Text style={{ fontSize: 12, color: palette.fairway, marginTop: 8 }}>{label(p)}</Text>
+            <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+              <Text style={{ fontFamily: fontFamily.display, fontSize: 21, color: fg }}>
+                {title}
+              </Text>
+              <Text numberOfLines={2} style={{ fontSize: 14, lineHeight: 19, color: fg }}>
+                {course}
+              </Text>
+              {!!location && (
+                <Text numberOfLines={1} style={{ fontSize: 12, color: secondary }}>
+                  {location}
+                </Text>
+              )}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  columnGap: 9,
+                  rowGap: 4,
+                  marginTop: 2,
+                }}
+              >
+                {p.kind === 'ace' && (
+                  <Text style={{ fontFamily: fontFamily.mono, fontSize: 10, color: secondary }}>
+                    HOLE {String(p.hole_number).padStart(2, '0')}
+                  </Text>
+                )}
+                {p.kind === 'ace' && date && (
+                  <View
+                    style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: palette.brass }}
+                  />
+                )}
+                {date && (
+                  <Text style={{ fontFamily: fontFamily.mono, fontSize: 10, color: secondary }}>
+                    {date.toUpperCase()}
+                  </Text>
+                )}
+              </View>
+            </View>
           </Pressable>
-        ))}
-      </ScrollView>
+        );
+      })}
     </View>
   );
 }

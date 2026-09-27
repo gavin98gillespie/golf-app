@@ -309,7 +309,7 @@ export default function OtherProfile() {
               </Pressable>
             </View>
 
-            <ProfilePhotos userId={profile?.id} />
+            <ProfilePhotos userId={profile?.id} light={false} />
             <Text
               style={{
                 fontFamily: fontFamily.mono,
