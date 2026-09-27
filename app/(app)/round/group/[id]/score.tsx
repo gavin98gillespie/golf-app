@@ -76,6 +76,34 @@ export default function GroupScore() {
       return data ?? [];
     },
   });
+  const pars = useQuery({
+    queryKey: ['roundPars', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_round_pars', { p_round: id });
+      if (error) throw error;
+      return data as Record<string, number>;
+    },
+    refetchInterval: 5000,
+  });
+  const changePar = async (par: number) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (!(await flush())) return;
+      const { error } = await supabase.rpc('set_group_hole_par', {
+        p_round: id,
+        p_hole: hole,
+        p_par: par,
+      });
+      if (error) throw error;
+      await Promise.all([pars.refetch(), group.refetch()]);
+      refreshSummaries();
+    } catch (error) {
+      Alert.alert('Could not change par', (error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const canEdit =
     round?.user_id === session?.user.id || players.some((p) => p.user_id === session?.user.id);
   const flush = async (confirm = false) => {
@@ -203,7 +231,7 @@ export default function GroupScore() {
               accessibilityRole="button"
               style={s.button}
               onPress={async () => {
-                if (group.isError || courseHoles.isError || (await flush())) {
+                if (group.isError || courseHoles.isError || pars.isError || (await flush())) {
                   refreshSummaries();
                   router.dismissTo({ pathname: '/round/[id]', params: { id } });
                 }
@@ -215,12 +243,13 @@ export default function GroupScore() {
               {String(hole).padStart(2, '0')}/{String(total).padStart(2, '0')}
             </Text>
           </View>
-          {group.isError || courseHoles.isError ? (
+          {group.isError || courseHoles.isError || pars.isError ? (
             <Pressable
               style={s.button}
               onPress={() => {
                 void group.refetch();
                 void courseHoles.refetch();
+                void pars.refetch();
               }}
             >
               <Text style={s.link}>Could not load round. Retry</Text>
@@ -278,10 +307,19 @@ export default function GroupScore() {
                   totalHoles={total}
                   played={group.data?.holes.filter((h) => h.player_id === p.user_id) ?? []}
                   course={courseHoles.data?.filter((h) => h.tee_box === p.tee_box) ?? []}
-                  ready={courseHoles.isSuccess}
+                  ready={courseHoles.isSuccess && pars.isSuccess}
+                  sharedPar={pars.data?.[String(hole)]}
+                  onPar={(par) => void changePar(par)}
+                  disabled={busy}
                   coursePar={
-                    courseHoles.data?.find((h) => h.hole_number === hole && h.tee_box === p.tee_box)
-                      ?.par
+                    (
+                      courseHoles.data?.find(
+                        (h) => h.hole_number === hole && h.tee_box === p.tee_box,
+                      ) ??
+                      courseHoles.data?.find(
+                        (h) => h.hole_number === hole && h.tee_box === 'default',
+                      )
+                    )?.par
                   }
                   existing={group.data?.holes.find(
                     (h) => h.player_id === p.user_id && h.hole_number === hole,
@@ -350,6 +388,9 @@ function PlayerScore({
   hole,
   ready,
   coursePar,
+  sharedPar,
+  onPar,
+  disabled,
   existing,
   active,
   totalHoles,
@@ -363,6 +404,9 @@ function PlayerScore({
   hole: number;
   ready: boolean;
   coursePar: number | undefined;
+  sharedPar: number | undefined;
+  onPar: (par: number) => void;
+  disabled: boolean;
   existing: Tables<'round_holes'> | undefined;
   active: boolean;
   totalHoles: number;
@@ -378,6 +422,7 @@ function PlayerScore({
     ready,
     existing,
     coursePar,
+    sharedPar,
   });
   const [details, setDetails] = useState(false);
   const [notes, setNotes] = useState(player.notes ?? '');
@@ -447,15 +492,15 @@ function PlayerScore({
     </View>
   );
   return (
-    <View>
+    <View pointerEvents={disabled ? 'none' : 'auto'}>
       <HoleScorecard
         hole={hole}
         par={v.par}
         score={v.score}
-        editablePar={!course.find((h) => h.hole_number === hole)}
+        editablePar
         yardage={course.find((h) => h.hole_number === hole)?.yardage}
         telemetry={scorecardTotals(hole, v.score, v.par, totalHoles, played, course)}
-        onPar={editor.setPar}
+        onPar={onPar}
         onScore={editor.setScore}
       />
       <View

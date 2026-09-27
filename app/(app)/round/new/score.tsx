@@ -64,7 +64,7 @@ export default function HoleEntry() {
         .from('course_holes')
         .select('*')
         .eq('course_id', roundQ.data.course_id)
-        .eq('tee_box', roundQ.data.tee_box);
+        .in('tee_box', [...new Set([roundQ.data.tee_box, 'default'])]);
       if (error) throw error;
       return (data ?? []) as Tables<'course_holes'>[];
     },
@@ -75,7 +75,9 @@ export default function HoleEntry() {
   const updateRoundNotes = useUpdateRoundNotes();
 
   const totalHoles = roundQ.data?.hole_count ?? roundQ.data?.courses?.hole_count ?? 18;
-  const courseHole = courseHolesQ.data?.find((h) => h.hole_number === hole);
+  const courseHole =
+    courseHolesQ.data?.find((h) => h.hole_number === hole && h.tee_box === roundQ.data?.tee_box) ??
+    courseHolesQ.data?.find((h) => h.hole_number === hole && h.tee_box === 'default');
   const existingHole = roundHolesQ.data?.find(
     (h) => h.hole_number === hole && h.player_id === session?.user.id,
   );
@@ -347,7 +349,7 @@ export default function HoleEntry() {
           par={par}
           score={score}
           yardage={yardage}
-          editablePar={!courseHole}
+          editablePar
           telemetry={telemetry}
           onPar={setPar}
           onScore={setScore}

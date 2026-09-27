@@ -533,6 +533,39 @@ export type Database = {
         }
         Relationships: []
       }
+      round_hole_pars: {
+        Row: {
+          hole_number: number
+          par: number
+          round_id: string
+        }
+        Insert: {
+          hole_number: number
+          par: number
+          round_id: string
+        }
+        Update: {
+          hole_number?: number
+          par?: number
+          round_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_hole_pars_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_hole_pars_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "user_round_summaries"
+            referencedColumns: ["round_id_dup"]
+          },
+        ]
+      }
       round_holes: {
         Row: {
           edited_at: string | null
@@ -943,6 +976,7 @@ export type Database = {
       force_end_round: { Args: { p_round_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
       get_my_brass_ledger: { Args: never; Returns: Json }
+      get_round_pars: { Args: { p_round: string }; Returns: Json }
       get_skins_game: { Args: { p_round: string }; Returns: Json }
       invalidate_skins: {
         Args: { p_round: string; p_void: boolean }
@@ -996,6 +1030,10 @@ export type Database = {
           p_round: string
           p_stake: number
         }
+        Returns: undefined
+      }
+      set_group_hole_par: {
+        Args: { p_hole: number; p_par: number; p_round: string }
         Returns: undefined
       }
       show_limit: { Args: never; Returns: number }

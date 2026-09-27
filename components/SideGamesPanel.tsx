@@ -1,3 +1,5 @@
+import { GameEmblem } from '@/components/GameEmblem';
+import { payerForWinner } from '@/lib/games/sideGamePlayers';
 import { BrassAmount, BrassCoin } from '@/components/BrassAmount';
 import { useSideGames } from '@/lib/queries/sideGames';
 import { RulesButton } from '@/components/GameRulesSheet';
@@ -95,8 +97,13 @@ export function SideGamesPanel({
     });
   }, [selectedGame, canEdit, players, session?.user.id, hole]);
   const save = async () => {
-    if (!form) return;
-    if (form.from === form.to || !form.from || !form.to) {
+    if (!form || busy) return;
+    const payer = payerForWinner(
+      players.map((p) => p.user_id),
+      form.to,
+      form.from,
+    );
+    if (payer === form.to || !payer || !form.to) {
       Alert.alert('Choose two different players');
       return;
     }
@@ -120,7 +127,7 @@ export function SideGamesPanel({
       const { error } = await supabase.rpc('save_side_game', {
         p_round: roundId,
         ...(form.id ? { p_id: form.id } : {}),
-        p_from: form.from,
+        p_from: payer,
         p_to: form.to,
         p_amount: Number(form.amount),
         p_hole: Number(form.hole),
@@ -152,9 +159,24 @@ export function SideGamesPanel({
   };
   return (
     <View style={{ paddingVertical: 20 }}>
-      <Text style={s.title}>
-        {form?.label || (selectedGame ? GAME_RULES[selectedGame].title : 'Side games')}
-      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.eyebrow}>THE SIDE GAME</Text>
+          <Text style={s.title}>
+            {form?.label || (selectedGame ? GAME_RULES[selectedGame].title : 'Side games')}
+          </Text>
+        </View>
+        <View style={s.seal}>
+          <GameEmblem kind={selectedGame ?? 'custom'} size={42} />
+        </View>
+      </View>
       <Text style={s.small}>
         {selectedGame === 'drive'
           ? 'Longest tee shot in the fairway wins.'
@@ -190,25 +212,6 @@ export function SideGamesPanel({
               />
             </>
           )}
-          <Text style={s.label}>Who pays?</Text>
-          <View style={s.options}>
-            {players.map((p) => (
-              <Pressable
-                accessibilityRole="button"
-                key={p.user_id}
-                accessibilityState={{ selected: form.from === p.user_id }}
-                onPress={() =>
-                  setForm({ ...form, from: p.user_id, to: form.to === p.user_id ? '' : form.to })
-                }
-                style={[s.option, form.from === p.user_id && s.selected]}
-              >
-                <Text style={s.text}>
-                  {form.from === p.user_id ? '✓ ' : ''}
-                  {name(p.user_id)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
           <Text style={s.label}>Winner</Text>
           <View style={s.options}>
             {players.map((p) => (
@@ -220,23 +223,80 @@ export function SideGamesPanel({
                   setForm({
                     ...form,
                     to: p.user_id,
-                    from: form.from === p.user_id ? '' : form.from,
+                    from: payerForWinner(
+                      players.map((p) => p.user_id),
+                      p.user_id,
+                      form.from,
+                    ),
                   })
                 }
-                style={[s.option, form.to === p.user_id && s.selected]}
+                disabled={busy}
+                style={[s.contender, form.to === p.user_id && s.winner]}
               >
-                <Text style={s.text}>
-                  {form.to === p.user_id ? '✓ ' : ''}
-                  {name(p.user_id)}
+                <View
+                  style={[s.avatar, form.to === p.user_id && { backgroundColor: palette.brass }]}
+                >
+                  <Text
+                    style={{ fontFamily: fontFamily.display, fontSize: 30, color: palette.ink }}
+                  >
+                    {name(p.user_id).slice(0, 1)}
+                  </Text>
+                </View>
+                <Text style={[s.text, { textAlign: 'center' }]}>{name(p.user_id)}</Text>
+                <Text
+                  style={[
+                    s.eyebrow,
+                    { color: form.to === p.user_id ? palette.brass : palette.sage },
+                  ]}
+                >
+                  {form.to === p.user_id ? '✓ WINNER' : 'SELECT'}
                 </Text>
               </Pressable>
             ))}
           </View>
-          <View style={{ flexDirection: 'row', gap: 24, marginTop: 12 }}>
+          {players.length > 2 && (
+            <>
+              <Text style={s.label}>Who pays?</Text>
+              <View style={s.options}>
+                {players.map((p) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={p.user_id}
+                    accessibilityState={{ selected: form.from === p.user_id }}
+                    onPress={() =>
+                      setForm({
+                        ...form,
+                        from: p.user_id,
+                        to: form.to === p.user_id ? '' : form.to,
+                      })
+                    }
+                    style={[s.option, form.from === p.user_id && s.selected]}
+                  >
+                    <Text style={s.text}>
+                      {form.from === p.user_id ? '✓ ' : ''}
+                      {name(p.user_id)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 24,
+              marginTop: 20,
+              padding: 18,
+              backgroundColor: palette.bone,
+              borderRadius: 8,
+              borderTopWidth: 3,
+              borderTopColor: palette.brass,
+            }}
+          >
             <View style={{ flex: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <BrassCoin size={24} />
-                <Text style={s.label}>Brass</Text>
+                <Text style={[s.label, { color: palette.ink }]}>Brass</Text>
               </View>
               <TextInput
                 accessibilityLabel="Brass amount"
@@ -244,18 +304,34 @@ export function SideGamesPanel({
                 onChangeText={(amount) => setForm({ ...form, amount })}
                 keyboardType="decimal-pad"
                 inputAccessoryViewID="side-game-inputs"
-                style={s.input}
+                style={[
+                  s.input,
+                  {
+                    color: palette.ink,
+                    borderColor: palette.ink + '33',
+                    fontFamily: fontFamily.display,
+                    fontSize: 36,
+                  },
+                ]}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.label}>Hole</Text>
+              <Text style={[s.label, { color: palette.ink }]}>Hole</Text>
               <TextInput
                 accessibilityLabel="Side game hole"
                 value={form.hole}
                 onChangeText={(hole) => setForm({ ...form, hole })}
                 keyboardType="number-pad"
                 inputAccessoryViewID="side-game-inputs"
-                style={s.input}
+                style={[
+                  s.input,
+                  {
+                    color: palette.ink,
+                    borderColor: palette.ink + '33',
+                    fontFamily: fontFamily.display,
+                    fontSize: 36,
+                  },
+                ]}
               />
             </View>
           </View>
@@ -379,6 +455,44 @@ export function SideGamesPanel({
   );
 }
 const s = StyleSheet.create({
+  eyebrow: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: palette.sage,
+    marginBottom: 8,
+  },
+  seal: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: palette.brass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contender: {
+    flexGrow: 1,
+    flexBasis: '42%',
+    minHeight: 150,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: palette.bone + '33',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: palette.graphite,
+  },
+  winner: { borderColor: palette.brass, backgroundColor: palette.fairway },
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: palette.bone,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontFamily: fontFamily.display, fontSize: 28, color: palette.bone, marginBottom: 8 },
   text: { fontSize: 16, lineHeight: 24, color: palette.bone },
   label: { fontSize: 18, lineHeight: 25, color: palette.bone, marginVertical: 12 },

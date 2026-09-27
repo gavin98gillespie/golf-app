@@ -63,6 +63,20 @@ export class ScoreDraft {
     this.publish({ value, status: recorded ? 'saved' : 'untouched' });
   }
 
+  syncPar(par: number) {
+    if (!this.state.value || this.state.value.par === par) return;
+    if (this.state.status === 'untouched') {
+      // A par change is course context, not a confirmed score for an unseen player.
+      this.publish({ value: { ...this.state.value, par, score: par }, status: 'untouched' });
+    } else if (this.state.status === 'saved') {
+      // The par RPC already updated this row. Do not re-save stale strokes from another phone.
+      this.publish({ value: { ...this.state.value, par }, status: 'saved' });
+    } else {
+      // Preserve actual strokes and optional stats on already edited/recorded holes.
+      this.edit('par', par);
+    }
+  }
+
   edit<K extends keyof HoleDraft>(
     key: K,
     update: HoleDraft[K] | ((prev: HoleDraft[K]) => HoleDraft[K]),

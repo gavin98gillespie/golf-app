@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Duran Golf Club",
+    "lat": 28.238643,
+    "lng": -80.73911,
+    "source": "https://durangolf.com/scorecard/",
+    "checked": "2026-09-26",
+    "pars": [5, 4, 4, 3, 4, 4, 3, 4, 5, 4, 5, 4, 3, 4, 5, 4, 3, 4]
+  },
+  {
+    "name": "Viera East Golf Club",
+    "lat": 28.278649,
+    "lng": -80.728457,
+    "source": "https://vieragolf.com/wp-content/uploads/sites/119/2026/07/SKM_C250i26073109320_page-0001-copy.webp",
+    "checked": "2026-09-26",
+    "pars": [5, 4, 4, 3, 5, 4, 3, 4, 4, 4, 5, 4, 3, 5, 4, 3, 4, 4]
+  },
+  {
+    "name": "Baytree National",
+    "lat": 28.216683,
+    "lng": -80.707736,
+    "source": "https://www.baytreenational.com/yardage-book/",
+    "checked": "2026-09-26",
+    "pars": [4, 3, 4, 3, 5, 4, 4, 5, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4]
+  }
+]

@@ -247,7 +247,71 @@ test('one scorekeeper, guests, automatic skins and editable Brass amounts', asyn
       assert.equal(await balance(), 175);
     },
   );
+  await t.test(
+    'shared par updates every player without changing strokes or recording unplayed holes',
+    async () => {
+      await asUser(a);
+      await db.query('SELECT set_group_hole_par($1,1,3)', [round]);
+      assert.equal(
+        await scalar<number>(
+          'SELECT count(*)::int v FROM round_holes WHERE round_id=$1 AND hole_number=1 AND par=3',
+          [round],
+        ),
+        2,
+      );
+      assert.equal(
+        await scalar<number>(
+          'SELECT score v FROM round_holes WHERE round_id=$1 AND player_id=$2 AND hole_number=1',
+          [round, a],
+        ),
+        7,
+      );
+      await db.query('UPDATE round_holes SET par=4 WHERE round_id=$1 AND hole_number=1', [round]);
+      assert.deepEqual(await scalar('SELECT get_round_pars($1) v', [round]), { '1': 3 });
+      assert.equal(
+        await scalar<number>(
+          'SELECT min(par)::int v FROM round_holes WHERE round_id=$1 AND hole_number=1',
+          [round],
+        ),
+        3,
+      );
+      await db.query('DELETE FROM round_holes WHERE round_id=$1 AND hole_number=9', [round]);
+      await db.query('SELECT set_group_hole_par($1,9,5)', [round]);
+      assert.equal(
+        await scalar<number>(
+          'SELECT count(*)::int v FROM round_holes WHERE round_id=$1 AND hole_number=9',
+          [round],
+        ),
+        0,
+      );
+      await db.query(
+        'INSERT INTO round_holes(round_id,player_id,hole_number,score,par) VALUES($1,$2,9,6,4)',
+        [round, a],
+      );
+      assert.equal(
+        await scalar<number>('SELECT par v FROM round_holes WHERE round_id=$1 AND hole_number=9', [
+          round,
+        ]),
+        5,
+      );
+      await assert.rejects(db.query('SELECT set_group_hole_par($1,18,3)', [round]), /Invalid hole/);
+      await asUser(out);
+      await assert.rejects(
+        db.query('SELECT set_group_hole_par($1,1,5)', [round]),
+        /Only this group/,
+      );
+      await assert.rejects(
+        db.query('UPDATE round_hole_pars SET par=4 WHERE round_id=$1', [round]),
+        /permission denied/,
+      );
+    },
+  );
   await t.test('deleted account attribution clears without blocking deletion', async () => {
+    await asUser(b);
+    await db.query(
+      'UPDATE round_holes SET score=8 WHERE round_id=$1 AND player_id=$2 AND hole_number=1',
+      [round, a],
+    );
     await db.exec('RESET ROLE');
     await db.query('DELETE FROM auth.users WHERE id=$1', [b]);
     await asUser(a);

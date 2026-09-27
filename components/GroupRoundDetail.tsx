@@ -1,3 +1,4 @@
+import { GameEmblem } from '@/components/GameEmblem';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -275,15 +276,49 @@ export function GroupRoundDetail({ roundId }: { roundId: string }) {
               }
               style={{ minHeight: 48, justifyContent: 'center' }}
             >
-              <Text style={{ fontSize: 17, color: palette.bone }}>Edit group scores →</Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 14,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: palette.brass + '88',
+                }}
+              >
+                <GameEmblem kind="round" size={24} />
+                <Text
+                  style={{
+                    fontFamily: fontFamily.mono,
+                    letterSpacing: 1,
+                    fontSize: 12,
+                    color: palette.bone,
+                  }}
+                >
+                  EDIT SCORECARD
+                </Text>
+              </View>
             </Pressable>
           )}
           <RoundGames
+            overview
             roundId={roundId}
             players={players}
             canEdit={canEditOrDelete}
             holeCount={round.hole_count ?? 18}
           />
+          <Text
+            style={{
+              fontFamily: fontFamily.display,
+              color: palette.bone,
+              fontSize: 30,
+              marginTop: 24,
+            }}
+          >
+            Scorecards
+          </Text>
           {/* Per-player slices */}
           {visiblePlayers.map((p) => {
             const playerHoles = holes

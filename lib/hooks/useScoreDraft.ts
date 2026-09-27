@@ -18,6 +18,7 @@ export function useScoreDraft(input: {
   ready: boolean;
   existing: Tables<'round_holes'> | undefined;
   coursePar: number | undefined;
+  sharedPar?: number | undefined;
 }) {
   const { mutateAsync: saveScore } = useUpsertHoleScore();
   const { roundId, playerId, hole, ready, existing, coursePar } = input;
@@ -93,7 +94,7 @@ export function useScoreDraft(input: {
 
   useEffect(() => {
     if (!ready || !recovered || !roundId || !playerId) return;
-    const par = existing?.par ?? coursePar ?? 4;
+    const par = input.sharedPar ?? existing?.par ?? coursePar ?? 4;
     draft.hydrate(
       {
         par,
@@ -109,7 +110,7 @@ export function useScoreDraft(input: {
       },
       !!existing,
     );
-  }, [draft, ready, recovered, roundId, playerId, existing, coursePar]);
+  }, [draft, ready, recovered, roundId, playerId, existing, coursePar, input.sharedPar]);
 
   useEffect(() => {
     if (!ready || !recovered || state.status !== 'unsaved') return;
@@ -118,6 +119,10 @@ export function useScoreDraft(input: {
     }, 250);
     return () => clearTimeout(timer);
   }, [draft, state, ready, recovered]);
+
+  useEffect(() => {
+    if (ready && recovered && input.sharedPar !== undefined) draft.syncPar(input.sharedPar);
+  }, [draft, ready, recovered, input.sharedPar]);
 
   const save = async (confirm = true) => {
     try {

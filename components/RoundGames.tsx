@@ -49,10 +49,24 @@ export function RoundBrass({ roundId, finished = false }: { roundId: string; fin
     side.data ?? [],
   );
   return (
-    <View style={s.summary}>
-      <Text style={s.label}>{finished ? 'YOUR ROUND RESULT' : 'YOUR ROUND · LIVE BRASS'}</Text>
-      <BrassAmount amount={amount} signed size={34} />
-      <Text style={s.detail}>
+    <View
+      style={[
+        s.summary,
+        finished && {
+          backgroundColor: palette.bone,
+          borderRadius: 8,
+          borderTopWidth: 4,
+          borderTopColor: palette.brass,
+          padding: 22,
+          marginVertical: 18,
+        },
+      ]}
+    >
+      <Text style={[s.label, finished && { color: palette.fairway, fontSize: 12 }]}>
+        {finished ? 'YOUR ROUND RESULT' : 'YOUR ROUND · LIVE BRASS'}
+      </Text>
+      <BrassAmount amount={amount} signed size={finished ? 48 : 34} light={finished} />
+      <Text style={[s.detail, finished && { color: palette.fairway }]}>
         {amount > 0
           ? `You ${finished ? 'made' : 'are up'} ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} Brass`
           : amount < 0
@@ -75,6 +89,7 @@ export function RoundGames({
   autoOpen = false,
   onSelect,
   beforeOpen,
+  overview = false,
 }: {
   roundId: string;
   players: GroupRoundPlayer[];
@@ -86,6 +101,7 @@ export function RoundGames({
   autoOpen?: boolean;
   onSelect?: (game: GameKind) => void;
   beforeOpen?: () => Promise<boolean>;
+  overview?: boolean;
 }) {
   const [selected, setSelected] = useState<GameKind | null>(
     autoOpen && !lobby ? (initialGame ?? null) : null,
@@ -108,8 +124,19 @@ export function RoundGames({
   return (
     <View style={[s.section, lobby && { borderColor: palette.ink + '22' }]}>
       <View style={s.heading}>
-        <Text style={[s.label, lobby && { color: palette.fairway }]}>
-          {lobby ? 'GAMES · OPTIONAL' : `GAMES · HOLE ${hole}`}
+        <Text
+          style={[
+            s.label,
+            lobby && { color: palette.fairway },
+            overview && {
+              fontFamily: fontFamily.display,
+              fontSize: 30,
+              letterSpacing: 0,
+              color: palette.bone,
+            },
+          ]}
+        >
+          {overview ? 'Games & results' : lobby ? 'GAMES · OPTIONAL' : `GAMES · HOLE ${hole}`}
         </Text>
         {activeSkins && (
           <Text style={[s.detail, lobby && { color: palette.fairway }]}>Skins on</Text>
@@ -144,27 +171,60 @@ export function RoundGames({
       {!lobby && activeSkins && (
         <Text style={s.detail}>
           Skins ·{' '}
-          {result?.state === 'won'
-            ? `${activeSkins.players.find((p) => p.userId === result.winnerId)?.name ?? 'Player'} wins`
-            : result?.state === 'carried'
-              ? hole === holeCount
-                ? 'Tied · no award'
-                : 'Tied · carries forward'
-              : 'Awaiting scores'}
+          {overview
+            ? `${activeSkins.result?.resolvedHoles ?? 0} holes scored`
+            : result?.state === 'won'
+              ? `${activeSkins.players.find((p) => p.userId === result.winnerId)?.name ?? 'Player'} wins`
+              : result?.state === 'carried'
+                ? hole === holeCount
+                  ? 'Tied · no award'
+                  : 'Tied · carries forward'
+                : 'Awaiting scores'}
         </Text>
       )}
       {!lobby &&
         side.data
-          ?.filter((entry) => entry.hole === hole)
+          ?.filter((entry) => overview || entry.hole === hole)
+          .sort((a, b) => a.hole - b.hole)
           .map((entry) => (
-            <View key={entry.id} style={{ paddingVertical: 8, gap: 6 }}>
-              <Text style={s.detail}>
-                {entry.label} ·{' '}
-                {players.find((p) => p.user_id === entry.to_player)?.profile?.display_name ??
-                  'Player'}{' '}
-                won
-              </Text>
-              <BrassAmount amount={entry.amount} size={22} />
+            <View
+              key={entry.id}
+              style={{
+                flexDirection: 'row',
+                gap: 14,
+                paddingVertical: 18,
+                borderBottomWidth: 0.5,
+                borderColor: palette.bone + '22',
+              }}
+            >
+              <View style={{ width: 44, alignItems: 'center', paddingTop: 4 }}>
+                <GameEmblem
+                  kind={
+                    entry.label === GAME_RULES.drive.title
+                      ? 'drive'
+                      : entry.label === GAME_RULES.closest.title
+                        ? 'closest'
+                        : 'custom'
+                  }
+                />
+                <Text style={[s.label, { marginTop: 8 }]}>
+                  {String(entry.hole).padStart(2, '0')}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: fontFamily.display, fontSize: 22, color: palette.bone }}>
+                  {entry.label} ·{' '}
+                  {players.find((p) => p.user_id === entry.to_player)?.profile?.display_name ??
+                    'Player'}{' '}
+                  won
+                </Text>
+                <Text style={s.detail}>
+                  From{' '}
+                  {players.find((p) => p.user_id === entry.from_player)?.profile?.display_name ??
+                    'Player'}
+                </Text>
+                <BrassAmount amount={entry.amount} size={22} />
+              </View>
             </View>
           ))}
       <Modal
@@ -175,7 +235,7 @@ export function RoundGames({
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: palette.ink }}>
           <View style={s.modalHeader}>
-            <Text style={s.label}>{lobby ? 'ROUND GAMES' : `HOLE ${hole}`}</Text>
+            <Text style={s.label}>{lobby || overview ? 'ROUND GAMES' : `HOLE ${hole}`}</Text>
             <Pressable accessibilityRole="button" onPress={close} style={s.close}>
               <Text style={s.detail}>Done</Text>
             </Pressable>

@@ -118,3 +118,32 @@ test('each player and hole has an independent draft', async () => {
   assert.deepEqual(writes, ['first']);
   assert.equal(second.getSnapshot().value?.score, 4);
 });
+
+test('shared par changes unplayed defaults without recording scores, preserving played strokes', async () => {
+  const writes: HoleDraft[] = [];
+  const draft = new ScoreDraft(async (value) => {
+    writes.push(value);
+  });
+  draft.hydrate({ ...hole, score: 4, par: 4 }, false);
+  draft.syncPar(3);
+  await draft.flush();
+  assert.equal(writes.length, 0);
+  assert.equal(draft.getSnapshot().value?.score, 3);
+  draft.edit('score', 6);
+  draft.syncPar(5);
+  await draft.flush(true);
+  assert.equal(writes[0]?.score, 6);
+  assert.equal(writes[0]?.par, 5);
+});
+
+test('remote shared par does not resubmit another player’s saved strokes', async () => {
+  let writes = 0;
+  const draft = new ScoreDraft(async () => {
+    writes++;
+  });
+  draft.hydrate(hole, true);
+  draft.syncPar(3);
+  await draft.flush();
+  assert.equal(writes, 0);
+  assert.deepEqual(draft.getSnapshot().value, { ...hole, par: 3 });
+});
